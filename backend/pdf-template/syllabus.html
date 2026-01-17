@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+
+<title>Syllabus</title>
+
+<style>
+/* ================= PAGE SETUP ================= */
+@page {
+  size: A4;
+  margin: 2mm 15mm 2mm 15mm;
+}
+@font-face {
+  font-family: "Carlito";
+  src: url("fonts/Carlito-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Carlito";
+  src: url("fonts/Carlito-Bold.ttf") format("truetype");
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Carlito";
+  src: url("fonts/Carlito-Italic.ttf") format("truetype");
+  font-weight: normal;
+  font-style: italic;
+}
+
+
+/* body {
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 9pt;
+  color: #000;
+  line-height: 1.4;
+} */
+body {
+  font-family: "Carlito", Calibri, "Segoe UI", Arial, sans-serif;
+  font-size: 9pt;
+  line-height: 1.4;
+}
+
+
+/* ================= HEADER / FOOTER ================= */
+header {
+  position: fixed;
+  top: -18mm;
+  left: 0;
+  right: 0;
+  height: 55mm;
+  text-align: center;
+}
+
+footer {
+  position: fixed;
+  bottom: -22mm;
+  left: 0;
+  right: 0;
+  font-size: 9pt;
+  text-align: center;
+}
+
+.red-line {
+  border-top: 3px solid #cc0000;
+  margin: 6px 0;
+}
+
+/* ================= TABLE BASE ================= */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #999;
+  padding: 4px;
+  text-align: center;
+}
+
+/* ================= COURSE INFO TABLE ================= */
+.info-table th {
+  background: #e6e6e6;
+  font-weight: bold;
+}
+.info-table td {
+  font-weight: bold;
+  color: #0066CC;
+}
+
+/* ================= SECTION BOX ================= */
+.section {
+  margin-top: 10px;
+  page-break-inside: avoid;
+}
+
+.section-title {
+  font-size: 11pt;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+.section ol li{
+  list-style: none;
+}
+.section ul li{
+  list-style: none;
+}
+/* ================= LIST ================= */
+ul, ol {
+  margin: 0;
+  padding-left: 18px;
+}
+
+li {
+  margin-bottom: 3px;
+}
+
+/* ================= MODULE ================= */
+.module {
+  border: 1px solid #999;
+  /* margin-top: 10px; */
+  page-break-inside: avoid;
+}
+
+
+.module-title {
+  font-weight: bold;
+  font-size: 11pt;
+  padding: 1px 5px;
+  border-bottom: 1px solid #999;
+}
+
+.module-content {
+  padding: 1px 5px;
+  text-align: justify;
+  text-align: justify;
+  text-justify: inter-word;
+
+  /* 🔥 KEY FIXES */
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  -ms-hyphens: auto;
+
+  word-break: normal;
+  overflow-wrap: break-word;
+
+  line-height: 1.4;
+}
+
+.module-meta {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #999;
+  border-bottom: 1.3px solid #999;
+  padding: 1px 5px;
+  font-weight: bold;
+}
+
+/* ================= EXPERIMENT TABLE ================= */
+.experiments th {
+  background: #f0f0f0;
+}
+
+/* ================= CO-PO TABLE ================= */
+.copo th {
+  background: #e6e6e6;
+  font-weight: bold;
+}
+
+/* ================= PAGE BREAK ================= */
+.page-break {
+  page-break-before: always;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= HEADER ================= -->
+<!-- <header>
+  <img src="header.png" style="width:100%;" />
+  <div class="red-line"></div>
+  <div style="font-size:8pt;color:#0066cc;">
+    An Autonomous Institution Under VTU, Belagavi
+  </div>
+</header> -->
+
+<!-- ================= FOOTER ================= -->
+<!-- <footer>
+  <div class="red-line"></div>
+  <div>K.R. Road, V. V. Pura, Bengaluru – 560004</div>
+  <div>Phone: +91 (080) 26613237 | www.bit-bangalore.edu.in</div>
+  <div style="color:#0033cc;font-weight:bold;">
+    principal@bit-bangalore.edu.in
+  </div>
+</footer> -->
+
+<!-- ================= COURSE INFO ================= -->
+<table class="info-table">
+  <tr>
+    <th>Sem</th>
+    <th>Title</th>
+    <th>Code</th>
+    <th>Credits</th>
+    <th>Pedagogy</th>
+    <th>L-T-P-S</th>
+    <th>Exam Hrs</th>
+    <th>CIE</th>
+    <th>SEE</th>
+    <th>Course Type</th>
+  </tr>
+  <tr>
+    <td>{{sem}}</td>
+    <td>{{course_title}}</td>
+    <td>{{course_code}}</td>
+    <td>{{credits}}</td>
+    <td>{{pedagogy}}</td>
+    <td>{{ltps}}</td>
+    <td>{{exam_hours}}</td>
+    <td>{{cie}}</td>
+    <td>{{see}}</td>
+    <td>{{course_type}}</td>
+  </tr>
+</table>
+
+<!-- ================= OBJECTIVES ================= -->
+<!-- SECTION: COURSE_OBJECTIVES -->
+<div class="section">
+  <div class="section-title">Course Objectives</div>
+  <ol>
+    {{#each course_objectives}}
+      <li>{{this}}</li>
+    {{/each}}
+  </ol>
+</div>
+<!-- END: COURSE_OBJECTIVES -->
+
+
+<!-- ================= TEACHING ================= -->
+ <!-- SECTION: TEACHING -->
+ <div class="section">
+   <div class="section-title">Teaching–Learning Process</div>
+   <ul>
+     {{#each teaching_learning}}
+     <li>{{this}}</li>
+     {{/each}}
+    </ul>
+  </div>
+  <!-- END: TEACHING -->
+  
+  
+  <!-- ================= MODERN TOOLS ================= -->
+<!-- SECTION: MODERN_TOOLS -->
+<div class="section">
+  <div class="section-title">Modern AI Tools Used</div>
+  <ul>
+    {{#each modern_tools}}
+    <li>{{this}}</li>
+    {{/each}}
+  </ul>
+</div>
+<!-- END: MODERN_TOOLS -->
+
+<!-- ================= MODULES ================= -->
+{{#each modules}}
+<div class="module">
+  <div class="module-title">Module {{@index}}</div>
+  <div class="module-content">
+    {{{this.content}}}
+  </div>
+  <div class="module-meta">
+    <span>Textbook {{this.textbook}}</span>
+    <span>RBT: {{this.rbt}}</span>
+    <span>WK: {{this.wkt}}</span>
+  </div>
+</div>
+{{/each}}
+
+<!-- ================= EXPERIMENTS ================= -->
+{{#each experiments}}
+{{/each}}
+
+
+<!-- ================= TEXTBOOKS ================= -->
+{{TEXTBOOKS_SECTION}}
+
+
+<!-- ================= OUTCOMES ================= -->
+ <!-- SECTION: Outcomes -->
+ <div class="section">
+   <div class="section-title">Course Outcomes</div>
+   <ol>
+     {{#each course_outcomes}}
+     <li>{{this}}</li>
+     {{/each}}
+    </ol>
+  </div>
+<!-- END: Outcomes -->
+
+
+<!-- ================= WEB LINKS ================= -->
+<!-- SECTION: WebLinks -->
+<div class="section">
+  <div class="section-title">Web Links</div>
+  <ul>
+    {{#each referral_links}}
+    <li>{{this}}</li>
+    {{/each}}
+  </ul>
+</div>
+<!-- END: WebLinks -->
+
+<!-- ================= ACTIVITY ================= -->
+<!-- SECTION: Activity-Based -->
+<div class="section">
+  <div class="section-title">Activity-Based Learning</div>
+  <ul>
+    {{#each activity_based}}
+    <li>{{this}}</li>
+    {{/each}}
+  </ul>
+</div>
+<!-- END: Activity-Based -->
+
+<!-- ================= CO-PO TABLE ================= -->
+<div class="section">
+  <div class="section-title" style="text-align:center;">
+    CO–PO–PSO Mapping
+  </div>
+
+  <table class="copo">
+    <tr>
+      <th>CO</th>
+      {{#each copoMapping.headers}}
+        <th>{{this}}</th>
+      {{/each}}
+      {{#each copoMapping.rows.[0].pso}}
+        <th>PSO</th>
+      {{/each}}
+    </tr>
+
+    {{#each copoMapping.rows}}
+    <tr>
+      <td>{{this.co}}</td>
+      {{#each this.vals}}
+        <td>{{this}}</td>
+      {{/each}}
+      {{#each this.pso}}
+        <td>{{this}}</td>
+      {{/each}}
+    </tr>
+    {{/each}}
+  </table>
+</div>
+
+</body>
+</html>
