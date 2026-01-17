@@ -1,7 +1,7 @@
 import { Download } from 'lucide-react';
 import React, { useEffect } from 'react'
 
-export const JsonRender = ({courseData,strtDownload}) => {
+export default function JsonRender ({courseData,strtDownload}) {
 
   const now = new Date();
 

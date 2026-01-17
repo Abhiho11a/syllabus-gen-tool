@@ -1,9 +1,12 @@
-import { ArrowDown, ArrowUp, RefreshCcw, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, RefreshCcw, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import './App.css'
 import { DataSchema, programStructure } from "./config/appConfig";
 import { resetFormData } from "./config/resetFormData";
 import NumberedTextarea from "./NumberedTextArea";
+import PdfRender from "./renders/PdfRender";
+import DocxRender from "./renders/DocxRender";
+import JsonRender from "./renders/JsonRender";
 
 
 export default function InputForm(){
@@ -620,28 +623,6 @@ function downloadFile(blob, filename) {
   window.URL.revokeObjectURL(url);
 }
 
-useEffect(() => {
-  const ping = async () => {
-    try {
-      await fetch("https://your-backend.onrender.com/health");
-      console.log("🔁 Backend pinged");
-    } catch (err) {
-      console.error("Ping failed", err);
-    }
-  };
-
-  // ping immediately
-  ping();
-
-  // ping every 5 minutes
-  const interval = setInterval(ping, 5 * 60 * 1000);
-
-  return () => clearInterval(interval);
-}, []);
-
-
-
-
 const triggerAllDownloads = async() => {
 
   if(downloadOptions.pdf === false && downloadOptions.docx === false && downloadOptions.json === false )
@@ -654,36 +635,8 @@ const triggerAllDownloads = async() => {
   setDownloadBtnText("Downloading...");
 
   // trigger downloads
-  if (downloadOptions.pdf) {
-  const res = await fetch(
-    // "https://simple-backend-3pbd.onrender.com/generate-pdf",
-    "http://localhost:8000/generate-pdf",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData)
-    }
-  );
-
-  console.log("PDF status:", res.status);
-  console.log("Content-Type:", res.headers.get("content-type"));
-
-  if (!res.ok) {
-    throw new Error("PDF generation failed");
-  }
-
-  const contentType = res.headers.get("content-type");
-  if (!contentType || !contentType.includes("application/pdf")) {
-    const text = await res.text();
-    console.error("Expected PDF, got:", text);
-    alert("Server did not return a PDF");
-    return;
-  }
-
-  const blob = await res.blob();
-  downloadFile(blob, `${formData.course_code}.pdf`);
-}
-
+  if (downloadOptions.pdf)
+    setTimeout(() => setDownloadAll("pdf"),200);
   if(downloadOptions.docx)
     setTimeout(() => setDownloadAll("docx"), 300);
   if(downloadOptions.json)
