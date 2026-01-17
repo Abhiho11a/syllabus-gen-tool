@@ -1,6 +1,10 @@
-export default function App(){
+import InputForm from "./InputForm";
 
+export default function App(){
   return(
-    <h2 className="text-6xl">Hello</h2>
+    <div>
+      Header
+      <InputForm/>
+    </div>
   )
 }
