@@ -636,7 +636,38 @@ const triggerAllDownloads = async() => {
 
   // trigger downloads
   if (downloadOptions.pdf)
-    setTimeout(() => setDownloadAll("pdf"),200);
+  {
+    const res = await fetch(
+    // "http://localhost:8000/generate-pdf",
+    " https://syllabus-gen-tool.onrender.com/generate-pdf",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData)
+    }
+  );
+
+  console.log("PDF status:", res.status);
+  console.log("Content-Type:", res.headers.get("content-type"));
+
+  if (!res.ok) {
+    throw new Error("PDF generation failed");
+  }
+
+  const contentType = res.headers.get("content-type");
+  if (!contentType || !contentType.includes("application/pdf")) {
+    const text = await res.text();
+    console.error("Expected PDF, got:", text);
+    alert("Server did not return a PDF");
+    return;
+  }
+
+  const blob = await res.blob();
+  downloadFile(blob, `${formData.course_code}.pdf`);
+
+  // setTimeout(() => setDownloadAll("pdf"),200);
+  
+  }
   if(downloadOptions.docx)
     setTimeout(() => setDownloadAll("docx"), 300);
   if(downloadOptions.json)
