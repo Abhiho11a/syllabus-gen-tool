@@ -29,18 +29,27 @@ const DEFAULT_SECTION_LINES = [
 ];
 
 //Helper functions
-function hasMeaningfulContent(arr = []) {
-  if (!Array.isArray(arr)) return false;
+function hasMeaningfulContent(input) {
+  // ✅ Normalize input to array
+  let arr = [];
+
+  if (Array.isArray(input)) {
+    arr = input;
+  } else if (typeof input === "string") {
+    arr = input.split("\n");
+  } else {
+    return false;
+  }
 
   return arr
     .map(v => String(v || "").trim())
     .filter(v => {
       if (!v) return false;
 
-      // ❌ ignore numbering like "1."
+      // ❌ ignore pure numbering like "1."
       if (/^\d+\.\s*$/.test(v)) return false;
 
-      // ❌ ignore default boilerplate
+      // ❌ ignore boilerplate default lines
       if (
         DEFAULT_SECTION_LINES.some(
           d => d.toLowerCase() === v.toLowerCase()
@@ -49,9 +58,10 @@ function hasMeaningfulContent(arr = []) {
         return false;
       }
 
-      return true; // ✅ actual user content
+      return true; // ✅ REAL content
     }).length > 0;
 }
+
 function escapeHTML(text = "") {
   return String(text)
     .replace(/&/g, "&amp;")
@@ -126,7 +136,7 @@ if (hasMeaningfulContent(courseData.teaching_learning)) {
   );
 } else {
   html = html.replace(
-    /<!-- SECTION: TEACHING -->[\s\S]*?<!-- END: TEACHING -->/g,
+    /<!-- SECTION: TEACHING_LEARNING -->[\s\S]*?<!-- END: TEACHING_LEARNING -->/g,
     ""
   );
 }
