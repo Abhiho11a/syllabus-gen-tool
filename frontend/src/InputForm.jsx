@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, RefreshCcw, Plus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, RefreshCcw, Plus, Trash2, X, Edit2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import './App.css'
 import { DataSchema, programStructure } from "./config/appConfig";
@@ -394,28 +394,58 @@ function askCourseNature(question, theory, lab, theoryLab) {
   alert("Invalid input. Please enter valid option.");
   return askCourseNature(question, theory, lab, theoryLab);
 }
+const DEFAULT_TEMPLATES = [
+  "this course will enable the students to",
+  "at the end of the course, the student will be able to",
+  "in addition to the traditional chalk and talk method, ict tools are adopted",
+  "modern ai tools used for this course",
+  "add web links",
+  "add activity based learning points"
+];
+function normalizeLine(line = "") {
+  return line
+    .toLowerCase()
+    .replace(/\*\*/g, "")     // remove markdown **
+    .replace(/:/g, "")        // remove colons
+    .replace(/\s+/g, " ")     // normalize spaces
+    .trim();
+}
 
-function hasOnlyDefaultTemplate(value) {
-  if (!value) return true;
+function hasRealUserContent(value) {
+  if (!value) return false;
 
-  const text = Array.isArray(value)
-    ? value.join("\n")
-    : value;
+  const lines = Array.isArray(value)
+    ? value
+    : String(value).split("\n");
 
-  // Remove headings
-  let cleaned = text
-    .replace(/This course will enable the students to:/gi, "")
-    .replace(/At the end of the course, the student will be able to:/gi, "")
-    .replace(/In addition to the traditional chalk and talk method, ICT tools are adopted:/gi, "")
-    .replace(/Modern AI tools used for this course:/gi, "");
+  const meaningfulLines = lines.filter(line => {
+    const raw = String(line || "").trim();
+    if (!raw) return false;
 
-  // Remove numbered points like "1.", "2.", etc
-  cleaned = cleaned.replace(/^\s*\d+\.\s*$/gm, "");
+    // ❌ ignore "1." / "2."
+    if (/^\d+\.\s*$/.test(raw)) return false;
 
-  // Remove empty lines & whitespace
-  cleaned = cleaned.replace(/\n/g, "").trim();
+    const normalized = normalizeLine(raw);
 
-  return cleaned.length === 0;
+    // ❌ ignore default template lines (robust match)
+    if (
+      DEFAULT_TEMPLATES.some(tpl =>
+        normalized.startsWith(tpl)
+      )
+    ) {
+      return false;
+    }
+
+    return true; // ✅ actual user-written content
+  });
+
+  return meaningfulLines.length > 0;
+}
+
+function resetGenerateState() {
+  setIsGen(false);
+  setDocGen(false);
+  setGenenerateBtnText("Generate Course Document");
 }
 
 
@@ -461,41 +491,33 @@ function generateDocument() {
   }
 
 // ===== COURSE OBJECTIVES VALIDATION =====
-if (hasOnlyDefaultTemplate(formData.course_objectives)) {
-  alert("Please fill Course Objectives (not just the default template)");
+if (!hasRealUserContent(formData.course_objectives)) {
+  alert("Please add at least one meaningful Course Objective");
   scrollTo(refs.course_objectives);
-  setIsGen(false);
-  setGenenerateBtnText("Generate Course Document");
-  setDocGen(false);
+  resetGenerateState();
   return;
 }
 
 // ===== COURSE OUTCOMES =====
-if (hasOnlyDefaultTemplate(formData.course_outcomes)) {
-  alert("Please fill Course Outcomes (not just the default template)");
+if (!hasRealUserContent(formData.course_outcomes)) {
+  alert("Please add at least one meaningful Course Outcome");
   scrollTo(refs.course_outcomes);
-  setIsGen(false);
-  setGenenerateBtnText("Generate Course Document");
-  setDocGen(false);
+  resetGenerateState();
   return;
 }
 
 // ===== TEACHING & LEARNING =====
-if (hasOnlyDefaultTemplate(formData.teaching_learning)) {
-  alert("Please fill Teaching & Learning Process");
+if (!hasRealUserContent(formData.teaching_learning)) {
+  alert("Please add at least one Teaching–Learning point");
   scrollTo(refs.teaching_learning);
-  setIsGen(false);
-  setGenenerateBtnText("Generate Course Document");
-  setDocGen(false);
+  resetGenerateState();
   return;
 }
 // ===== Modern AI tools =====
-if (hasOnlyDefaultTemplate(formData.modern_tools)) {
-  alert("Please fill details about Modern AI tools");
+if (!hasRealUserContent(formData.modern_tools)) {
+  alert("Please add at least one Modern AI Tool");
   scrollTo(refs.modern_tools);
-  setIsGen(false);
-  setGenenerateBtnText("Generate Course Document");
-  setDocGen(false);
+  resetGenerateState();
   return;
 }
 
@@ -622,6 +644,25 @@ function downloadFile(blob, filename) {
   document.body.removeChild(a);
   window.URL.revokeObjectURL(url);
 }
+
+
+useEffect(() => { 
+  const ping = async () => 
+    { 
+      try { 
+      await fetch("https://syllabus-gen-tool.onrender.com/health"); 
+      console.log("🔁 Backend pinged"); 
+    } catch (err) { 
+      console.error("Ping failed", err); 
+    } 
+  }; 
+  // ping immediately 
+  ping(); 
+  
+  // ping every 5 minutes 
+  const interval = setInterval(ping, 5 * 60 * 1000); 
+  return () => clearInterval(interval); 
+}, []);
 
 const triggerAllDownloads = async() => {
 
