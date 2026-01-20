@@ -30,26 +30,21 @@ const DEFAULT_SECTION_LINES = [
 
 //Helper functions
 function hasMeaningfulContent(input) {
-  // ✅ Normalize input to array
   let arr = [];
 
-  if (Array.isArray(input)) {
-    arr = input;
-  } else if (typeof input === "string") {
-    arr = input.split("\n");
-  } else {
-    return false;
-  }
+  if (Array.isArray(input)) arr = input;
+  else if (typeof input === "string") arr = input.split("\n");
+  else return false;
 
   return arr
     .map(v => String(v || "").trim())
     .filter(v => {
       if (!v) return false;
 
-      // ❌ ignore pure numbering like "1."
+      // ignore empty numbering
       if (/^\d+\.\s*$/.test(v)) return false;
 
-      // ❌ ignore boilerplate default lines
+      // 🚫 IGNORE DEFAULT LINES FOR CHECK ONLY
       if (
         DEFAULT_SECTION_LINES.some(
           d => d.toLowerCase() === v.toLowerCase()
@@ -58,9 +53,10 @@ function hasMeaningfulContent(input) {
         return false;
       }
 
-      return true; // ✅ REAL content
+      return true; // ✅ REAL USER CONTENT
     }).length > 0;
 }
+
 
 function escapeHTML(text = "") {
   return String(text)
@@ -72,32 +68,29 @@ function boldToHTML(text = "") {
   return String(text).replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
 }
 function listToHTML(input) {
-  // ✅ Normalize input into array
   let arr = [];
 
-  if (Array.isArray(input)) {
-    arr = input;
-  } else if (typeof input === "string") {
-    arr = input.split("\n");
-  } else {
-    return "";
-  }
+  if (Array.isArray(input)) arr = input;
+  else if (typeof input === "string") arr = input.split("\n");
+  else return "";
 
   return arr
     .map(v => String(v || "").trim())
     .filter(v => {
       if (!v) return false;
 
-      // ❌ remove "2." or "3." only
+      // ignore empty numbering
       if (/^\d+\.\s*$/.test(v)) return false;
 
+      // ✅ DO NOT remove default lines here
       return true;
     })
     .map(v => `<li>${boldToHTML(escapeHTML(v))}</li>`)
     .join("");
 }
 
-//FUnction to generate PDF
+
+//Function to generate PDF
 function generateSyllabusHTML(templateHTML, courseData) {
   let html = templateHTML;
 
@@ -115,163 +108,147 @@ function generateSyllabusHTML(templateHTML, courseData) {
     );
   });
 
-  // ================= LIST SECTIONS =================
+  // ================= COURSE OBJECTIVES =================
   if (hasMeaningfulContent(courseData.course_objectives)) {
-  html = html.replace(
-    /{{#each course_objectives}}[\s\S]*?{{\/each}}/g,
-    listToHTML(courseData.course_objectives)
-  );
-} else {
-  html = html.replace(
-    /<!-- SECTION: COURSE_OBJECTIVES -->[\s\S]*?<!-- END: COURSE_OBJECTIVES -->/g,
-    ""
-  );
-}
+    html = html.replace(
+      /{{#each course_objectives}}[\s\S]*?{{\/each}}/g,
+      listToHTML(courseData.course_objectives)
+    );
+  } else {
+    // ✅ FIX: Use proper regex with dot-star to match everything
+    html = html.replace(
+      /<!-- SECTION: COURSE_OBJECTIVES -->[\s\S]*?<!-- END: COURSE_OBJECTIVES -->/,
+      ""
+    );
+  }
 
-  
-if (hasMeaningfulContent(courseData.teaching_learning)) {
-  html = html.replace(
-    /{{#each teaching_learning}}[\s\S]*?{{\/each}}/g,
-    listToHTML(courseData.teaching_learning)
-  );
-} else {
-  html = html.replace(
-    /<!-- SECTION: TEACHING_LEARNING -->[\s\S]*?<!-- END: TEACHING_LEARNING -->/g,
-    ""
-  );
-}
+  // ================= TEACHING-LEARNING =================
+  if (hasMeaningfulContent(courseData.teaching_learning)) {
+    html = html.replace(
+      /{{#each teaching_learning}}[\s\S]*?{{\/each}}/g,
+      listToHTML(courseData.teaching_learning)
+    );
+  } else {
+    html = html.replace(
+      /<!-- SECTION: TEACHING_LEARNING -->[\s\S]*?<!-- END: TEACHING_LEARNING -->/,
+      ""
+    );
+  }
 
-  
+  // ================= MODERN TOOLS =================
   if (hasMeaningfulContent(courseData.modern_tools)) {
-  html = html.replace(
-    /{{#each modern_tools}}[\s\S]*?{{\/each}}/g,
-    listToHTML(courseData.modern_tools)
-  );
-} else {
-  html = html.replace(
-    /<!-- SECTION: MODERN_TOOLS -->[\s\S]*?<!-- END: MODERN_TOOLS -->/g,
-    ""
-  );
-}
+    html = html.replace(
+      /{{#each modern_tools}}[\s\S]*?{{\/each}}/g,
+      listToHTML(courseData.modern_tools)
+    );
+  } else {
+    html = html.replace(
+      /<!-- SECTION: MODERN_TOOLS -->[\s\S]*?<!-- END: MODERN_TOOLS -->/,
+      ""
+    );
+  }
 
+  // ================= COURSE OUTCOMES =================
   if (hasMeaningfulContent(courseData.course_outcomes)) {
-  html = html.replace(
-    /{{#each course_outcomes}}[\s\S]*?{{\/each}}/g,
-    listToHTML(courseData.course_outcomes)
-  );
-} else {
-  html = html.replace(
-    /<!-- SECTION: Outcomes -->[\s\S]*?<!-- END: Outcomes -->/g,
-    ""
-  );
-}
+    html = html.replace(
+      /{{#each course_outcomes}}[\s\S]*?{{\/each}}/g,
+      listToHTML(courseData.course_outcomes)
+    );
+  } else {
+    html = html.replace(
+      /<!-- SECTION: Outcomes -->[\s\S]*?<!-- END: Outcomes -->/,
+      ""
+    );
+  }
 
-if (hasMeaningfulContent(courseData.referral_links)) {
-  html = html.replace(
-  /{{#each referral_links}}[\s\S]*?{{\/each}}/g,
-  listToHTML(courseData.referral_links)
-  );
-} else {
-  html = html.replace(
-    /<!-- SECTION: WebLinks -->[\s\S]*?<!-- END: WebLinks -->/g,
-    ""
-  );
-}
+  // ================= WEB LINKS =================
+  if (hasMeaningfulContent(courseData.referral_links)) {
+    html = html.replace(
+      /{{#each referral_links}}[\s\S]*?{{\/each}}/g,
+      listToHTML(courseData.referral_links)
+    );
+  } else {
+    html = html.replace(
+      /<!-- SECTION: WebLinks -->[\s\S]*?<!-- END: WebLinks -->/,
+      ""
+    );
+  }
 
-if (hasMeaningfulContent(courseData.activity_based)) {
-  html = html.replace(
-    /{{#each activity_based}}[\s\S]*?{{\/each}}/g,
-    listToHTML(courseData.activity_based)
-  );
-} else {
-  html = html.replace(
-    /<!-- SECTION: Activity-Based -->[\s\S]*?<!-- END: Activity-Based -->/g,
-    ""
-  );
-}  
+  // ================= ACTIVITY-BASED =================
+  if (hasMeaningfulContent(courseData.activity_based)) {
+    html = html.replace(
+      /{{#each activity_based}}[\s\S]*?{{\/each}}/g,
+      listToHTML(courseData.activity_based)
+    );
+  } else {
+    html = html.replace(
+      /<!-- SECTION: Activity-Based -->[\s\S]*?<!-- END: Activity-Based -->/,
+      ""
+    );
+  }
 
   // ================= MODULES =================
   const validModules = (courseData.modules || []).filter(mod =>
-  mod &&
-  String(mod.content || "").trim() !== ""
-);
-let modulesHTML = "";
+    mod && String(mod.content || "").trim() !== ""
+  );
+  
+  let modulesHTML = "";
 
-if (validModules.length > 0) {
-  modulesHTML = `
-    <div class="u">
-      ${validModules
-        .map(
-          (mod, idx) => `
-          <div class="module">
-            <div class="module-title">Module ${idx + 1}</div>
-
-            <div class="module-content">
-              ${boldToHTML(
-                escapeHTML(mod.content || "")
-              ).replace(/\n/g, "<br>")}
-            </div>
-
-            <div class="module-meta">
-              <span>Textbook ${escapeHTML(mod.textbook || "")}</span>
-              <span>RBT: ${escapeHTML(mod.rbt || "")}</span>
-              <span>WK: ${escapeHTML(mod.wk || mod.wkt || "")}</span>
-            </div>
+  if (validModules.length > 0) {
+    modulesHTML = validModules
+      .map((mod, idx) => `
+        <div class="module">
+          <div class="module-title">Module ${idx + 1}</div>
+          <div class="module-content">
+            ${boldToHTML(escapeHTML(mod.content || "")).replace(/\n/g, "<br>")}
           </div>
-        `
-        )
-        .join("")}
-    </div>
-  `;
-}
+          <div class="module-meta">
+            <span>Textbook ${escapeHTML(mod.textbook || "")}</span>
+            <span>RBT: ${escapeHTML(mod.rbt || "")}</span>
+            <span>WK: ${escapeHTML(mod.wk || mod.wkt || "")}</span>
+          </div>
+        </div>
+      `)
+      .join("");
+  }
 
   html = html.replace(
-  /{{#each modules}}[\s\S]*?{{\/each}}/g,
-  modulesHTML
-);
+    /{{#each modules}}[\s\S]*?{{\/each}}/g,
+    modulesHTML
+  );
 
+  // ================= EXPERIMENTS =================
+  let experimentsHTML = "";
 
+  const validExperiments = (courseData.experiments || []).filter(
+    exp => exp && String(exp.cont || "").trim()
+  );
 
-  /* EXPERIMENTS */
-let experimentsHTML = "";
-
-const validExperiments = (courseData.experiments || []).filter(
-  exp => exp && String(exp.cont || "").trim()
-);
-
-if (validExperiments.length > 0) {
-  const rowsHTML = validExperiments
-    .map(
-      exp => `
+  if (validExperiments.length > 0) {
+    const rowsHTML = validExperiments
+      .map(exp => `
         <tr>
           <td>${escapeHTML(exp.slno)}</td>
           <td style="text-align:left;">
             ${boldToHTML(escapeHTML(exp.cont || "")).replace(/\n/g, "<br>")}
           </td>
         </tr>
-      `
-    )
-    .join("");
+      `)
+      .join("");
 
-  experimentsHTML = `
-    <div class="section">
-      <div class="section-title">Practical Components</div>
-      <table class="experiments">
-        <tr>
-          <th>Sl. No.</th>
-          <th>Experiment</th>
-        </tr>
-        ${rowsHTML}
-      </table>
-    </div>
-  `;
-}
-html = html.replace(
-  /{{#each experiments}}[\s\S]*?{{\/each}}/g,
-  experimentsHTML
-);
-
-
+    experimentsHTML = `
+      <div class="section">
+        <div class="section-title">Practical Components</div>
+        <table class="experiments">
+          <tr>
+            <th>Sl. No.</th>
+            <th>Experiment</th>
+          </tr>
+          ${rowsHTML}
+        </table>
+      </div>
+    `;
+  }
 
   html = html.replace(
     /{{#each experiments}}[\s\S]*?{{\/each}}/g,
@@ -281,80 +258,182 @@ html = html.replace(
   // ================= TEXTBOOKS =================
   let textbooksHTML = "";
 
-const validTextbooks = (courseData.textbooks || []).filter(tb =>
-  tb &&
-  (
-    String(tb.author || "").trim() ||
-    String(tb.bookTitle || "").trim() ||
-    String(tb.publisher || "").trim() ||
-    String(tb.year || "").trim()
-  )
-);
+  const validTextbooks = (courseData.textbooks || []).filter(tb =>
+    tb &&
+    (
+      String(tb.author || "").trim() ||
+      String(tb.bookTitle || "").trim() ||
+      String(tb.publisher || "").trim() ||
+      String(tb.year || "").trim()
+    )
+  );
 
-if (validTextbooks.length > 0) {
-  const rowsHTML = validTextbooks.map(tb => `
+  if (validTextbooks.length > 0) {
+    const rowsHTML = validTextbooks
+      .map(tb => `
+        <tr>
+          <td>${escapeHTML(tb.slNo)}</td>
+          <td>${escapeHTML(tb.author)}</td>
+          <td>${escapeHTML(tb.bookTitle)}</td>
+          <td>${escapeHTML(tb.publisher)}</td>
+          <td>${escapeHTML(tb.year)}</td>
+        </tr>
+      `)
+      .join("");
+
+    textbooksHTML = `
+      <div class="section">
+        <div class="section-title">Textbooks</div>
+        <table>
+          <tr>
+            <th>Sl.No</th>
+            <th>Author</th>
+            <th>Title</th>
+            <th>Publisher</th>
+            <th>Year</th>
+          </tr>
+          ${rowsHTML}
+        </table>
+      </div>
+    `;
+  }
+
+  html = html.replace("{{TEXTBOOKS_SECTION}}", textbooksHTML);
+
+  // ================= CO–PO–PSO =================
+//   // ================= CO–PO–PSO TABLE =================
+// let copoHTML = "";
+
+// const copo = courseData.copoMapping;
+
+// if (copo && Array.isArray(copo.rows)) {
+//   const hasAnyValue = copo.rows.some(row =>
+//     [...(row.vals || []), ...(row.pso || [])].some(v => {
+//       const n = Number(v);
+//       return !isNaN(n) && n > 0;
+//     })
+//   );
+
+//   if (hasAnyValue) {
+//     const poHeaders = copo.headers || [];
+//     const psoCount = copo.rows[0]?.pso?.length || 0;
+
+//     const headerHTML = `
+//       <tr>
+//         <th>CO</th>
+//         ${poHeaders.map(h => `<th>${escapeHTML(h)}</th>`).join("")}
+//         ${Array.from({ length: psoCount })
+//           .map((_, i) => `<th>PSO${i + 1}</th>`)
+//           .join("")}
+//       </tr>
+//     `;
+
+//     const rowsHTML = copo.rows
+//       .map(row => `
+//         <tr>
+//           <td>${escapeHTML(row.co)}</td>
+//           ${(row.vals || []).map(v => `<td>${v || ""}</td>`).join("")}
+//           ${(row.pso || []).map(v => `<td>${v || ""}</td>`).join("")}
+//         </tr>
+//       `)
+//       .join("");
+
+//     copoHTML = `
+//       <div class="section">
+//         <div class="section-title" style="text-align:center;">
+//           CO–PO–PSO Mapping
+//         </div>
+//         <table class="copo">
+//           ${headerHTML}
+//           ${rowsHTML}
+//         </table>
+//       </div>
+//     `;
+//   }
+// }
+
+// html = html.replace("{{COPO_TABLE}}", copoHTML);
+
+let copoHTML = "";
+
+const copo = courseData.copoMapping;
+
+if (copo && Array.isArray(copo.rows)) {
+
+  // ---------- STEP 1: FILTER ROWS ----------
+  const validRows = copo.rows.filter(row =>
+    [...(row.vals || []), ...(row.pso || [])].some(v => {
+      const n = Number(v);
+      return !isNaN(n) && n > 0;
+    })
+  );
+
+  // 🚫 No meaningful rows → skip entire table
+  if (validRows.length === 0) {
+    html = html.replace("{{COPO_TABLE}}", "");
+    return html;
+  }
+
+  // ---------- STEP 2: FILTER PO COLUMNS ----------
+  const poHeaders = copo.headers || [];
+
+  const validPOIndexes = poHeaders
+    .map((_, idx) =>
+      validRows.some(r => Number(r.vals?.[idx]) > 0)
+    )
+    .map((keep, idx) => keep ? idx : -1)
+    .filter(idx => idx !== -1);
+
+  // ---------- STEP 3: FILTER PSO COLUMNS ----------
+  const psoCount = validRows[0]?.pso?.length || 0;
+
+  const validPSOIndexes = Array.from({ length: psoCount })
+    .map((_, idx) =>
+      validRows.some(r => Number(r.pso?.[idx]) > 0)
+    )
+    .map((keep, idx) => keep ? idx : -1)
+    .filter(idx => idx !== -1);
+
+  // 🚫 No PO & no PSO → skip table
+  if (validPOIndexes.length === 0 && validPSOIndexes.length === 0) {
+    html = html.replace("{{COPO_TABLE}}", "");
+    return html;
+  }
+
+  // ---------- STEP 4: BUILD TABLE HEADER ----------
+  const headerHTML = `
     <tr>
-      <td>${escapeHTML(tb.slNo)}</td>
-      <td>${escapeHTML(tb.author)}</td>
-      <td>${escapeHTML(tb.bookTitle)}</td>
-      <td>${escapeHTML(tb.publisher)}</td>
-      <td>${escapeHTML(tb.year)}</td>
+      <th>CO</th>
+      ${validPOIndexes.map(i => `<th>${escapeHTML(poHeaders[i])}</th>`).join("")}
+      ${validPSOIndexes.map(i => `<th>PSO${i + 1}</th>`).join("")}
+    </tr>
+  `;
+
+  // ---------- STEP 5: BUILD ROWS ----------
+  const rowsHTML = validRows.map(row => `
+    <tr>
+      <td>${escapeHTML(row.co)}</td>
+      ${validPOIndexes.map(i => `<td>${row.vals?.[i] || ""}</td>`).join("")}
+      ${validPSOIndexes.map(i => `<td>${row.pso?.[i] || ""}</td>`).join("")}
     </tr>
   `).join("");
 
-  textbooksHTML = `
+  // ---------- STEP 6: FINAL HTML ----------
+  copoHTML = `
     <div class="section">
-      <div class="section-title">Textbooks</div>
-
-      <table>
-        <tr>
-          <th>Sl.No</th>
-          <th>Author</th>
-          <th>Title</th>
-          <th>Publisher</th>
-          <th>Year</th>
-        </tr>
+      <div class="section-title" style="text-align:center;">
+        CO–PO–PSO Mapping
+      </div>
+      <table class="copo">
+        ${headerHTML}
         ${rowsHTML}
       </table>
     </div>
   `;
 }
 
-html = html.replace("{{TEXTBOOKS_SECTION}}", textbooksHTML);
+html = html.replace("{{COPO_TABLE}}", copoHTML);
 
-  // ================= CO–PO–PSO =================
-  if (courseData.copoMapping) {
-    const { headers = [], rows = [] } = courseData.copoMapping;
-
-    const poHeaders = headers.map(h => `<th>${h}</th>`).join("");
-    const psoCount = rows[0]?.pso?.length || 0;
-    const psoHeaders = Array.from({ length: psoCount })
-      .map((_, i) => `<th>PSO${i + 1}</th>`)
-      .join("");
-
-    html = html.replace(
-      /{{#each copoMapping\.headers}}[\s\S]*?{{\/each}}/g,
-      poHeaders
-    );
-
-    html = html.replace(
-      /{{#each copoMapping\.rows\.\[0\]\.pso}}[\s\S]*?{{\/each}}/g,
-      psoHeaders
-    );
-
-    const rowsHTML = rows.map(row => `
-      <tr>
-        <td>${row.co}</td>
-        ${row.vals.map(v => `<td>${v || ""}</td>`).join("")}
-        ${row.pso.map(v => `<td>${v || ""}</td>`).join("")}
-      </tr>
-    `).join("");
-
-    html = html.replace(
-      /{{#each copoMapping\.rows}}[\s\S]*?{{\/each}}/g,
-      rowsHTML
-    );
-  }
 
   return html;
 }
