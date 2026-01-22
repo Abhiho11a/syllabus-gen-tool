@@ -1,1 +1,11 @@
-node_modules
+# node stuff
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# env
+.env
+
+# build
+dist/
+build/
