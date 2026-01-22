@@ -679,8 +679,8 @@ const triggerAllDownloads = async() => {
   if (downloadOptions.pdf)
   {
     const res = await fetch(
-    // "http://localhost:8000/generate-pdf",
-    " https://syllabus-gen-tool.onrender.com/generate-pdf",
+    "http://localhost:8000/generate-pdf",
+    // " https://syllabus-gen-tool.onrender.com/generate-pdf",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
