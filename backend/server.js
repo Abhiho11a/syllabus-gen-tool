@@ -503,6 +503,9 @@ async function launchBrowser() {
 app.get("/",(req,res)=>{
     res.send("Hello From The Backend Server...")
 })
+app.get("/health", (_, res) => {
+  res.status(200).send("OK");
+});
 
 app.post('/generate-pdf', async (req, res) => {
 
