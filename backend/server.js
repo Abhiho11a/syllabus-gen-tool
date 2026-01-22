@@ -360,7 +360,7 @@ const copo = courseData.copoMapping;
 
 if (copo && Array.isArray(copo.rows)) {
 
-  // ---------- STEP 1: FILTER ROWS ----------
+  // ---------- STEP 1: FILTER VALID ROWS ----------
   const validRows = copo.rows.filter(row =>
     [...(row.vals || []), ...(row.pso || [])].some(v => {
       const n = Number(v);
@@ -368,7 +368,6 @@ if (copo && Array.isArray(copo.rows)) {
     })
   );
 
-  // 🚫 No meaningful rows → skip entire table
   if (validRows.length === 0) {
     html = html.replace("{{COPO_TABLE}}", "");
     return html;
@@ -394,13 +393,12 @@ if (copo && Array.isArray(copo.rows)) {
     .map((keep, idx) => keep ? idx : -1)
     .filter(idx => idx !== -1);
 
-  // 🚫 No PO & no PSO → skip table
   if (validPOIndexes.length === 0 && validPSOIndexes.length === 0) {
     html = html.replace("{{COPO_TABLE}}", "");
     return html;
   }
 
-  // ---------- STEP 4: BUILD TABLE HEADER ----------
+  // ---------- STEP 4: HEADER ----------
   const headerHTML = `
     <tr>
       <th>CO</th>
@@ -409,7 +407,7 @@ if (copo && Array.isArray(copo.rows)) {
     </tr>
   `;
 
-  // ---------- STEP 5: BUILD ROWS ----------
+  // ---------- STEP 5: DATA ROWS ----------
   const rowsHTML = validRows.map(row => `
     <tr>
       <td>${escapeHTML(row.co)}</td>
@@ -418,19 +416,57 @@ if (copo && Array.isArray(copo.rows)) {
     </tr>
   `).join("");
 
-  // ---------- STEP 6: FINAL HTML ----------
+  // ---------- STEP 6: AVG ROW (🔥 NEW PART) ----------
+  const avgRowHTML = `
+    <tr>
+      <td><strong>AVG</strong></td>
+
+      ${validPOIndexes.map(i => {
+        let sum = 0, count = 0;
+
+        validRows.forEach(row => {
+          const val = Number(row.vals?.[i]);
+          if (!isNaN(val) && val > 0) {
+            sum += val;
+            count++;
+          }
+        });
+
+        return `<td>${count ? (sum / count).toFixed(1) : ""}</td>`;
+      }).join("")}
+
+      ${validPSOIndexes.map(i => {
+        let sum = 0, count = 0;
+
+        validRows.forEach(row => {
+          const val = Number(row.pso?.[i]);
+          if (!isNaN(val) && val > 0) {
+            sum += val;
+            count++;
+          }
+        });
+
+        return `<td>${count ? (sum / count).toFixed(1) : ""}</td>`;
+      }).join("")}
+    </tr>
+  `;
+
+  // ---------- STEP 7: FINAL TABLE ----------
   copoHTML = `
     <div class="section">
       <div class="section-title" style="text-align:center;">
         CO–PO–PSO Mapping
       </div>
+
       <table class="copo">
         ${headerHTML}
         ${rowsHTML}
+        ${avgRowHTML}
       </table>
     </div>
   `;
 }
+
 
 html = html.replace("{{COPO_TABLE}}", copoHTML);
 
