@@ -704,7 +704,19 @@ const triggerAllDownloads = async() => {
   }
 
   const blob = await res.blob();
-  downloadFile(blob, `${formData.course_code}.pdf`);
+  const courseCode = (formData.course_code || "COURSE").replace(/\s+/g, "");
+
+const now = new Date();
+
+const day = String(now.getDate()).padStart(2, "0");
+const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const month = monthNames[now.getMonth()];
+const year = now.getFullYear();
+
+const hours = String(now.getHours()).padStart(2, "0");
+const minutes = String(now.getMinutes()).padStart(2, "0");
+
+  downloadFile(blob, `${courseCode}_${day}-${month}-${year}_${hours}-${minutes}.pdf`);
 
   // setTimeout(() => setDownloadAll("pdf"),200);
   
