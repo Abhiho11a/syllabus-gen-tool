@@ -22,9 +22,19 @@ function calculateAverage(values = []) {
   if (!valid.length) return "";
   return (valid.reduce((a, b) => a + b, 0) / valid.length).toFixed(1);
 }
+function hasAnyCopoValue(rows = []) {
+  return rows.some(row =>
+    [...(row.vals || []), ...(row.pso || [])].some(v => Number(v) > 0)
+  );
+}
+
 
 function buildCopoTable(copo) {
   if (!copo || !Array.isArray(copo.rows) || copo.rows.length === 0) return [];
+
+  if (!hasAnyCopoValue(copo.rows)) {
+    return [];
+  }
 
   // 🔹 filter rows with at least one value
   const validRows = copo.rows.filter(r =>
