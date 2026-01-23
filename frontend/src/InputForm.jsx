@@ -666,6 +666,17 @@ useEffect(() => {
 
 const triggerAllDownloads = async() => {
 
+  //Getting date&Day info
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, "0");
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = monthNames[now.getMonth()];
+  const year = now.getFullYear();
+
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+
+
   if(downloadOptions.pdf === false && downloadOptions.docx === false && downloadOptions.json === false )
   {
     alert("Please Select Downloadable options");
@@ -706,23 +717,48 @@ const triggerAllDownloads = async() => {
   const blob = await res.blob();
   const courseCode = (formData.course_code || "COURSE").replace(/\s+/g, "");
 
-const now = new Date();
-
-const day = String(now.getDate()).padStart(2, "0");
-const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const month = monthNames[now.getMonth()];
-const year = now.getFullYear();
-
-const hours = String(now.getHours()).padStart(2, "0");
-const minutes = String(now.getMinutes()).padStart(2, "0");
-
   downloadFile(blob, `${courseCode}_${day}-${month}-${year}_${hours}-${minutes}.pdf`);
 
   // setTimeout(() => setDownloadAll("pdf"),200);
   
   }
-  if(downloadOptions.docx)
-    setTimeout(() => setDownloadAll("docx"), 300);
+  // if(downloadOptions.docx)
+  //   setTimeout(() => setDownloadAll("docx"), 300);
+  if (downloadOptions.docx) {
+    const downloadDocx = async () => {
+  try {
+    const res = await fetch(
+      "http://localhost:8000/generate-docx",
+      // "https://syllabus-gen-tool.onrender.com/generate-docx",
+       {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(formData)
+    });
+
+    if (!res.ok) throw new Error("DOCX generation failed");
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    const courseCode = (formData.course_code || "COURSE").replace(/\s+/g, "");
+    a.download = `${courseCode}_${day}-${month}-${year}_${hours}-${minutes}.docx`;
+    a.click();
+
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("Error: DOCX generation failed", err);
+  }
+};
+  setTimeout(() => {
+    downloadDocx();
+  }, 300);
+}
+
   if(downloadOptions.json)
   setTimeout(() => setDownloadAll("json"), 600);
 
