@@ -47,15 +47,31 @@ function valueCell(text) {
     ],
   });
 }
+function getExamType(ct) {
+    console.log("type:",typeof(ct),ct)
+    let s = ct.split(" ")[1]
+
+    if(s.includes("(T+L)"))
+      return("Theory & Lab")
+    else if(s.includes("T"))
+      return("Theory")
+    else if(s.includes("L"))
+      return("Lab")
+
+  return "-";
+}
 
 function buildCourseInfoTable(data) {
+
+  data.exam_type = getExamType(data.course_type);
+
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [
       new TableRow({
         children: [
           "Sem","Title","Code","Credits","Pedagogy",
-          "L-T-P-S","Exam Hrs","CIE","SEE","Course Type"
+          "L-T-P-S","Exam Hrs","CIE","SEE","Course Type","Exam Type"
         ].map(headerCell),
       }),
       new TableRow({
@@ -70,6 +86,7 @@ function buildCourseInfoTable(data) {
           data.cie,
           data.see,
           data.course_type,
+          data.exam_type
         ].map(valueCell),
       }),
     ],

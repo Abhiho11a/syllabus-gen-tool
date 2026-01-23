@@ -19,6 +19,17 @@ const BORDER = {
 function buildModules(modules = []) {
   const blocks = [];
 
+  if (modules.length > 0) {
+    blocks.push(
+      new Paragraph({
+        spacing: {
+          before: 100, // 👈 controls gap above all modules
+          after: 0,
+        },
+      })
+    );
+  }
+
   modules.forEach((mod, i) => {
     blocks.push(
       new Table({
@@ -43,6 +54,7 @@ function buildModules(modules = []) {
                 margins:{
                     left:80,
                     right:80,
+                    top:20
                 }
               }),
             ],

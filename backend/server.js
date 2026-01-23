@@ -90,6 +90,19 @@ function listToHTML(input) {
     .join("");
 }
 
+ function getExamType(ct) {
+    console.log("type:",typeof(ct),ct)
+    let s = ct.split(" ")[1]
+
+    if(s.includes("(T+L)"))
+      return("Theory & Lab")
+    else if(s.includes("T"))
+      return("Theory")
+    else if(s.includes("L"))
+      return("Lab")
+
+  return "-";
+}
 
 //Function to generate PDF
 function generateSyllabusHTML(templateHTML, courseData) {
@@ -101,6 +114,8 @@ function generateSyllabusHTML(templateHTML, courseData) {
     "pedagogy", "ltps", "exam_hours", "cie", "see",
     "course_type", "exam_type"
   ];
+  
+  courseData.exam_type = getExamType(courseData.course_type);
 
   simpleFields.forEach(key => {
     html = html.replace(
@@ -607,14 +622,35 @@ function buildCopoTableWord(courseData) {
 }
 
 function generateSyllabusHTML_DOCX(templateHTML, courseData) {
+  function getExamType({ course_type = "", ltps = "" } = {}) {
+  const ct = String(course_type).toUpperCase();
+
+  // 1️⃣ Prefer explicit course_type
+  if (ct.includes("T+L")) return "Theory & Lab";
+  if (ct === "T") return "Theory";
+  if (ct === "L") return "Lab";
+
+  // 2️⃣ Fallback to LTPS
+  const [L, T, P] = String(ltps).split(":").map(Number);
+
+  if (L > 0 && P > 0) return "Theory & Lab";
+  if (L > 0) return "Theory";
+  if (P > 0) return "Lab";
+
+  return "-";
+}
+
+
   let html = templateHTML;
 
   const simpleFields = [
     "sem", "course_title", "course_code", "credits",
     "pedagogy", "ltps", "exam_hours", "cie", "see",
-    "course_type"
+    "course_type","exam_type"
   ];
 
+
+console.log(courseData)
   simpleFields.forEach(key => {
     html = html.replace(
       new RegExp(`{{${key}}}`, "g"),

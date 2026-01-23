@@ -17,6 +17,8 @@ const {
 } = require("./blocks/courseInfo");
 const { buildModules } = require("./blocks/module");
 const { buildCopoTable } = require("./blocks/copo");
+const { buildPracticalTable } = require("./blocks/practicals");
+const { buildTextbooksTable } = require("./blocks/textbooks");
 
 
 const DEFAULT_LINES = [
@@ -148,6 +150,18 @@ if (hasMeaningfulContent(courseData.modern_tools)) {
   // 4️⃣ MODULES
   children.push(...buildModules(courseData.modules));
 
+  //Practical components
+  children.push(
+    ...buildPracticalTable(courseData.experiments || [])
+  );
+  
+  
+  //Textbooks
+  children.push(
+  ...buildTextbooksTable(courseData.textbooks || [])
+);
+
+
   // Course Outcomes
   if (hasMeaningfulContent(courseData.course_outcomes)) {
     children.push(
@@ -155,10 +169,10 @@ if (hasMeaningfulContent(courseData.modern_tools)) {
       ...renderBulletList(courseData.course_outcomes)
     );
   }
-  if (hasMeaningfulContent(courseData.web_links)) {
+  if (hasMeaningfulContent(courseData.referral_links)) {
     children.push(
       sectionTitle("Web Links"),
-      ...renderBulletList(courseData.web_links)
+      ...renderBulletList(courseData.referral_links)
     );
   }
   if (hasMeaningfulContent(courseData.activity_based)) {
@@ -176,7 +190,7 @@ if (hasMeaningfulContent(courseData.modern_tools)) {
       {
         properties: {
           page: {
-            margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 },
+            margin: { top: 800, bottom: 800, left: 1000, right: 1000 },
           },
         },
         children,
