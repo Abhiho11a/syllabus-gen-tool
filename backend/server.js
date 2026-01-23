@@ -7,6 +7,7 @@ require("dotenv").config();
 
 const puppeteer = require("puppeteer-core");
 const chromium = require("@sparticuz/chromium");
+const {generateSyllabusDocx} = require("./docx/generateSyllabusDocx");
 
 process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true";
 const isProduction = process.env.NODE_ENV === "production";
@@ -200,12 +201,12 @@ function generateSyllabusHTML(templateHTML, courseData) {
         <div class="module">
           <div class="module-title">Module ${idx + 1}</div>
           <div class="module-content">
-            ${boldToHTML(escapeHTML(mod.content || "")).replace(/\n/g, "<br>")}
+            ${boldToHTML(escapeHTML(mod.content || "-")).replace(/\n/g, "<br>")}
           </div>
           <div class="module-meta">
-            <span>Textbook ${escapeHTML(mod.textbook || "")}</span>
-            <span>RBT: ${escapeHTML(mod.rbt || "")}</span>
-            <span>WK: ${escapeHTML(mod.wk || mod.wkt || "")}</span>
+            <span>Textbook ${escapeHTML(mod.textbook || "-")}</span>
+            <span>RBT: ${escapeHTML(mod.rbt || "-")}</span>
+            <span>WK: ${escapeHTML(mod.wk || mod.wkt || "-")}</span>
           </div>
         </div>
       `)
@@ -241,8 +242,8 @@ function generateSyllabusHTML(templateHTML, courseData) {
         <div class="section-title">Practical Components</div>
         <table class="experiments">
           <tr>
-            <th>Sl. No.</th>
-            <th>Experiment</th>
+            <th class="expSl">Sl. No.</th>
+            <th class="expCont">Experiment</th>
           </tr>
           ${rowsHTML}
         </table>
@@ -272,11 +273,11 @@ function generateSyllabusHTML(templateHTML, courseData) {
     const rowsHTML = validTextbooks
       .map(tb => `
         <tr>
-          <td>${escapeHTML(tb.slNo)}</td>
-          <td>${escapeHTML(tb.author)}</td>
-          <td>${escapeHTML(tb.bookTitle)}</td>
-          <td>${escapeHTML(tb.publisher)}</td>
-          <td>${escapeHTML(tb.year)}</td>
+          <td>${escapeHTML(tb.slNo)||'-'}</td>
+          <td>${escapeHTML(tb.author)||'-'}</td>
+          <td>${escapeHTML(tb.bookTitle)||'-'}</td>
+          <td>${escapeHTML(tb.publisher)||'-'}</td>
+          <td>${escapeHTML(tb.year)||'-'}</td>
         </tr>
       `)
       .join("");
@@ -301,7 +302,6 @@ function generateSyllabusHTML(templateHTML, courseData) {
   html = html.replace("{{TEXTBOOKS_SECTION}}", textbooksHTML);
 
   // ================= CO–PO–PSO =================
-//   // ================= CO–PO–PSO TABLE =================
 // let copoHTML = "";
 
 // const copo = courseData.copoMapping;
@@ -516,7 +516,7 @@ app.post('/generate-pdf', async (req, res) => {
     // console.log("Received course data:", JSON.stringify(courseData, null, 2));
     
     // Read HTML template
-    const templatePath = path.join(__dirname, "pdf-template", "syllabus.html");
+    const templatePath = path.join(__dirname, "template", "pdf-template.html");
     
     if (!fs.existsSync(templatePath)) {
       return res.status(500).send("Template file not found at: " + templatePath);
@@ -567,6 +567,131 @@ app.post('/generate-pdf', async (req, res) => {
   }
 });
 
+
+function buildCopoTableWord(courseData) {
+  const copo = courseData.copoMapping;
+  if (!copo || !Array.isArray(copo.rows)) return "";
+
+  const validRows = copo.rows.filter(row =>
+    [...(row.vals || []), ...(row.pso || [])].some(v => Number(v) > 0)
+  );
+
+  if (!validRows.length) return "";
+
+  const poHeaders = copo.headers || [];
+  const psoCount = validRows[0]?.pso?.length || 0;
+
+  let header = `
+    <tr>
+      <th>CO</th>
+      ${poHeaders.map(h => `<th>${h}</th>`).join("")}
+      ${Array.from({ length: psoCount }).map((_, i) => `<th>PSO${i + 1}</th>`).join("")}
+    </tr>
+  `;
+
+  let rows = validRows.map(row => `
+    <tr>
+      <td>${row.co}</td>
+      ${(row.vals || []).map(v => `<td>${v || ""}</td>`).join("")}
+      ${(row.pso || []).map(v => `<td>${v || ""}</td>`).join("")}
+    </tr>
+  `).join("");
+
+  return `
+    <p><strong>CO–PO–PSO Mapping</strong></p>
+    <table border="1" cellpadding="4" cellspacing="0">
+      ${header}
+      ${rows}
+    </table>
+  `;
+}
+
+function generateSyllabusHTML_DOCX(templateHTML, courseData) {
+  let html = templateHTML;
+
+  const simpleFields = [
+    "sem", "course_title", "course_code", "credits",
+    "pedagogy", "ltps", "exam_hours", "cie", "see",
+    "course_type"
+  ];
+
+  simpleFields.forEach(key => {
+    html = html.replace(
+      new RegExp(`{{${key}}}`, "g"),
+      escapeHTML(courseData[key] || "")
+    );
+  });
+
+  // ---------- LIST HELPERS ----------
+  const listToWord = (arr = []) =>
+    arr
+      .map(v => `<li>${escapeHTML(v)}</li>`)
+      .join("");
+
+  // ---------- COURSE OBJECTIVES ----------
+  if (hasMeaningfulContent(courseData.course_objectives)) {
+    html = html.replace(
+      /{{#each course_objectives}}[\s\S]*?{{\/each}}/g,
+      listToWord(courseData.course_objectives)
+    );
+  } else {
+    html = html.replace(
+      /<!-- SECTION: COURSE_OBJECTIVES -->[\s\S]*?<!-- END: COURSE_OBJECTIVES -->/,
+      ""
+    );
+  }
+
+  // ---------- TEACHING ----------
+  if (hasMeaningfulContent(courseData.teaching_learning)) {
+    html = html.replace(
+      /{{#each teaching_learning}}[\s\S]*?{{\/each}}/g,
+      listToWord(courseData.teaching_learning)
+    );
+  } else {
+    html = html.replace(
+      /<!-- SECTION: TEACHING_LEARNING -->[\s\S]*?<!-- END: TEACHING_LEARNING -->/,
+      ""
+    );
+  }
+
+  // ---------- OUTCOMES ----------
+  if (hasMeaningfulContent(courseData.course_outcomes)) {
+    html = html.replace(
+      /{{#each course_outcomes}}[\s\S]*?{{\/each}}/g,
+      listToWord(courseData.course_outcomes)
+    );
+  } else {
+    html = html.replace(
+      /<!-- SECTION: Outcomes -->[\s\S]*?<!-- END: Outcomes -->/,
+      ""
+    );
+  }
+
+  // ---------- CO–PO TABLE ----------
+  html = html.replace("{{COPO_TABLE}}", buildCopoTableWord(courseData));
+
+  return html;
+}
+
+app.post("/generate-docx", async (req, res) => {
+  try {
+    const buffer = await generateSyllabusDocx(req.body);
+
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=syllabus.docx"
+    );
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
+
+    res.send(buffer);
+  } catch (err) {
+    console.error("DOCX ERROR:", err);
+    res.status(500).json({ error: "DOCX generation failed" });
+  }
+});
 
 const PORT = 8000;
 app.listen(PORT,()=>{
