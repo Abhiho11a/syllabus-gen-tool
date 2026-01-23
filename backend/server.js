@@ -25,8 +25,8 @@ const DEFAULT_SECTION_LINES = [
   "At the end of the course, the student will be able to:",
   "In addition to the traditional chalk and talk method, ICT tools are adopted:",
   "Modern AI tools used for this course:",
-  "Add Web Links:",
-  "Add Activity based learning points:"
+  "Web Links:",
+  "Activity based learning points:"
 ];
 
 //Helper functions
@@ -114,7 +114,7 @@ function generateSyllabusHTML(templateHTML, courseData) {
     "pedagogy", "ltps", "exam_hours", "cie", "see",
     "course_type", "exam_type"
   ];
-  
+
   courseData.exam_type = getExamType(courseData.course_type);
 
   simpleFields.forEach(key => {
