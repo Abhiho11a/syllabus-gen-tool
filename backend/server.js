@@ -102,16 +102,14 @@ function listToHTML(input) {
     .join("");
 }
 
- function getExamType(ct) {
-    // console.log("type:",typeof(ct),ct)
-    let s = ct.split(" ")[1]
+ function getExamType(ct = "") {
+  if (!ct || typeof ct !== "string") return "-";
 
-    if(s.includes("(T+L)"))
-      return("Theory & Lab")
-    else if(s.includes("T"))
-      return("Theory")
-    else if(s.includes("L"))
-      return("Lab")
+  const upper = ct.toUpperCase();
+
+  if (upper.includes("T+L")) return "Theory & Lab";
+  if (upper.includes("(T)") || upper.endsWith(" T")) return "Theory";
+  if (upper.includes("(L)") || upper.endsWith(" L")) return "Lab";
 
   return "-";
 }
