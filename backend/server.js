@@ -103,7 +103,7 @@ function listToHTML(input) {
 }
 
  function getExamType(ct) {
-    console.log("type:",typeof(ct),ct)
+    // console.log("type:",typeof(ct),ct)
     let s = ct.split(" ")[1]
 
     if(s.includes("(T+L)"))
@@ -554,7 +554,7 @@ app.post('/generate-pdf', async (req, res) => {
     // Replace placeholders
     const finalHTML = generateSyllabusHTML(templateHTML, courseData);
     
-    console.log("Generated HTML (first 500 chars):", finalHTML.substring(0, 500));
+    // console.log("Generated HTML (first 500 chars):", finalHTML.substring(0, 500));
 
     const browser = await launchBrowser();
     const page = await browser.newPage();
@@ -662,7 +662,7 @@ function generateSyllabusHTML_DOCX(templateHTML, courseData) {
   ];
 
 
-console.log(courseData)
+// console.log(courseData)
   simpleFields.forEach(key => {
     html = html.replace(
       new RegExp(`{{${key}}}`, "g"),
