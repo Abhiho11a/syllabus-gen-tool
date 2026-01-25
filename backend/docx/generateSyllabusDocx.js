@@ -89,18 +89,25 @@ function parseBoldRunsFromStars(text = "") {
 
   return runs;
 }
-function renderBulletList(arr = []) {
+function renderBulletList(input) {
+  // ✅ Normalize input
+  const arr = Array.isArray(input)
+    ? input
+    : typeof input === "string"
+      ? [input]
+      : [];
+
   return arr
     .map(v => String(v || "").trim())
-    .filter(v => v && !/^\d+\.\s*$/.test(v))
-    .map(
-      line =>
-        new Paragraph({
-          children: parseBoldRunsFromStars(line),
-          spacing: { after: 80 },
-        })
+    .filter(v => v && !/^\d+\.?\s*$/.test(v))
+    .map(line =>
+      new Paragraph({
+        children: parseBoldRunsFromStars(line),
+        spacing: { after: 80 },
+      })
     );
 }
+
 function sectionTitle(text) {
   return new Paragraph({
     children: [

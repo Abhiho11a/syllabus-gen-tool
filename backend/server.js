@@ -12,7 +12,6 @@ const {generateSyllabusDocx} = require("./docx/generateSyllabusDocx");
 process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true";
 const isProduction = process.env.NODE_ENV === "production";
 
-
 const app = express();
 app.use(express.json());
 app.use(cors());
