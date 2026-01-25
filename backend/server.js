@@ -18,6 +18,19 @@ app.use(cors());
 
 let browserInstance = null;
 
+app.use((req, res, next) => {
+  const log = {
+    time: new Date().toISOString(),
+    method: req.method,
+    path: req.originalUrl,
+    ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+    userAgent: req.headers["user-agent"],
+  };
+
+  console.log("USAGE_LOG:", JSON.stringify(log));
+  next();
+});
+
 
 const DEFAULT_SECTION_LINES = [
   "This course will enable the students to:",
