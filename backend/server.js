@@ -674,6 +674,38 @@ app.post("/generate-docx", async (req, res) => {
     res.status(500).json({ error: "DOCX generation failed" });
   }
 });
+app.post("/generate-json", (req, res) => {
+  try {
+    const courseData = req.body;
+
+    const courseCode = (courseData.course_code || "COURSE")
+      .replace(/\s+/g, "");
+
+    const now = new Date();
+
+    const day = String(now.getDate()).padStart(2, "0");
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = monthNames[now.getMonth()];
+    const year = now.getFullYear();
+
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+
+    const fileName = `${courseCode}_${day}-${month}-${year}_${hours}-${minutes}.json`;
+
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${fileName}"`
+    );
+
+    res.status(200).send(JSON.stringify(courseData, null, 2));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "JSON generation failed" });
+  }
+});
 
 const PORT = 8000;
 app.listen(PORT,()=>{
