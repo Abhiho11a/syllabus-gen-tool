@@ -32,73 +32,98 @@ function hasAnyCopoValue(rows = []) {
 function buildCopoTable(copo) {
   if (!copo || !Array.isArray(copo.rows) || copo.rows.length === 0) return [];
 
-  if (!hasAnyCopoValue(copo.rows)) {
-    return [];
-  }
-
-  // 🔹 filter rows with at least one value
-  const validRows = copo.rows.filter(r =>
-    [...(r.vals || []), ...(r.pso || [])].some(v => Number(v) > 0)
-  );
-
-  if (!validRows.length) return [];
-
-  // 🔹 valid PO indexes
-  const validPOIndexes = copo.headers
-    .map((_, i) => validRows.some(r => Number(r.vals?.[i]) > 0) ? i : -1)
-    .filter(i => i !== -1);
-
-  // 🔹 valid PSO indexes
-  const psoCount = validRows[0]?.pso?.length || 0;
-  const validPSOIndexes = Array.from({ length: psoCount })
-    .map((_, i) => validRows.some(r => Number(r.pso?.[i]) > 0) ? i : -1)
-    .filter(i => i !== -1);
+  const poCount = copo.headers.length;
+  const psoCount = copo.rows[0]?.pso?.length || 0;
 
   const headers = [
     "CO",
-    ...validPOIndexes.map(i => copo.headers[i]),
-    ...validPSOIndexes.map(i => `PSO${i + 1}`),
+    ...copo.headers,
+    ...Array.from({ length: psoCount }, (_, i) => `PSO${i + 1}`),
   ];
 
-  const rows = validRows.map(row =>
+  // 🔹 NORMAL ROWS (NO FILTERING)
+  const rows = copo.rows.map(row =>
     new TableRow({
       children: [
         new TableCell({
           borders: BORDER,
-          children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun(row.co)] })],
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [new TextRun(row.co)],
+            }),
+          ],
         }),
-        ...validPOIndexes.map(i =>
+
+        ...(row.vals || []).map(v =>
           new TableCell({
             borders: BORDER,
-            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun(String(row.vals?.[i] || ""))] })],
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [new TextRun(String(v || ""))],
+              }),
+            ],
           })
         ),
-        ...validPSOIndexes.map(i =>
+
+        ...(row.pso || []).map(v =>
           new TableCell({
             borders: BORDER,
-            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun(String(row.pso?.[i] || ""))] })],
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [new TextRun(String(v || ""))],
+              }),
+            ],
           })
         ),
       ],
     })
   );
 
+  // 🔹 AVG ROW
   const avgRow = new TableRow({
     children: [
       new TableCell({
         borders: BORDER,
-        children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "AVG", bold: true })] })],
+        children: [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [new TextRun({ text: "AVG", bold: true })],
+          }),
+        ],
       }),
-      ...validPOIndexes.map(i =>
+
+      ...Array.from({ length: poCount }, (_, i) =>
         new TableCell({
           borders: BORDER,
-          children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun(calculateAverage(validRows.map(r => Number(r.vals?.[i]))))] })],
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [
+                new TextRun(
+                  calculateAverage(copo.rows.map(r => Number(r.vals?.[i])))
+                ),
+              ],
+            }),
+          ],
         })
       ),
-      ...validPSOIndexes.map(i =>
+
+      ...Array.from({ length: psoCount }, (_, i) =>
         new TableCell({
           borders: BORDER,
-          children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun(calculateAverage(validRows.map(r => Number(r.pso?.[i]))))] })],
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [
+                new TextRun(
+                  calculateAverage(copo.rows.map(r => Number(r.pso?.[i])))
+                ),
+              ],
+            }),
+          ],
         })
       ),
     ],
@@ -108,25 +133,40 @@ function buildCopoTable(copo) {
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 300, after: 150 },
-      children: [new TextRun({ text: "CO–PO–PSO Mapping", bold: true, size: 28 })],
+      children: [
+        new TextRun({
+          text: "CO–PO–PSO Mapping",
+          bold: true,
+          size: 28,
+        }),
+      ],
     }),
+
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       rows: [
+        // 🔹 HEADER ROW
         new TableRow({
           children: headers.map(h =>
             new TableCell({
               borders: BORDER,
               shading: { fill: "C4C2C2", type: ShadingType.CLEAR },
-              children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: h, bold: true })] })],
+              children: [
+                new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  children: [new TextRun({ text: h, bold: true })],
+                }),
+              ],
             })
           ),
         }),
+
         ...rows,
         avgRow,
       ],
     }),
   ];
 }
+
 
 module.exports = { buildCopoTable };
