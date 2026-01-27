@@ -16,6 +16,28 @@ const BORDER = {
   right: { style: BorderStyle.SINGLE, size: 6 },
 };
 
+function hasRealModuleContent(mod) {
+  if (!mod) return false;
+
+  const hasContent =
+    typeof mod.content === "string" &&
+    mod.content.trim().length > 3;
+
+  const hasTextbook =
+    typeof mod.textbook === "string" &&
+    mod.textbook.trim().length > 0;
+
+  const hasRBT =
+    typeof mod.rbt === "string" &&
+    mod.rbt.trim().length > 0;
+
+  const hasWK =
+    typeof mod.wkt === "string" &&
+    mod.wkt.trim().length > 0;
+
+  return hasContent || hasTextbook || hasRBT || hasWK;
+}
+
 function buildModules(modules = []) {
   const blocks = [];
 
@@ -31,6 +53,7 @@ function buildModules(modules = []) {
   }
 
   modules.forEach((mod, i) => {
+    if (!hasRealModuleContent(mod)) return; // 🔥 THIS LINE FIXES EVERYTHING
     blocks.push(
       new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
