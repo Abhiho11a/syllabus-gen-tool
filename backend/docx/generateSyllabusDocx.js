@@ -120,6 +120,30 @@ function sectionTitle(text) {
     spacing: { before: 200, after: 50 },
   });
 }
+function hasRealContent(arr = []) {
+  if (!Array.isArray(arr)) return false;
+
+  return arr
+    .slice(1) // remove heading element
+    .some(item =>
+      typeof item === "string" &&
+      item.trim().length > 3 &&
+      !/^\d+\.?$/.test(item.trim())
+    );
+}
+
+function cleanList(arr = []) {
+  return Array.isArray(arr) ? arr.slice(1) : [];
+}
+
+function pushCleanSection(children, title, data) {
+  if (!hasRealContent(data)) return;
+  children.push(
+    sectionTitle(title),
+    ...renderBulletList(cleanList(data))
+  );
+}
+
 
 async function generateSyllabusDocx(courseData) {
   const children = [];
@@ -176,18 +200,8 @@ if (hasMeaningfulContent(courseData.modern_tools)) {
       ...renderBulletList(courseData.course_outcomes)
     );
   }
-  if (hasMeaningfulContent(courseData.referral_links)) {
-    children.push(
-      sectionTitle("Web Links"),
-      ...renderBulletList(courseData.referral_links)
-    );
-  }
-  if (hasMeaningfulContent(courseData.activity_based)) {
-    children.push(
-      sectionTitle("Activity-Based Learning"),
-      ...renderBulletList(courseData.activity_based)
-    );
-  }
+  pushCleanSection(children, "Web Links", courseData.referral_links);
+  pushCleanSection(children, "Activity-Based Learning", courseData.activity_based);
 
   // 5️⃣ CO–PO–PSO
   children.push(...buildCopoTable(courseData.copoMapping));
