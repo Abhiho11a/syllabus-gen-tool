@@ -69,6 +69,17 @@ function hasMeaningfulContent(input) {
       return true; // ✅ REAL USER CONTENT
     }).length > 0;
 }
+function hasRealContent(arr = []) {
+  if (!Array.isArray(arr)) return false;
+
+  return arr
+    .slice(1) // 🔪 remove first heading element
+    .some(item =>
+      typeof item === "string" &&
+      item.trim().length > 3 &&          // avoids "1.", "fg", etc
+      !/^\d+\.?$/.test(item.trim())     // avoids "1." "2"
+    );
+}
 
 
 function escapeHTML(text = "") {
@@ -113,6 +124,10 @@ function listToHTML(input) {
 
   return "-";
 }
+function removeFirstItem(arr = []) {
+  return Array.isArray(arr) ? arr.slice(1) : [];
+}
+
 
 //Function to generate PDF
 function generateSyllabusHTML(templateHTML, courseData) {
@@ -188,10 +203,13 @@ function generateSyllabusHTML(templateHTML, courseData) {
   }
 
   // ================= WEB LINKS =================
-  if (hasMeaningfulContent(courseData.referral_links)) {
+  if (hasRealContent(courseData.referral_links)) {
+        const cleanLinks = courseData.referral_links.slice(1);
+
+
     html = html.replace(
       /{{#each referral_links}}[\s\S]*?{{\/each}}/g,
-      listToHTML(courseData.referral_links)
+      listToHTML(cleanLinks)
     );
   } else {
     html = html.replace(
@@ -201,10 +219,11 @@ function generateSyllabusHTML(templateHTML, courseData) {
   }
 
   // ================= ACTIVITY-BASED =================
-  if (hasMeaningfulContent(courseData.activity_based)) {
+  if (hasRealContent(courseData.activity_based)) {
+    const cleanActivity = courseData.activity_based.slice(1);
     html = html.replace(
       /{{#each activity_based}}[\s\S]*?{{\/each}}/g,
-      listToHTML(courseData.activity_based)
+      listToHTML(cleanActivity)
     );
   } else {
     html = html.replace(
@@ -411,121 +430,6 @@ const headerHTML = `
 
 html = html.replace("{{COPO_TABLE}}", copoHTML);
 
-// let copoHTML = "";
-
-// const copo = courseData.copoMapping;
-
-// if (copo && Array.isArray(copo.rows)) {
-
-//   // ---------- STEP 1: FILTER VALID ROWS ----------
-//   const validRows = copo.rows.filter(row =>
-//     [...(row.vals || []), ...(row.pso || [])].some(v => {
-//       const n = Number(v);
-//       return !isNaN(n) && n > 0;
-//     })
-//   );
-
-//   if (validRows.length === 0) {
-//     html = html.replace("{{COPO_TABLE}}", "");
-//     return html;
-//   }
-
-//   // ---------- STEP 2: FILTER PO COLUMNS ----------
-//   const poHeaders = copo.headers || [];
-
-//   const validPOIndexes = poHeaders
-//     .map((_, idx) =>
-//       validRows.some(r => Number(r.vals?.[idx]) > 0)
-//     )
-//     .map((keep, idx) => keep ? idx : -1)
-//     .filter(idx => idx !== -1);
-
-//   // ---------- STEP 3: FILTER PSO COLUMNS ----------
-//   const psoCount = validRows[0]?.pso?.length || 0;
-
-//   const validPSOIndexes = Array.from({ length: psoCount })
-//     .map((_, idx) =>
-//       validRows.some(r => Number(r.pso?.[idx]) > 0)
-//     )
-//     .map((keep, idx) => keep ? idx : -1)
-//     .filter(idx => idx !== -1);
-
-//   if (validPOIndexes.length === 0 && validPSOIndexes.length === 0) {
-//     html = html.replace("{{COPO_TABLE}}", "");
-//     return html;
-//   }
-
-//   // ---------- STEP 4: HEADER ----------
-//   const headerHTML = `
-//     <tr>
-//       <th>CO</th>
-//       ${validPOIndexes.map(i => `<th>${escapeHTML(poHeaders[i])}</th>`).join("")}
-//       ${validPSOIndexes.map(i => `<th>PSO${i + 1}</th>`).join("")}
-//     </tr>
-//   `;
-
-//   // ---------- STEP 5: DATA ROWS ----------
-//   const rowsHTML = validRows.map(row => `
-//     <tr>
-//       <td>${escapeHTML(row.co)}</td>
-//       ${validPOIndexes.map(i => `<td>${row.vals?.[i] || ""}</td>`).join("")}
-//       ${validPSOIndexes.map(i => `<td>${row.pso?.[i] || ""}</td>`).join("")}
-//     </tr>
-//   `).join("");
-
-//   // ---------- STEP 6: AVG ROW (🔥 NEW PART) ----------
-//   const avgRowHTML = `
-//     <tr>
-//       <td><strong>AVG</strong></td>
-
-//       ${validPOIndexes.map(i => {
-//         let sum = 0, count = 0;
-
-//         validRows.forEach(row => {
-//           const val = Number(row.vals?.[i]);
-//           if (!isNaN(val) && val > 0) {
-//             sum += val;
-//             count++;
-//           }
-//         });
-
-//         return `<td>${count ? (sum / count).toFixed(1) : ""}</td>`;
-//       }).join("")}
-
-//       ${validPSOIndexes.map(i => {
-//         let sum = 0, count = 0;
-
-//         validRows.forEach(row => {
-//           const val = Number(row.pso?.[i]);
-//           if (!isNaN(val) && val > 0) {
-//             sum += val;
-//             count++;
-//           }
-//         });
-
-//         return `<td>${count ? (sum / count).toFixed(1) : ""}</td>`;
-//       }).join("")}
-//     </tr>
-//   `;
-
-//   // ---------- STEP 7: FINAL TABLE ----------
-//   copoHTML = `
-//     <div class="section">
-//       <div class="section-title" style="text-align:center;">
-//         CO–PO–PSO Mapping
-//       </div>
-
-//       <table class="copo">
-//         ${headerHTML}
-//         ${rowsHTML}
-//         ${avgRowHTML}
-//       </table>
-//     </div>
-//   `;
-// }
-
-
-// html = html.replace("{{COPO_TABLE}}", copoHTML);
 
 
   return html;
