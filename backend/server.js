@@ -288,7 +288,7 @@ function generateSyllabusHTML(templateHTML, courseData) {
             ${boldToHTML(escapeHTML(mod.content || "-")).replace(/\n/g, "<br>")}
           </div>
           <div class="module-meta">
-            <span>Textbook ${escapeHTML(mod.textbook || "-")}</span>
+            <span>Textbook ${escapeHTML(mod.textbook || "-")}:${mod.chapter}</span>
             <span>RBT: ${escapeHTML(mod.rbt || "-")}</span>
             <span>WK: ${escapeHTML(mod.wk || mod.wkt || "-")}</span>
           </div>

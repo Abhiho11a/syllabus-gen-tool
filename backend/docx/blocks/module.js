@@ -111,7 +111,7 @@ function buildModules(modules = []) {
         new Paragraph({
           children: [
             new TextRun({
-              text: `Textbook ${mod.textbook || "-"}`,
+              text: `Textbook ${mod.textbook || "-"}:${mod.chapter}`,
               bold: true,
             }),
 
