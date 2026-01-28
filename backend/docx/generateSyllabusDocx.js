@@ -53,6 +53,32 @@ function hasMeaningfulContent(input) {
       return true;
     }).length > 0;
 }
+function hasRealModernToolsContent(input) {
+  if (!Array.isArray(input)) return false;
+
+  return input
+    .map(v => String(v || "").trim())
+    .filter(v => {
+      if (!v) return false;
+
+      // ignore numbering like "1." "2"
+      if (/^\d+\.?$/.test(v)) return false;
+
+      // ignore default heading
+      if (
+        DEFAULT_MODERN_TOOLS_LINES.some(
+          d => d.toLowerCase() === v.toLowerCase()
+        )
+      ) return false;
+
+      return true; // ✅ real user content
+    }).length > 0;
+}
+
+const DEFAULT_MODERN_TOOLS_LINES = [
+  "**Modern AI tools used for this course:**"
+];
+
 
 function parseBoldRunsFromStars(text = "") {
   const runs = [];
@@ -169,14 +195,19 @@ if (hasMeaningfulContent(courseData.teaching_learning)) {
 }
 
 // 🔥 Modern AI Tools (FIXED)
-if (hasMeaningfulContent(courseData.modern_tools)) {
+// if (hasMeaningfulContent(courseData.modern_tools)) {
+//   children.push(
+//     sectionTitle("Modern AI Tools Used"),
+//     ...renderBulletList(courseData.modern_tools)
+//   );
+// }
+
+if (hasRealModernToolsContent(courseData.modern_tools)) {
   children.push(
     sectionTitle("Modern AI Tools Used"),
     ...renderBulletList(courseData.modern_tools)
   );
 }
-
-
 
   // 4️⃣ MODULES
   children.push(...buildModules(courseData.modules));

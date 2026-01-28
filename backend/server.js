@@ -69,6 +69,34 @@ function hasMeaningfulContent(input) {
       return true; // ✅ REAL USER CONTENT
     }).length > 0;
 }
+
+const DEFAULT_MODERN_TOOLS_LINES = [
+  "**Modern AI tools used for this course:**"
+];
+
+function hasRealModernToolsContent(input) {
+  if (!Array.isArray(input)) return false;
+
+  return input
+    .map(v => String(v || "").trim())
+    .filter(v => {
+      if (!v) return false;
+
+      // ignore numbering like "1." or "2"
+      if (/^\d+\.?$/.test(v)) return false;
+
+      // ignore default heading
+      if (
+        DEFAULT_MODERN_TOOLS_LINES.some(
+          d => d.toLowerCase() === v.toLowerCase()
+        )
+      ) return false;
+
+      return true; // ✅ real user content
+    })
+    .length > 0;
+}
+
 function hasRealContent(arr = []) {
   if (!Array.isArray(arr)) return false;
 
@@ -177,17 +205,29 @@ function generateSyllabusHTML(templateHTML, courseData) {
   }
 
   // ================= MODERN TOOLS =================
-  if (hasMeaningfulContent(courseData.modern_tools)) {
-    html = html.replace(
-      /{{#each modern_tools}}[\s\S]*?{{\/each}}/g,
-      listToHTML(courseData.modern_tools)
-    );
-  } else {
-    html = html.replace(
-      /<!-- SECTION: MODERN_TOOLS -->[\s\S]*?<!-- END: MODERN_TOOLS -->/,
-      ""
-    );
-  }
+  // if (hasMeaningfulContent(courseData.modern_tools)) {
+  //   html = html.replace(
+  //     /{{#each modern_tools}}[\s\S]*?{{\/each}}/g,
+  //     listToHTML(courseData.modern_tools)
+  //   );
+  // } else {
+  //   html = html.replace(
+  //     /<!-- SECTION: MODERN_TOOLS -->[\s\S]*?<!-- END: MODERN_TOOLS -->/,
+  //     ""
+  //   );
+  // }
+  if (hasRealModernToolsContent(courseData.modern_tools)) {
+  html = html.replace(
+    /{{#each modern_tools}}[\s\S]*?{{\/each}}/g,
+    listToHTML(courseData.modern_tools)
+  );
+} else {
+  html = html.replace(
+    /<!-- SECTION: MODERN_TOOLS -->[\s\S]*?<!-- END: MODERN_TOOLS -->/,
+    ""
+  );
+}
+
 
   // ================= COURSE OUTCOMES =================
   if (hasMeaningfulContent(courseData.course_outcomes)) {
