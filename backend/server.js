@@ -204,7 +204,7 @@ function generateSyllabusHTML(templateHTML, courseData) {
 
   // ================= WEB LINKS =================
   if (hasRealContent(courseData.referral_links)) {
-        const cleanLinks = courseData.referral_links.slice(1);
+        const cleanLinks = courseData.referral_links;
 
 
     html = html.replace(
@@ -220,7 +220,7 @@ function generateSyllabusHTML(templateHTML, courseData) {
 
   // ================= ACTIVITY-BASED =================
   if (hasRealContent(courseData.activity_based)) {
-    const cleanActivity = courseData.activity_based.slice(1);
+    const cleanActivity = courseData.activity_based;
     html = html.replace(
       /{{#each activity_based}}[\s\S]*?{{\/each}}/g,
       listToHTML(cleanActivity)
