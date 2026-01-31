@@ -95,7 +95,7 @@ th, td {
 /* ================= SECTION BOX ================= */
 .section {
   margin-top: 10px;
-  page-break-inside: avoid;
+  page-break-inside: auto;
 }
 
 .section-title {
@@ -161,11 +161,38 @@ li {
 }
 
 /* ================= EXPERIMENT TABLE ================= */
-.experiments th {
+/* ================= EXPERIMENT TABLE ================= */
+.experiments .expSl{
+  width: 50px;
+}table.experiments {
+  width: 100%;
+  border-collapse: collapse;
+  page-break-inside: auto;
+}
+
+table.experiments th {
   background: #f0f0f0;
 }
-.experiments .expSl{
-  width: 40px;
+
+table.experiments td,
+table.experiments th {
+  border: 1px solid #000;
+  padding: 6px 8px;
+  vertical-align: top;
+}
+
+/* ✅ THIS is the key */
+table.experiments tr {
+  page-break-inside: auto;   /* allow row breaks */
+}
+
+/* Header repeats */
+table.experiments thead {
+  display: table-header-group;
+}
+
+table.experiments tbody {
+  display: table-row-group;
 }
 
 /* ================= CO-PO TABLE ================= */

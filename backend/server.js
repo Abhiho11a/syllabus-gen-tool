@@ -156,6 +156,23 @@ function removeFirstItem(arr = []) {
   return Array.isArray(arr) ? arr.slice(1) : [];
 }
 
+function splitExperimentContent(text, maxLines = 3) {
+  if (!text) return [];
+
+  const lines = text
+    .split(/\n+/)
+    .map(l => l.trim())
+    .filter(Boolean);
+
+  const chunks = [];
+  for (let i = 0; i < lines.length; i += maxLines) {
+    chunks.push(lines.slice(i, i + maxLines).join("<br>"));
+  }
+
+  return chunks;
+}
+
+
 
 //Function to generate PDF
 function generateSyllabusHTML(templateHTML, courseData) {
@@ -311,28 +328,40 @@ function generateSyllabusHTML(templateHTML, courseData) {
 
   if (validExperiments.length > 0) {
     const rowsHTML = validExperiments
-      .map(exp => `
-        <tr>
-          <td>${escapeHTML(exp.slno)}</td>
-          <td style="text-align:left;">
-            ${boldToHTML(escapeHTML(exp.cont || "")).replace(/\n/g, "<br>")}
-          </td>
-        </tr>
-      `)
-      .join("");
+  .flatMap(exp => {
+    const parts = splitExperimentContent(
+      boldToHTML(escapeHTML(exp.cont || "")),
+      3 // lines per row
+    );
 
-    experimentsHTML = `
-      <div class="section">
-        <div class="section-title">Practical Components</div>
-        <table class="experiments">
-          <tr>
-            <th class="expSl">Sl. No.</th>
-            <th class="expCont">Experiment</th>
-          </tr>
-          ${rowsHTML}
-        </table>
-      </div>
-    `;
+    return parts.map((part, idx) => `
+      <tr>
+        <td>${idx === 0 ? escapeHTML(exp.slno) : ""}</td>
+        <td style="text-align:left;">${part}</td>
+      </tr>
+    `);
+  })
+  .join("");
+
+
+   experimentsHTML = `
+  <div class="section">
+    <div class="section-title">Practical Components</div>
+
+    <table class="experiments">
+      <thead>
+        <tr>
+          <th class="expSl">Sl. No.</th>
+          <th class="expCont">Experiment</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        ${rowsHTML}
+      </tbody>
+    </table>
+  </div>
+`;
   }
 
   html = html.replace(
