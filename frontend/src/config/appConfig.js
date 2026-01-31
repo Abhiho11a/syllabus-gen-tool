@@ -43,8 +43,8 @@ export const DataSchema = {
   course_outcomes: `**At the end of the course, the student will be able to:**\n${DEFAULT_4_POINTS}`,
   teaching_learning: `**In addition to the traditional chalk and talk method, ICT tools are adopted:**\n${DEFAULT_4_POINTS}`,
   modern_tools: `**Modern AI tools used for this course:**\n${DEFAULT_4_POINTS}`,
-  referral_links: `**Add Web Links:**\n${DEFAULT_4_POINTS}`,
-  activity_based: `**Add Activity based learning points:**\n${DEFAULT_4_POINTS}`,
+  referral_links: `${DEFAULT_4_POINTS}`,
+  activity_based: `${DEFAULT_4_POINTS}`,
 
   textbooks: [],
 

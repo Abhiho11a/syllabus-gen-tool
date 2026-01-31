@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, RefreshCcw, Plus, Trash2, X, Edit2 } from "lucide-react";
+import { ArrowDown, ArrowUp, RefreshCcw, Plus, Trash2, X, Edit2, Check } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import './App.css'
 import { DataSchema, programStructure } from "./config/appConfig";
@@ -514,12 +514,12 @@ if (!hasRealUserContent(formData.teaching_learning)) {
   return;
 }
 // ===== Modern AI tools =====
-if (!hasRealUserContent(formData.modern_tools)) {
-  alert("Please add at least one Modern AI Tool");
-  scrollTo(refs.modern_tools);
-  resetGenerateState();
-  return;
-}
+// if (!hasRealUserContent(formData.modern_tools)) {
+//   alert("Please add at least one Modern AI Tool");
+//   scrollTo(refs.modern_tools);
+//   resetGenerateState();
+//   return;
+// }
 
 
   
@@ -760,7 +760,41 @@ const triggerAllDownloads = async() => {
 }
 
   if(downloadOptions.json)
-  setTimeout(() => setDownloadAll("json"), 600);
+  {
+    const downloadJSON = async () => {
+  try {
+    const res = await fetch(
+      "http://localhost:8000/generate-json",
+        // "https://syllabus-gen-tool.onrender.com/generate-json",
+      {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+
+    if (!res.ok) throw new Error("JSON generation failed");
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+
+    const courseCode = (formData.course_code || "COURSE").replace(/\s+/g, "");
+    a.download = `${courseCode}_${day}-${month}-${year}_${hours}-${minutes}.json`;
+
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("JSON download error:", err);
+  }
+};
+
+setTimeout(() => {
+    downloadJSON();
+  }, 900);
+  }
+  // setTimeout(() => setDownloadAll("json"), 600);
 
   // ✅ SHOW SUCCESS AFTER ALL DOWNLOADS
   setTimeout(() => {
@@ -845,6 +879,81 @@ const toggleSection = (key) => {
     [key]: !prev[key],
   }));
 };
+
+
+const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
+const [showPreview, setShowPreview] = useState(false);
+const [previewBtnText,setpreviewBtnText] = useState("Preview PDF")
+
+
+const previewPDF = async () => {
+  try {
+
+    setpreviewBtnText("Loading PDF..")
+    const res = await fetch(
+          "http://localhost:8000/generate-pdf",
+      // "https://syllabus-gen-tool.onrender.com/generate-pdf",
+       {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    });
+
+    if (!res.ok) throw new Error("PDF generation failed");
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+
+    setPdfPreviewUrl(url);
+    setShowPreview(true);
+  } catch (err) {
+    console.error("Preview error:", err);
+  }
+};
+
+async function downloadPdf(){
+
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, "0");
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = monthNames[now.getMonth()];
+  const year = now.getFullYear();
+
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const res = await fetch(
+    "http://localhost:8000/generate-pdf",
+    // " https://syllabus-gen-tool.onrender.com/generate-pdf",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData)
+    }
+  );
+
+  console.log("PDF status:", res.status);
+  console.log("Content-Type:", res.headers.get("content-type"));
+
+  if (!res.ok) {
+    throw new Error("PDF generation failed");
+  }
+
+  const contentType = res.headers.get("content-type");
+  if (!contentType || !contentType.includes("application/pdf")) {
+    const text = await res.text();
+    console.error("Expected PDF, got:", text);
+    alert("Server did not return a PDF");
+    return;
+  }
+
+  const blob = await res.blob();
+  const courseCode = (formData.course_code || "COURSE").replace(/\s+/g, "");
+
+  downloadFile(blob, `${courseCode}_${day}-${month}-${year}_${hours}-${minutes}.pdf`);
+}
+
 
 
 
@@ -1219,7 +1328,7 @@ Course Objectives</label>
     onClick={() => toggleSection("objectives")}
     className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300"
   >
-    {showSections.objectives ? "Hide" : "Add"}
+    {showSections.objectives ? "Hide" : "Show"}
   </button>
 </div>
 
@@ -1255,7 +1364,7 @@ Course Objectives</label>
     onClick={() => toggleSection("tl")}
     className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300"
   >
-    {showSections.tl ? "Hide" : "Add"}
+    {showSections.tl ? "Hide" : "Show"}
   </button>
 </div>
 
@@ -1291,7 +1400,7 @@ Course Objectives</label>
     onClick={() => toggleSection("tools")}
     className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300"
   >
-    {showSections.tools ? "Hide" : "Add"}
+    {showSections.tools ? "Hide" : "Show"}
   </button>
 </div>
 
@@ -1697,7 +1806,7 @@ Course Objectives</label>
     onClick={() => toggleSection("outcomes")}
     className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300"
   >
-    {showSections.outcomes ? "Hide" : "Add"}
+    {showSections.outcomes ? "Hide" : "Show"}
   </button>
 </div>
 
@@ -1738,7 +1847,7 @@ Web Links & Video Lectures      </label>
     onClick={() => toggleSection("links")}
     className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300"
   >
-    {showSections.links ? "Hide" : "Add "}
+    {showSections.links ? "Hide" : "Show "}
   </button>
 </div>
 
@@ -1775,7 +1884,7 @@ Activity-Based Learning  </label>
     onClick={() => toggleSection("activity")}
     className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300"
   >
-    {showSections.activity ? "Hide" : "Add"}
+    {showSections.activity ? "Hide" : "Show"}
   </button>
 </div>
 
@@ -1999,7 +2108,13 @@ Activity-Based Learning  </label>
   >
     {downloadBtnText}
   </button>
-
+    <button
+    onClick={previewPDF}
+    className={`px-6 py-2 ${previewBtnText === "Preview PDF"?"cursor-pointer":"cursor-no-drop"} rounded-md text-white bg-gray-500 hover:bg-gray-600
+    `}
+  >
+    {previewBtnText}
+  </button>
 
     <button onClick={()=> {
           setDocGen(false)
@@ -2017,6 +2132,47 @@ Activity-Based Learning  </label>
     }} className="flex bg-green-700 cursor-pointer hover:bg-green-800 text-white px-5 py-2 rounded-md text-md">Generate New</button>
   </div>
 </div>}
+
+{showPreview && pdfPreviewUrl && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-1000">
+    <div className="bg-white w-[90%] h-[90%] rounded-lg shadow-lg flex flex-col">
+      
+      {/* Header */}
+      <div className="flex justify-between items-center p-3 border-b">
+        <h2 className="font-semibold">PDF Preview</h2>
+        <button
+          onClick={() => {
+            setShowPreview(false);
+            URL.revokeObjectURL(pdfPreviewUrl);
+            setPdfPreviewUrl(null);
+            setpreviewBtnText("Preview PDF")
+          }}
+          className="text-red-500 font-bold cursor-pointer"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* PDF */}
+      <iframe
+        src={pdfPreviewUrl}
+        className="flex-1 w-full"
+        title="PDF Preview"
+      />
+
+      {/* Footer */}
+      <div className="p-3 border-t flex justify-end gap-3">
+        <button
+          onClick={downloadPdf}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-md cursor-pointer hover:bg-indigo-500"
+        >
+          Download PDF
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
 
 
             {showDownloads && <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-5 justify-between mt-5">
