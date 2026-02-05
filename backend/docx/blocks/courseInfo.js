@@ -75,7 +75,7 @@ function buildCourseInfoTable(data) {
       new TableRow({
         children: [
           data.sem,
-          data.course_title,
+          data.course_title.toUpperCase(),
           data.course_code,
           data.credits,
           data.pedagogy,

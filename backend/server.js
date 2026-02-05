@@ -190,7 +190,7 @@ function generateSyllabusHTML(templateHTML, courseData) {
   simpleFields.forEach(key => {
     html = html.replace(
       new RegExp(`{{${key}}}`, "g"),
-      escapeHTML(courseData[key] || "")
+      escapeHTML(key==="course_title"?courseData[key].toUpperCase():courseData[key] || "-")
     );
   });
 
