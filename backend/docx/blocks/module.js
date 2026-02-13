@@ -38,6 +38,25 @@ function hasRealModuleContent(mod) {
   return hasContent || hasTextbook || hasRBT || hasWK;
 }
 
+function parseBoldText(text = "") {
+  const parts = text.split(/(\*\*.*?\*\*)/g); 
+  // splits but keeps **bold** parts
+
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return new TextRun({
+        text: part.slice(2, -2), // remove **
+        bold: true,
+      });
+    }
+
+    return new TextRun({
+      text: part,
+    });
+  });
+}
+
+
 function buildModules(modules = []) {
   const blocks = [];
 
@@ -91,7 +110,7 @@ function buildModules(modules = []) {
                 children: [
                   new Paragraph({
                     alignment: AlignmentType.JUSTIFIED,
-                    children: [new TextRun(mod.content || "")],
+                    children: parseBoldText(mod.content || ""),
                   }),
                 ],
                 margins:{
