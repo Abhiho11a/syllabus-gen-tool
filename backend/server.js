@@ -320,54 +320,117 @@ function generateSyllabusHTML(templateHTML, courseData) {
   );
 
   // ================= EXPERIMENTS =================
-  let experimentsHTML = "";
+  // ================= EXPERIMENTS =================
+// ================= EXPERIMENTS =================
+let experimentsHTML = "";
 
-  const validExperiments = (courseData.experiments || []).filter(
-    exp => exp && String(exp.cont || "").trim()
+const validExperiments = (courseData.experiments || []).filter(
+  exp => exp && String(exp.cont || "").trim()
+);
+
+if (validExperiments.length > 0) {
+
+  // ✅ Detect parts from data itself — don't rely on hasParts flag
+  const hasAnyPart = validExperiments.some(
+    e => e.part === "A" || e.part === "B"
   );
 
-  if (validExperiments.length > 0) {
-    const rowsHTML = validExperiments
-  .flatMap(exp => {
-    const parts = splitExperimentContent(
-      boldToHTML(escapeHTML(exp.cont || "")),
-      3 // lines per row
-    );
+  // ✅ Experiments with null/undefined part → treat as "no part" / fallback to Part A
+  const partA = validExperiments.filter(e => e.part === "A");
+  const partB = validExperiments.filter(e => e.part === "B");
+  const noPart = validExperiments.filter(e => !e.part);
 
-    return parts.map((part, idx) => `
-      <tr>
-        <td>${idx === 0 ? escapeHTML(exp.slno) : ""}</td>
-        <td style="text-align:left;">${part}</td>
-      </tr>
-    `);
-  })
-  .join("");
-
-
-   experimentsHTML = `
-  <div class="section">
-    <div class="section-title">Practical Components</div>
-
-    <table class="experiments">
-      <thead>
+  function buildTable(exps) {
+    if (exps.length === 0) return "";
+    const rowsHTML = exps.flatMap(exp => {
+      const parts = splitExperimentContent(
+        boldToHTML(escapeHTML(exp.cont || "")),
+        3
+      );
+      return parts.map((part, idx) => `
         <tr>
-          <th class="expSl">Sl. No.</th>
-          <th class="expCont">Experiment</th>
+          <td>${idx === 0 ? escapeHTML(exp.slno) : ""}</td>
+          <td style="text-align:left;">${part}</td>
         </tr>
-      </thead>
+      `);
+    }).join("");
 
-      <tbody>
-        ${rowsHTML}
-      </tbody>
-    </table>
-  </div>
-`;
+    return `
+      <table class="experiments">
+        <thead>
+          <tr>
+            <th class="expSl">Sl. No.</th>
+            <th class="expCont">Experiment</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHTML}</tbody>
+      </table>
+    `;
   }
 
-  html = html.replace(
-    /{{#each experiments}}[\s\S]*?{{\/each}}/g,
-    experimentsHTML
-  );
+  if (hasAnyPart) {
+  const effectivePartA = [...noPart, ...partA];
+
+  // Build rows for a section with a part-header row inside the table
+  function buildPartRows(label, exps) {
+    if (exps.length === 0) return "";
+
+    const headerRow = `
+  <tr>
+    <td colspan="2" style="font-weight:bold; text-align:center; padding: 6px 10px;">
+      ${label}
+    </td>
+  </tr>
+`;
+
+    const dataRows = exps.flatMap(exp => {
+      const parts = splitExperimentContent(
+        boldToHTML(escapeHTML(exp.cont || "")),
+        3
+      );
+      return parts.map((part, idx) => `
+        <tr>
+          <td>${idx === 0 ? escapeHTML(exp.slno) : ""}</td>
+          <td style="text-align:left;">${part}</td>
+        </tr>
+      `);
+    }).join("");
+
+    return headerRow + dataRows;
+  }
+
+  experimentsHTML = `
+    <div class="section">
+      <div class="section-title">Practical Components</div>
+      <table class="experiments">
+        <thead>
+          <tr>
+            <th class="expSl">Sl. No.</th>
+            <th class="expCont">Experiment</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${buildPartRows("Part A", effectivePartA)}
+          ${buildPartRows("Part B", partB)}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+} else {
+  experimentsHTML = `
+    <div class="section">
+      <div class="section-title">Practical Components</div>
+      ${buildTable(validExperiments)}
+    </div>
+  `;
+}
+}
+
+html = html.replace(
+  /{{#each experiments}}[\s\S]*?{{\/each}}/g,
+  experimentsHTML
+);
 
   // ================= TEXTBOOKS =================
   let textbooksHTML = "";
