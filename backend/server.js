@@ -375,9 +375,10 @@ if (validExperiments.length > 0) {
   function buildPartRows(label, exps) {
     if (exps.length === 0) return "";
 
-    const headerRow = `
+   const headerRow = `
   <tr>
-    <td colspan="2" style="font-weight:bold; text-align:center; padding: 6px 10px;">
+    <td></td>
+    <td style="font-weight:bold; text-align:center; padding: 6px 10px;">
       ${label}
     </td>
   </tr>
@@ -406,7 +407,7 @@ if (validExperiments.length > 0) {
         <thead>
           <tr>
             <th class="expSl">Sl. No.</th>
-            <th class="expCont">Experiment</th>
+            <th class="expCont" >Experiment</th>
           </tr>
         </thead>
         <tbody>
@@ -466,7 +467,7 @@ html = html.replace(
             <th>Sl.No</th>
             <th>Author</th>
             <th>Title</th>
-            <th>Publisher</th>
+            <th>Publisher&Edition</th>
             <th>Year</th>
           </tr>
           ${rowsHTML}
