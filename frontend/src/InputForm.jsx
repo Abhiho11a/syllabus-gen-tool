@@ -7,7 +7,9 @@ import NumberedTextarea from "./NumberedTextArea";
 import PdfRender from "./renders/PdfRender";
 import DocxRender from "./renders/DocxRender";
 import JsonRender from "./renders/JsonRender";
-
+import Popup from "./Popup";
+import ExperimentsSection from "./Experiments";
+const apiUrl = import.meta.env.VITE_API_URL  
 
 export default function InputForm(){
 
@@ -38,13 +40,98 @@ export default function InputForm(){
       rbt: "",
       wkt: ""
 };
+const DRAFT_KEY = "syllabus_form_draft";
 
-const [formData, setFormData] = useState({
-  ...DataSchema,
-  modules: DataSchema.modules?.length
-    ? DataSchema.modules
-    : [{ ...emptyModule }]
+const autosaveTimer = useRef(null);
+const lastSavedDataRef = useRef(null);
+const lastSavedTimeRef = useRef(0);
+const [popupPosition, setPopupPosition] = useState("top");
+useEffect(() => {
+  const handleScroll = () => {
+    const scrollY = window.scrollY;
+
+    if (scrollY > 120) {
+      setPopupPosition("floating");
+    }
+    else{
+      setPopupPosition("top")
+    }
+  };
+
+  window.addEventListener("scroll", handleScroll);
+
+  return () => window.removeEventListener("scroll", handleScroll);
+}, []);
+
+function parseCourseType(courseType) {
+  if (!courseType) return { base: "", nature: "" };
+  const match = courseType.match(/^([A-Z]+)\s*\(([^)]+)\)$/);
+  if (!match) return { base: courseType, nature: "" };
+  return { base: match[1], nature: match[2] };
+}
+
+
+const [formData, setFormData] = useState(() => {
+  const savedDraft = localStorage.getItem(DRAFT_KEY);
+
+  if (savedDraft) {
+    try {
+      const parsedDraft = JSON.parse(savedDraft);
+
+      // ✅ ADD THESE TWO LINES HERE
+      lastSavedDataRef.current = parsedDraft;
+      lastSavedTimeRef.current = Date.now();
+
+      return {
+  ...parsedDraft,
+  course_type: parseCourseType(parsedDraft.course_type).base  // ✅ "PCCL (L)" → "PCCL"
+};
+    } catch (err) {
+      console.error("Invalid draft data, falling back");
+    }
+  }
+
+  return {
+    ...DataSchema,
+    modules: DataSchema.modules?.length
+      ? DataSchema.modules
+      : [{ ...emptyModule }]
+  };
 });
+
+const hasSavedOnceRef = useRef(false);
+
+
+useEffect(() => {
+  if (autosaveTimer.current) {
+    clearTimeout(autosaveTimer.current);
+  }
+
+  autosaveTimer.current = setTimeout(() => {
+    const now = Date.now();
+    const timeDiff = now - lastSavedTimeRef.current;
+
+    const hasDataChanged =
+      JSON.stringify(lastSavedDataRef.current) !==
+      JSON.stringify(formData);
+
+    if (
+      hasDataChanged &&
+      (!hasSavedOnceRef.current || timeDiff > 2000)
+    ) {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(formData));
+
+      lastSavedDataRef.current = formData;
+      lastSavedTimeRef.current = now;
+      hasSavedOnceRef.current = true;
+
+      console.log("Draft auto-saved");
+      setShowPopup("Data saved to localstorage")
+    }
+  }, 1500);
+
+  return () => clearTimeout(autosaveTimer.current);
+}, [formData]);
 
 
 useEffect(() => {
@@ -332,6 +419,7 @@ function handleLoadJson() {
     });
 
     setJsonError("");
+    setShowPopup("Data Loaded from JSON")
   } catch {
     setJsonError("Invalid JSON structure");
   }
@@ -560,7 +648,7 @@ if (!hasRealUserContent(formData.teaching_learning)) {
     );
   } 
   else if (baseType === "IPCC") user_res = "T+L";
-  else if (["OE", "PE", "PCC", "UHV","BSC"].includes(baseType)) user_res = "T";
+  else if (["OEC", "PEC", "PCC", "UHV","BSC","HSMS","HSMC"].includes(baseType)) user_res = "T";
   else if (baseType === "PCCL") user_res = "L";
 
   if (!user_res) 
@@ -610,6 +698,10 @@ function resetForm(){
       ...DataSchema,          // reset everything else
       modules: [{ ...emptyModule }], // 👈 FORCE ONLY ONE MODULE
     });
+    localStorage.removeItem(DRAFT_KEY);
+    lastSavedDataRef.current = null;
+    lastSavedTimeRef.current = 0;
+    setShowPopup("Data Reset Successfull")
   }
 }
 
@@ -689,9 +781,9 @@ const triggerAllDownloads = async() => {
   // trigger downloads
   if (downloadOptions.pdf)
   {
+    console.log(apiUrl)
     const res = await fetch(
-    "http://localhost:8000/generate-pdf",
-    // " https://syllabus-gen-tool.onrender.com/generate-pdf",
+    `${apiUrl}/generate-pdf`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -728,8 +820,7 @@ const triggerAllDownloads = async() => {
     const downloadDocx = async () => {
   try {
     const res = await fetch(
-      "http://localhost:8000/generate-docx",
-      // "https://syllabus-gen-tool.onrender.com/generate-docx",
+      `${apiUrl}/generate-docx`,
        {
       method: "POST",
       headers: {
@@ -764,8 +855,7 @@ const triggerAllDownloads = async() => {
     const downloadJSON = async () => {
   try {
     const res = await fetch(
-      "http://localhost:8000/generate-json",
-        // "https://syllabus-gen-tool.onrender.com/generate-json",
+      `${apiUrl}/generate-json`,
       {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -848,29 +938,29 @@ useEffect(() => {
         activity:false
       })
 
-//       useEffect(() => {
-//   setShowSections({
-//     objectives:
-//       Array.isArray(formData.course_objectives) &&
-//       formData.course_objectives.length > 0,
+  //       useEffect(() => {
+  //   setShowSections({
+  //     objectives:
+  //       Array.isArray(formData.course_objectives) &&
+  //       formData.course_objectives.length > 0,
 
-//     tl:
-//       Array.isArray(formData.teaching_learning) &&
-//       formData.teaching_learning.length > 0,
+  //     tl:
+  //       Array.isArray(formData.teaching_learning) &&
+  //       formData.teaching_learning.length > 0,
 
-//     tools:
-//       Array.isArray(formData.modern_tools) &&
-//       formData.modern_tools.length > 0,
+  //     tools:
+  //       Array.isArray(formData.modern_tools) &&
+  //       formData.modern_tools.length > 0,
 
-//     outcomes:
-//       Array.isArray(formData.course_outcomes) &&
-//       formData.course_outcomes.length > 0,
+  //     outcomes:
+  //       Array.isArray(formData.course_outcomes) &&
+  //       formData.course_outcomes.length > 0,
 
-//     activity:
-//       typeof formData.activity_based_learning === "string" &&
-//       formData.activity_based.trim() !== "",
-//   });
-// }, [formData]);
+  //     activity:
+  //       typeof formData.activity_based_learning === "string" &&
+  //       formData.activity_based.trim() !== "",
+  //   });
+  // }, [formData]);
 
 
 const toggleSection = (key) => {
@@ -891,8 +981,7 @@ const previewPDF = async () => {
 
     setpreviewBtnText("Loading PDF..")
     const res = await fetch(
-          "http://localhost:8000/generate-pdf",
-      // "https://syllabus-gen-tool.onrender.com/generate-pdf",
+          `${apiUrl}/generate-pdf`,
        {
       method: "POST",
       headers: {
@@ -924,8 +1013,7 @@ async function downloadPdf(){
   const hours = String(now.getHours()).padStart(2, "0");
   const minutes = String(now.getMinutes()).padStart(2, "0");
   const res = await fetch(
-    "http://localhost:8000/generate-pdf",
-    // " https://syllabus-gen-tool.onrender.com/generate-pdf",
+    `${apiUrl}/generate-pdf`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -954,14 +1042,30 @@ async function downloadPdf(){
   downloadFile(blob, `${courseCode}_${day}-${month}-${year}_${hours}-${minutes}.pdf`);
 }
 
+const [showPopup,setShowPopup] = useState(null)
 
 
-
+const [hasParts, setHasParts] = useState(false);
+// const [newExpNo, setNewExpNo] = useState("");
+// const [newExpCont, setNewExpCont] = useState("");
+const [newExpPart, setNewExpPart] = useState("A");
+// const [editingExpIndex, setEditingExpIndex] = useState(null);
+// const [editExpNo, setEditExpNo] = useState("");
+// const [editExpCont, setEditExpCont] = useState("");
+const [editExpPart, setEditExpPart] = useState("A");
 
 
 
     return (
         <div ref={topRef} className="max-w-4xl mx-auto bg-white shadow-md rounded-xl p-8 border border-gray-200 mt-10">
+          {showPopup && (
+            <Popup
+              position={popupPosition}
+              message={showPopup}
+              duration={3000}
+              onClose={() => setShowPopup(null)}
+            />
+        )}
             {/* Heading */}
             <div className="flex w-full justify-between">
                 <h2 className="text-2xl font-semibold text-slate-700 mb-6">Add / Edit Course Details</h2>
@@ -1111,7 +1215,7 @@ async function downloadPdf(){
 
 
 
-            {/* ======== COurse and sem ======== */}
+            {/* ======== Course and sem ======== */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-5">
                 {/* Course Title */}
                 <div>
@@ -1224,12 +1328,14 @@ className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg
                         <option value="IPCC">IPCC</option>
                         <option value="PCC">PCC</option>
                         <option value="AEC">AEC</option>
-                        <option value="OE">OE</option>
-                        <option value="PE">PE</option>
+                        <option value="OEC">OEC</option>
+                        <option value="PEC">PEC</option>
                         <option value="ESC">ESC</option>
                         <option value="PCCL">PCCL</option>
                         <option value="UHV">UHV</option>
                         <option value="BSC">BSC</option>
+                        <option value="HSMS">HSMS</option>
+                        <option value="HSMC">HSMC</option>
                     </select>
                     </div>
                 </div>
@@ -1529,164 +1635,24 @@ Course Objectives</label>
 
             {/* Experiments */}            
             {(formData.course_type === "PCCL"||formData.course_type === "IPCC" || formData.course_type === "AEC" || formData.course_type === "ESC" || formData.experiments) && (
-  <div className="my-10 py-3 px-5 border-2 border-gray-200 bg-white">
-                        <label className="text-sm font-semibold text-slate-600">Experiments</label> 
-
-    {/* Add Experiment Form */}
-    <div className="mt-2 mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-      <h3 className="text-sm font-semibold text-blue-900 mb-3">
-        Add New Experiment
-      </h3>
-
-      <div className="flex flex-col md:flex-row gap-3">
-        <input
-          type="number"
-          placeholder="Sl No."
-          value={newExpNo}
-          onChange={(e) => setNewExpNo(Number(e.target.value))}
-          className="w-full md:w-24 px-3 py-2 border-2 border-blue-300 rounded-md focus:outline-none focus:border-blue-500 transition"
-        />
-
-        <input
-          type="text"
-          placeholder="Enter Experiment Description..."
-          value={newExpCont}
-          onChange={(e) => setNewExpCont(e.target.value)}
-          className="flex-1 px-3 py-2 border-2 border-blue-300 rounded-md focus:outline-none focus:border-blue-500 transition"
-        />
-
-        <button
-          type="button"
-          onClick={addNewExperiment}
-          className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium whitespace-nowrap"
-        >
-          <Plus size={18} />
-          Add
-        </button>
-      </div>
-    </div>
-
-    {/* Experiments Table */}
-    {(!formData.experiments || formData.experiments.length === 0) ? (
-      <div className="text-center py-12 text-gray-500">
-        <p className="text-lg">No experiments added yet</p>
-        <p className="text-sm mt-2">
-          Add your first experiment using the form above
-        </p>
-      </div>
-    ) : (
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-slate-700 text-white">
-              <th className="px-4 py-3 text-left font-semibold w-20 border-r border-slate-500">
-                Sl No
-              </th>
-              <th className="px-4 py-3 text-left font-semibold border-r border-slate-500">
-                Experiment
-              </th>
-              <th className="px-4 py-3 text-center font-semibold w-32">
-                Actions
-              </th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {formData.experiments.map((exp, idx) => (
-              <tr
-                key={exp.slno ?? idx}
-                className={`border-b border-gray-200 transition ${
-                  idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                }`}
-              >
-                {editingExpIndex === idx ? (
-                  <>
-                    {/* EDIT MODE */}
-                    <td className="px-4 py-3 border-r border-gray-200">
-                      <input
-                        type="number"
-                        value={editExpNo}
-                        onChange={(e) =>
-                          setEditExpNo(Number(e.target.value))
-                        }
-                        className="w-16 px-2 py-1 border-2 border-blue-400 rounded focus:outline-none"
-                      />
-                    </td>
-
-                    <td className="px-4 py-3 border-r border-gray-200">
-                      <textarea
-                        value={editExpCont}
-                        onChange={(e) =>
-                          setEditExpCont(e.target.value)
-                        }
-                        rows={2}
-                        className="w-full px-2 py-1 border-2 border-blue-400 rounded focus:outline-none resize-none"
-                      />
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <div className="flex justify-center gap-2">
-                        <button
-                          type="button"
-                          onClick={saveEditExperiment}
-                          className="px-3 py-2 bg-green-500 text-white text-sm rounded hover:bg-green-600 transition font-medium"
-                          title="Save"
-                        >
-                          <Check size={16} />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={cancelEditExperiment}
-                          className="px-3 py-2 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 transition font-medium"
-                          title="Cancel"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </>
-                ) : (
-                  <>
-                    {/* VIEW MODE */}
-                    <td className="px-4 py-3 text-center font-semibold text-gray-700 border-r border-gray-200">
-                      {exp.slno}
-                    </td>
-
-                    <td className="px-4 py-3 text-gray-700 leading-relaxed border-r border-gray-200">
-                      {exp.cont}
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <div className="flex justify-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => startEditExperiment(idx)}
-                          className="px-3 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition font-medium"
-                          title="Edit"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteExperiment(idx)}
-                          className="px-3 py-2 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition font-medium"
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )}
-  </div>
+   <ExperimentsSection  formData = {formData}
+  setFormData = {setFormData}
+  hasParts = {hasParts}
+  setHasParts = {setHasParts}
+  newExpNo = {newExpNo}
+  setNewExpNo = {setNewExpNo}
+  newExpCont = {newExpCont}
+  setNewExpCont = {setNewExpCont}
+  newExpPart = {newExpPart}
+  setNewExpPart = {setNewExpPart}
+  editingExpIndex = {editingExpIndex}
+  setEditingExpIndex = {setEditingExpIndex}
+  editExpNo = {editExpNo}
+  setEditExpNo = {setEditExpNo}
+  editExpCont = {editExpCont}
+  setEditExpCont = {setEditExpCont}
+  editExpPart = {editExpPart}
+  setEditExpPart = {setEditExpPart}/>
 )}
 
             
@@ -2129,6 +2095,11 @@ Activity-Based Learning  </label>
         json: false,
         docx: false
       })
+      localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem(DRAFT_KEY); 
+      lastSavedDataRef.current = null;
+      lastSavedTimeRef.current = 0;
+      setShowPopup("Data Reset Successfull")
     }} className="flex bg-green-700 cursor-pointer hover:bg-green-800 text-white px-5 py-2 rounded-md text-md">Generate New</button>
   </div>
 </div>}

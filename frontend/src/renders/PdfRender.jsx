@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import "../assets/fonts/Calibri-normal.js";
-import "../assets/fonts/Calibri-bold.js";
+import "../assets/fonts/Calibri-bold.js";                                     
 import headerFull from "../assets/images/header_img.png";
 
 
