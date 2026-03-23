@@ -185,12 +185,18 @@ function generateSyllabusHTML(templateHTML, courseData) {
     "course_type", "exam_type"
   ];
 
-  courseData.exam_type = getExamType(courseData.course_type);
+  // Set defaults if course_type is "MC"
+  if (courseData.course_type === "MC (T)"|| courseData.course_type === "MC (L)") {
+    courseData.exam_type = "None";
+    courseData.credits = 0;
+  } else {
+    courseData.exam_type = getExamType(courseData.course_type);
+  }
 
   simpleFields.forEach(key => {
     html = html.replace(
       new RegExp(`{{${key}}}`, "g"),
-      escapeHTML(key==="course_title"?courseData[key].toUpperCase():courseData[key] || "-")
+      escapeHTML(key === "course_title" ? courseData[key].toUpperCase() : courseData[key] ?? "-")
     );
   });
 
@@ -319,8 +325,6 @@ function generateSyllabusHTML(templateHTML, courseData) {
     modulesHTML
   );
 
-  // ================= EXPERIMENTS =================
-  // ================= EXPERIMENTS =================
 // ================= EXPERIMENTS =================
 let experimentsHTML = "";
 

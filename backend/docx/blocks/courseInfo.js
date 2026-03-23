@@ -61,8 +61,13 @@ function getExamType(ct) {
 
 function buildCourseInfoTable(data) {
 
+  
   data.exam_type = getExamType(data.course_type);
-
+  
+  if (data.course_type === "MC (T)" || data.course_type === "MC (L)") {
+    data.credits = 0;
+    data.exam_type = "None";
+  }
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [
