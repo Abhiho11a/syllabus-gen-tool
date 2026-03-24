@@ -477,7 +477,8 @@ function askCourseNature(question, theory, lab, theoryLab) {
 
   if (theory && type === "t") return "T";
   if (lab && type === "l") return "L";
-  if (theoryLab && type === "tl") return "T+L";
+  if ( type === "tl") return "T+L";
+  if ( type === "m") return "M";
 
   alert("Invalid input. Please enter valid option.");
   return askCourseNature(question, theory, lab, theoryLab);
@@ -635,7 +636,7 @@ if (!hasRealUserContent(formData.teaching_learning)) {
   const baseType = formData.course_type;
   let user_res = null;
 
-  if (baseType === "AEC") {
+  if (baseType === "AEC"||baseType==="MC") {
     user_res = askCourseNature(
       "Enter course type:\nT → Theory\nL → Lab",
       true, true, false
@@ -647,8 +648,14 @@ if (!hasRealUserContent(formData.teaching_learning)) {
       true, false, true
     );
   } 
+  else if (baseType === "HSMS") {
+    user_res = askCourseNature(
+      "Enter course type:\nT → Theory\nM → Objectives(MCQ)",
+      true, false, true
+    );
+  } 
   else if (baseType === "IPCC") user_res = "T+L";
-  else if (["OEC", "PEC", "PCC", "UHV","BSC","HSMS","HSMC"].includes(baseType)) user_res = "T";
+  else if (["OEC", "PEC", "PCC", "UHV","BSC","HSMC"].includes(baseType)) user_res = "T";
   else if (baseType === "PCCL") user_res = "L";
 
   if (!user_res) 
@@ -1054,6 +1061,12 @@ const [newExpPart, setNewExpPart] = useState("A");
 // const [editExpCont, setEditExpCont] = useState("");
 const [editExpPart, setEditExpPart] = useState("A");
 
+useEffect(() => {
+  if (formData.course_type === "MC") {
+    setFormData(prev => ({ ...prev, credits: 0 }));
+  }
+}, [formData.course_type]);
+
 
 
     return (
@@ -1336,6 +1349,7 @@ className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg
                         <option value="BSC">BSC</option>
                         <option value="HSMS">HSMS</option>
                         <option value="HSMC">HSMC</option>
+                        <option value="MC">MC</option>
                     </select>
                     </div>
                 </div>
@@ -1357,7 +1371,7 @@ className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg
                         <label className="text-sm font-semibold text-slate-600"> Credits</label>
                         <input
                         type="number"
-                          ref={refs.credits}        // ✅ ADD
+                          ref={refs.credits}      
 
                         value={formData.credits}
                         onChange={e => setFormData({ ...formData, credits: e.target.value })}
