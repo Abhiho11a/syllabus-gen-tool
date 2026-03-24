@@ -149,6 +149,7 @@ function listToHTML(input) {
   if (upper.includes("T+L")) return "Theory & Lab";
   if (upper.includes("(T)") || upper.endsWith(" T")) return "Theory";
   if (upper.includes("(L)") || upper.endsWith(" L")) return "Lab";
+  if (upper.includes("(M)") || upper.endsWith("M")) return "MCQ";
 
   return "-";
 }
@@ -712,6 +713,7 @@ function generateSyllabusHTML_DOCX(templateHTML, courseData) {
   if (ct.includes("T+L")) return "Theory & Lab";
   if (ct === "T") return "Theory";
   if (ct === "L") return "Lab";
+  if(ct === "M") return "MCQ";
 
   // 2️⃣ Fallback to LTPS
   const [L, T, P] = String(ltps).split(":").map(Number);

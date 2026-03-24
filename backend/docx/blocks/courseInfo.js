@@ -67,7 +67,9 @@ function buildCourseInfoTable(data) {
   if (data.course_type === "MC (T)" || data.course_type === "MC (L)") {
     data.credits = 0;
     data.exam_type = "None";
-  }
+  }if(data.course_type === "HSMS (M)")
+  data.exam_type = "MCQ";
+
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [
