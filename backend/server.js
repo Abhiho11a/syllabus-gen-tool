@@ -187,9 +187,9 @@ function generateSyllabusHTML(templateHTML, courseData) {
   ];
 
   // Set defaults if course_type is "MC"
-  if (courseData.course_type === "MC (T)"|| courseData.course_type === "MC (L)") {
-    courseData.exam_type = "None";
-    courseData.credits = 0;
+  if (courseData.course_type === "MC") {
+    courseData.exam_type = courseData.exam_type;
+    // courseData.credits = 0;
   } else {
     courseData.exam_type = getExamType(courseData.course_type);
   }
@@ -350,7 +350,7 @@ if (validExperiments.length > 0) {
     const rowsHTML = exps.flatMap(exp => {
       const parts = splitExperimentContent(
         boldToHTML(escapeHTML(exp.cont || "")),
-        3
+        30
       );
       return parts.map((part, idx) => `
         <tr>
@@ -392,7 +392,7 @@ if (validExperiments.length > 0) {
     const dataRows = exps.flatMap(exp => {
       const parts = splitExperimentContent(
         boldToHTML(escapeHTML(exp.cont || "")),
-        3
+        30
       );
       return parts.map((part, idx) => `
         <tr>
