@@ -190,7 +190,10 @@ function generateSyllabusHTML(templateHTML, courseData) {
   if (courseData.course_type === "MC") {
     courseData.exam_type = courseData.exam_type;
     // courseData.credits = 0;
-  } else {
+  }
+  else if(courseData.course_type === "IPCC (T+L)") 
+  courseData.exam_type = "Theory";
+  else {
     courseData.exam_type = getExamType(courseData.course_type);
   }
 
