@@ -364,7 +364,7 @@ if (validExperiments.length > 0) {
     }).join("");
 
     return `
-      <table class="experiments">
+      <table class="experiments" >
         <thead>
           <tr>
             <th class="expSl">Sl. No.</th>
@@ -468,7 +468,7 @@ html = html.replace(
       .join("");
 
     textbooksHTML = `
-      <div class="section">
+      <div class="section" >
         <div class="section-title">Textbooks</div>
         <table>
           <tr>
@@ -570,8 +570,22 @@ const headerHTML = `
 }
 
 html = html.replace("{{COPO_TABLE}}", copoHTML);
+html = `
+<style>
+  body {
+    transform: scale(0.97);
+    transform-origin: top;
+  }
 
+  tr {
+    page-break-inside: avoid;
+  }
+</style>
 
+<div style="padding-bottom: 120px;">
+  ${html}
+</div>
+`;
 
   return html;
 }
