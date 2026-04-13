@@ -443,7 +443,7 @@ html = html.replace(
   if (validTextbooks.length > 0) {
     const rowsHTML = validTextbooks
       .map(tb => `
-        <tr>
+        <tr style="font-size:12px;">
           <td>${escapeHTML(tb.slNo)||'-'}</td>
           <td>${escapeHTML(tb.author)||'-'}</td>
           <td>${escapeHTML(tb.bookTitle)||'-'}</td>
@@ -457,7 +457,7 @@ html = html.replace(
       <div class="section" >
         <div class="section-title">Textbooks</div>
         <table>
-          <tr>
+          <tr style="font-size:13px;">
             <th>Sl.No</th>
             <th>Author</th>
             <th>Title</th>
