@@ -230,19 +230,6 @@ function generateSyllabusHTML(templateHTML, courseData) {
       ""
     );
   }
-
-  // ================= MODERN TOOLS =================
-  // if (hasMeaningfulContent(courseData.modern_tools)) {
-  //   html = html.replace(
-  //     /{{#each modern_tools}}[\s\S]*?{{\/each}}/g,
-  //     listToHTML(courseData.modern_tools)
-  //   );
-  // } else {
-  //   html = html.replace(
-  //     /<!-- SECTION: MODERN_TOOLS -->[\s\S]*?<!-- END: MODERN_TOOLS -->/,
-  //     ""
-  //   );
-  // }
   if (hasRealModernToolsContent(courseData.modern_tools)) {
   html = html.replace(
     /{{#each modern_tools}}[\s\S]*?{{\/each}}/g,
@@ -254,7 +241,6 @@ function generateSyllabusHTML(templateHTML, courseData) {
     ""
   );
 }
-
 
   // ================= COURSE OUTCOMES =================
   if (hasMeaningfulContent(courseData.course_outcomes)) {
@@ -371,7 +357,7 @@ if (validExperiments.length > 0) {
             <th class="expCont">Experiment</th>
           </tr>
         </thead>
-        <tbody>${rowsHTML}</tbody>
+        <tbody style="font-size:11px;">${rowsHTML}</tbody>
       </table>
     `;
   }
@@ -418,7 +404,7 @@ if (validExperiments.length > 0) {
             <th class="expCont" >Experiment</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody style="font-size:11px;">
           ${buildPartRows("Part A", effectivePartA)}
           ${buildPartRows("Part B", partB)}
         </tbody>
@@ -507,11 +493,8 @@ if (copo && Array.isArray(copo.rows)) {
 const sums = Array(totalCols).fill(0);
 const counts = Array(totalCols).fill(0);
 
-
-
-
 const headerHTML = `
-<tr>
+<tr style="font-size:11px;">
 <th>CO</th>
         ${poHeaders.map(h => `<th>${escapeHTML(h)}</th>`).join("")}
         ${Array.from({ length: psoCount })
@@ -535,7 +518,7 @@ const headerHTML = `
 
     const rowsHTML = copo.rows
       .map(row => `
-        <tr>
+        <tr style="font-size:11px;">
         <td>${escapeHTML(row.co)}</td>
           ${(row.vals || []).map(v => `<td>${v || ""}</td>`).join("")}
           ${(row.pso || []).map(v => `<td>${v || ""}</td>`).join("")}
@@ -544,7 +527,7 @@ const headerHTML = `
       .join("");
 
       const avgRowHTML = `
-  <tr class="avg-row">
+  <tr class="avg-row" style="font-size:12px;">
     <td><b>AVG</b></td>
     ${sums.map((sum, i) => {
       if (counts[i] === 0) return `<td></td>`;
@@ -700,7 +683,7 @@ function buildCopoTableWord(courseData) {
   let header = `
     <tr>
       <th>CO</th>
-      ${poHeaders.map(h => `<th>${h}</th>`).join("")}
+      ${poHeaders.map(h => `<th >${h}</th>`).join("")}
       ${Array.from({ length: psoCount }).map((_, i) => `<th>PSO${i + 1}</th>`).join("")}
     </tr>
   `;
