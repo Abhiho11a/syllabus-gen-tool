@@ -190,26 +190,6 @@ const removeAuthor = (index) => {
     setFormData({ ...formData, textbooks: updated });
 };
 
-{/* Dynamic References Details and TEXTBOOK Details Adding */}
-const references = formData.references || [];
-
-const addReference = () => {
-    const updated = [...references, { slNo: "", author: "", bookTitle: "", publisher: "" }];
-    setFormData({ ...formData, references: updated });
-};
-
-const updateReference = (index, field, value) => {
-    const updated = [...references];
-    updated[index][field] = value;
-    setFormData({ ...formData, references: updated });
-};
-
-const removeReference = (index) => {
-    const updated = [...references];
-    updated.splice(index, 1);
-    setFormData({ ...formData, references: updated });
-};
-
 
 {/* DYNAMIC PSO Cols in COPO Mapping Table */}
 function addPsoCol () {
@@ -586,8 +566,6 @@ function resetGenerateState() {
 function generateDocument() {
   setIsGen(true)
   setDocGen(true)
-
-  console.log(formData)
 
   setGenenerateBtnText("Validating course details…")
 
@@ -1151,15 +1129,18 @@ function ModuleTextbookForm({ onAdd }) {
 
   const empty = {
     slNo: "",
-    chapter: ""
+    chapter: "",
+    rbt: "",
+    wkt: ""
   };
 
   const [tb, setTb] = useState(empty);
 
   function handleAdd() {
+    console.log(tb)
 
     if (!tb.slNo || !tb.chapter) {
-      alert("Please fill TB No and Chapter/Article");
+      alert("Please fill Sl.No and Chapter/Article No");
       return;
     }
 
@@ -1169,29 +1150,26 @@ function ModuleTextbookForm({ onAdd }) {
   }
 
   return (
-
     <div className="border border-dashed border-slate-300 rounded-2xl p-5 bg-white">
 
       <p className="text-sm font-semibold text-slate-600 mb-4">
         Add Textbook Details
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+      {/* Single Row */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
 
-        {/* TB No */}
+        {/* Sl No */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            TB No *
+            Sl. No *
           </label>
 
           <input
             type="text"
             value={tb.slNo}
             onChange={(e) =>
-              setTb((p) => ({
-                ...p,
-                slNo: e.target.value
-              }))
+              setTb((p) => ({ ...p, slNo: e.target.value }))
             }
             placeholder="1"
             className="w-full p-3 py-2 bg-gray-100 border border-gray-300
@@ -1210,12 +1188,47 @@ function ModuleTextbookForm({ onAdd }) {
             type="text"
             value={tb.chapter}
             onChange={(e) =>
-              setTb((p) => ({
-                ...p,
-                chapter: e.target.value
-              }))
+              setTb((p) => ({ ...p, chapter: e.target.value }))
             }
             placeholder="24.1, 24.4..."
+            className="w-full p-3 py-2 bg-gray-100 border border-gray-300
+                       rounded-xl outline-none focus:ring-2
+                       focus:ring-slate-400"
+          />
+        </div>
+
+        {/* RBT */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            RBT
+          </label>
+
+          <input
+            type="text"
+            value={tb.rbt}
+            onChange={(e) =>
+              setTb((p) => ({ ...p, rbt: e.target.value }))
+            }
+            placeholder="3 4"
+            className="w-full p-3 py-2 bg-gray-100 border border-gray-300
+                       rounded-xl outline-none focus:ring-2
+                       focus:ring-slate-400"
+          />
+        </div>
+
+        {/* WKT */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            WKT
+          </label>
+
+          <input
+            type="text"
+            value={tb.wkt}
+            onChange={(e) =>
+              setTb((p) => ({ ...p, wkt: e.target.value }))
+            }
+            placeholder="4,5"
             className="w-full p-3 py-2 bg-gray-100 border border-gray-300
                        rounded-xl outline-none focus:ring-2
                        focus:ring-slate-400"
@@ -1226,7 +1239,7 @@ function ModuleTextbookForm({ onAdd }) {
         <button
           type="button"
           onClick={handleAdd}
-          className="h-[48px] px-6 text-sm bg-slate-700 hover:bg-slate-800
+          className="h-[48px]  px-6 text-sm bg-slate-700 hover:bg-slate-800
                      text-white rounded-xl font-semibold transition-all"
         >
           Add Details
@@ -1683,7 +1696,7 @@ Course Objectives</label>
             <div className="mt-8">
                 <div className="mt-8 flex items-center justify-between">
   <label className="text-sm font-semibold text-slate-600">
-    Modern tools
+    Modern AI tools
   </label>
 
   <button
@@ -1818,31 +1831,19 @@ Course Objectives</label>
       {/* Add new textbook form */}
       <ModuleTextbookForm
         onAdd={(tb) => {
-
-          setFormData((prev) => {
-
+          setFormData(prev => {
             const updated = [...prev.modules];
-
             updated[idx] = {
               ...updated[idx],
-
-              textbooks: [
-                ...(updated[idx].textbooks || []),
-                tb
-              ]
+              textbooks: [...(updated[idx].textbooks || []), tb]
             };
-
-            return {
-              ...prev,
-              modules: updated
-            };
+            return { ...prev, modules: updated };
           });
-
         }}
       />
     </div>
 
-    {/* <div>
+    <div>
       <label className="text-sm font-medium">Chapter Article No.</label>
       <input
         name="chapter"
@@ -1851,7 +1852,7 @@ Course Objectives</label>
         className="w-full mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg
                    resize-none focus:ring-2 focus:ring-slate-400 outline-none"
       />
-    </div> */}
+    </div>
 
     <div>
       <label className="text-sm font-medium">RBT Level(s)</label>
@@ -1919,7 +1920,7 @@ Course Objectives</label>
              {/* ======== TEXTBOOK AUTHORS (DYNAMIC) ======== */}
             <div className="mt-10">
                 <h3 className="text-lg font-semibold text-slate-700 mb-4 flex justify-between">
-                    Textbooks 
+                    Textbooks / References
                     <button
                     onClick={addAuthor}
                     className="px-3 py-1 bg-slate-600 text-white rounded-lg text-sm hover:bg-slate-700"
@@ -2003,97 +2004,6 @@ Course Objectives</label>
     placeholder="e.g. 2021"
   />
 </div>
-
-                    </div>
-                ))}
-            </div>
-
-            <div className="mt-10">
-                <h3 className="text-lg font-semibold text-slate-700 mb-4 flex justify-between">
-                    References
-                    <button
-                    onClick={addReference}
-                    className="px-3 py-1 bg-slate-600 text-white rounded-lg text-sm hover:bg-slate-700"
-                    >
-                    + Add Author
-                    </button>
-                </h3>
-
-                {references.length === 0 && (
-                    <p className="text-gray-500 mb-4">No authors added yet.</p>
-                )}
-                {references.map((item, index) => (
-                    <div
-                    key={index}
-                    className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg relative"
-                    >
-                    {/* Remove Button */}
-                    <button
-                        onClick={() => removeReference(index)}
-                        className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-sm"
-                    >
-                        ✕
-                    </button>
-
-                    {/* Sl No */}
-                    <div>
-                        <label className="text-sm font-semibold text-slate-600">Sl. No</label>
-                        <input
-                        type="text"
-                        value={item.slNo}
-                        onChange={e => updateReference(index, "slNo", e.target.value)}
-                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
-                                    focus:ring-2 focus:ring-slate-400 outline-none"
-                        />
-                    </div>
-
-                    {/* Author */}
-                    <div>
-                        <label className="text-sm font-semibold text-slate-600">Author</label>
-                        <input
-                        type="text"
-                        value={item.author}
-                        onChange={e => updateReference(index, "author", e.target.value)}
-                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
-                                    focus:ring-2 focus:ring-slate-400 outline-none"
-                        />
-                    </div>
-
-                    {/* Book Title */}
-                    <div>
-                        <label className="text-sm font-semibold text-slate-600">Book Title</label>
-                        <input
-                        type="text"
-                        value={item.bookTitle}
-                        onChange={e => updateReference(index, "bookTitle", e.target.value)}
-                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
-                                    focus:ring-2 focus:ring-slate-400 outline-none"
-                        />
-                    </div>
-
-                    {/* Publisher */}
-                    <div>
-                        <label className="text-sm font-semibold text-slate-600">Publisher&Edition</label>
-                        <input
-                        type="text"
-                        value={item.publisher}
-                        onChange={e => updateReference(index, "publisher", e.target.value)}
-                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
-                                    focus:ring-2 focus:ring-slate-400 outline-none"
-                        />
-                    </div>
-                    {/* Year */}
-                    <div>
-                      <label className="text-sm font-semibold text-slate-600">Year</label>
-                      <input
-                        type="number"
-                        value={item.year}
-                        onChange={e => updateReference(index, "year", e.target.value)}
-                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
-                                  focus:ring-2 focus:ring-slate-400 outline-none"
-                        placeholder="e.g. 2021"
-                      />
-                    </div>
 
                     </div>
                 ))}

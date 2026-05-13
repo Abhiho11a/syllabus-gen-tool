@@ -16,6 +16,7 @@ export function resetFormData(setFormData){
             teaching_learning:"",
             referral_links:"",
             textbooks:[],
+            references:[],
             modules: [ 
               { no: 1, title: "", content: "", textbook: "", chapter: "", rbt: "" },
               { no: 2, title: "", content: "", textbook: "", chapter: "", rbt: "" },

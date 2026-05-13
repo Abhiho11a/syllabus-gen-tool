@@ -13,12 +13,17 @@
     "@tailwindcss/vite": "^4.1.18",
     "autotable": "^1.0.0",
     "docx": "^9.5.1",
+    "docx-preview": "^0.3.7",
     "file-saver": "^2.0.5",
-    "jspdf": "^4.0.0",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.562.0",
+    "pdf-lib": "^1.17.1",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "xmldom": "^0.6.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

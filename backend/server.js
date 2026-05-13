@@ -141,6 +141,71 @@ function listToHTML(input) {
     .join("");
 }
 
+function OutcomeslistToHTML(input) {
+
+  let arr = [];
+
+  if (Array.isArray(input)) arr = input;
+  else if (typeof input === "string") arr = input.split("\n");
+  else return "";
+
+  // Words to auto-bold
+  const autoBoldWords = [
+    "application",
+    "applications",
+    "apply",
+    "applied",
+    "important",
+    "definition",
+    "algorithm",
+    "algorithms",
+    "example",
+    "understand"
+  ];
+
+  return arr
+    .map(v => String(v || "").trim())
+
+    .filter(v => {
+
+      if (!v) return false;
+
+      // Ignore empty numbering like "1."
+      if (/^\d+\.\s*$/.test(v)) return false;
+
+      return true;
+    })
+
+    .map(v => {
+
+      // Escape HTML first
+      let text = escapeHTML(v);
+
+      // Convert **bold** syntax
+      text = boldToHTML(text);
+
+      // Auto-bold matching words
+      autoBoldWords.forEach(word => {
+
+        const regex = new RegExp(`\\b(${word})\\b`, "gi");
+
+        text = text.replace(regex, "<strong>$1</strong>");
+      });
+
+      // ✅ Make first word bold
+      text = text.replace(
+  /^(\d+\.\s*)?(\S+)/,
+  (match, numbering, firstWord) => {
+    return `${numbering || ""}<strong>${firstWord}</strong>`;
+  }
+);
+
+      return `<li>${text}</li>`;
+    })
+
+    .join("");
+}
+
  function getExamType(ct = "") {
   if (!ct || typeof ct !== "string") return "-";
 
@@ -246,7 +311,7 @@ function generateSyllabusHTML(templateHTML, courseData) {
   if (hasMeaningfulContent(courseData.course_outcomes)) {
     html = html.replace(
       /{{#each course_outcomes}}[\s\S]*?{{\/each}}/g,
-      listToHTML(courseData.course_outcomes)
+      OutcomeslistToHTML(courseData.course_outcomes)
     );
   } else {
     html = html.replace(
@@ -293,22 +358,55 @@ function generateSyllabusHTML(templateHTML, courseData) {
   let modulesHTML = "";
 
   if (validModules.length > 0) {
-    modulesHTML = validModules
-      .map((mod, idx) => `
+
+  modulesHTML = validModules
+    .map((mod, idx) => {
+
+      // Generate textbook string
+      const textbookDetails = (mod.textbooks || [])
+        .map(tb => {
+
+          const slNo = escapeHTML(tb.slNo || "-");
+          const chapter = escapeHTML(tb.chapter || "-");
+
+          return `TB${slNo}:${chapter}`;
+        })
+        .join(" , ");
+
+      return `
         <div class="module">
-          <div class="module-title">Module ${idx + 1}</div>
+
+          <div class="module-title" >
+            Module ${idx + 1}
+          </div>
+
           <div class="module-content">
-            ${boldToHTML(escapeHTML(mod.content || "-")).replace(/\n/g, "<br>")}
+            ${boldToHTML(
+              escapeHTML(mod.content || "-")
+            ).replace(/\n/g, "<br>")}
           </div>
+
           <div class="module-meta">
-            <span>Textbook ${escapeHTML(mod.textbook || "-")}:${mod.chapter}</span>
-            <span>RBT: ${escapeHTML(mod.rbt || "-")}</span>
-            <span>WK: ${escapeHTML(mod.wk || mod.wkt || "-")}</span>
+
+            <span>
+              <b>${textbookDetails}</b>
+            </span>
+
+            <span>
+              RBT: ${escapeHTML(mod.rbt || "-")}
+            </span>
+
+            <span>
+              WK: ${escapeHTML(mod.wk || mod.wkt || "-")}
+            </span>
+
           </div>
+
         </div>
-      `)
-      .join("");
-  }
+      `;
+    })
+    .join("");
+}
 
   html = html.replace(
     /{{#each modules}}[\s\S]*?{{\/each}}/g,
@@ -471,6 +569,51 @@ html = html.replace(
   }
 
   html = html.replace("{{TEXTBOOKS_SECTION}}", textbooksHTML);
+
+  // ================= REFERENCES =================
+  let referencesHtml = "";
+
+  const validReferences = (courseData.references || []).filter(tb =>
+    tb &&
+    (
+      String(tb.author || "").trim() ||
+      String(tb.bookTitle || "").trim() ||
+      String(tb.publisher || "").trim() ||
+      String(tb.year || "").trim()
+    )
+  );
+
+  if (validReferences.length > 0) {
+    const rowsHTML = validReferences
+      .map(tb => `
+        <tr style="font-size:12px;">
+          <td>${escapeHTML(tb.slNo)||'-'}</td>
+          <td>${escapeHTML(tb.author)||'-'}</td>
+          <td>${escapeHTML(tb.bookTitle)||'-'}</td>
+          <td>${escapeHTML(tb.publisher)||'-'}</td>
+          <td>${escapeHTML(tb.year)||'-'}</td>
+        </tr>
+      `)
+      .join("");
+
+    referencesHtml = `
+      <div class="section" >
+        <div class="section-title">References</div>
+        <table>
+          <tr style="font-size:13px;">
+            <th>Sl.No</th>
+            <th>Author</th>
+            <th>Title</th>
+            <th>Publisher&Edition</th>
+            <th>Year</th>
+          </tr>
+          ${rowsHTML}
+        </table>
+      </div>
+    `;
+  }
+
+  html = html.replace("{{REFERENCES_SECTION}}", referencesHtml);
 
   // ================= CO–PO–PSO =================
 let copoHTML = "";

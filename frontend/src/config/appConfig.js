@@ -42,18 +42,20 @@ export const DataSchema = {
   course_objectives: `**This course will enable the students to:**\n${DEFAULT_4_POINTS}`,
   course_outcomes: `**At the end of the course, the student will be able to:**\n${DEFAULT_4_POINTS}`,
   teaching_learning: `**In addition to the traditional chalk and talk method, ICT tools are adopted:**\n${DEFAULT_4_POINTS}`,
-  modern_tools: `**Modern AI tools used for this course:**\n${DEFAULT_4_POINTS}`,
+  // modern_tools: `**Modern AI tools used for this course:**\n${DEFAULT_4_POINTS}`,
+  modern_tools: `${DEFAULT_4_POINTS}`,
   referral_links: `${DEFAULT_4_POINTS}`,
   activity_based: `${DEFAULT_4_POINTS}`,
 
   textbooks: [],
+  references:[],
 
   modules: [
     {
       no: 1,
       title: "",
       content: "",
-      textbook: "",
+      textbooks: [],
       chapter: "",
       rbt: "",
       wkt:""
