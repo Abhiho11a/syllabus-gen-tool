@@ -253,8 +253,15 @@ function generateSyllabusHTML(templateHTML, courseData) {
 
   // Set defaults if course_type is "MC"
   if (courseData.course_type === "MC") {
-    courseData.exam_type = courseData.exam_type;
+    // courseData.exam_type = courseData.exam_type;
+    courseData.exam_type = "-";
     // courseData.credits = 0;
+  }
+  else if (courseData.course_type === "MC ([object Object])")
+  {
+    courseData.course_type = "NCMC";
+    courseData.exam_type = "NO EXAM";
+    courseData.credits = "NO CREDITS";
   }
   else if(courseData.course_type === "IPCC (T+L)") 
   courseData.exam_type = "Theory";
