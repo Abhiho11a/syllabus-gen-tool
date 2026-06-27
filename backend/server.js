@@ -8,9 +8,14 @@ require("dotenv").config();
 const puppeteer = require("puppeteer-core");
 const chromium = require("@sparticuz/chromium");
 const {generateSyllabusDocx} = require("./docx/generateSyllabusDocx");
+const connectDB = require("./db");
+const Stats = require("./models/Stats");
 
 process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true";
 const isProduction = process.env.NODE_ENV === "production";
+
+// Connect to MongoDB
+connectDB();
 
 const app = express();
 app.use(express.json());
@@ -805,6 +810,13 @@ app.post('/generate-pdf', async (req, res) => {
     );
     res.setHeader("Content-Length", pdfBuffer.length);
 
+    // Update Stats in DB
+    await Stats.findOneAndUpdate(
+      { type: "global" },
+      { $inc: { totalGenerated: 1, pdfCount: 1 } },
+      { new: true, upsert: true }
+    );
+
     res.end(pdfBuffer, "binary");    
 } catch (error) {
     console.error("Error generating PDF:", error);
@@ -948,6 +960,13 @@ app.post("/generate-docx", async (req, res) => {
   try {
     const buffer = await generateSyllabusDocx(req.body);
 
+    // Update Stats in DB
+    await Stats.findOneAndUpdate(
+      { type: "global" },
+      { $inc: { totalGenerated: 1, docxCount: 1 } },
+      { new: true, upsert: true }
+    );
+
     res.setHeader(
       "Content-Disposition",
       "attachment; filename=syllabus.docx"
@@ -963,7 +982,7 @@ app.post("/generate-docx", async (req, res) => {
     res.status(500).json({ error: "DOCX generation failed" });
   }
 });
-app.post("/generate-json", (req, res) => {
+app.post("/generate-json", async (req, res) => {
   try {
     const courseData = req.body;
 
@@ -989,10 +1008,30 @@ app.post("/generate-json", (req, res) => {
       `attachment; filename="${fileName}"`
     );
 
+    // Update Stats in DB
+    await Stats.findOneAndUpdate(
+      { type: "global" },
+      { $inc: { totalGenerated: 1, jsonCount: 1 } },
+      { new: true, upsert: true }
+    );
+
     res.status(200).send(JSON.stringify(courseData, null, 2));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "JSON generation failed" });
+  }
+});
+
+app.get("/api/stats", async (req, res) => {
+  try {
+    let stats = await Stats.findOne({ type: "global" });
+    if (!stats) {
+      stats = { totalGenerated: 0, pdfCount: 0, docxCount: 0, jsonCount: 0 };
+    }
+    res.json(stats);
+  } catch (err) {
+    console.error("Error fetching stats:", err);
+    res.status(500).json({ error: "Failed to fetch stats" });
   }
 });
 
