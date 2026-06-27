@@ -687,7 +687,21 @@ if (!hasRealUserContent(formData.teaching_learning)) {
       "Enter course type:\nT → Theory\nL → Lab\n",
       true, true, false, false
     );
-  } 
+  }
+  else if(baseType === "MC"){
+    formData.course_type = "NCMC";
+    // formData.credits = 0;
+    formData.exam_type = "-";
+
+    let credits = 0;
+    let exam_type = "-" 
+
+    user_res = {
+    course_type: "NCMC",
+    credits,
+    exam_type
+  }
+  }
   else if (baseType.startsWith("MC_")) {
   const value = formData.course_type;
 
@@ -1518,6 +1532,7 @@ className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg
                         <option value="BSC">BSC</option>
                         <option value="HSMS">HSMS</option>
                         <option value="HSMC">HSMC</option>
+                        <option value="MC">NCMC</option>
                         <option value="MC_EXAM_1">MC with exam (1 credit)</option>
                         <option value="MC_EXAM_2">MC with exam (2 credits)</option>
                         <option value="MC_NO_EXAM">MC without exam</option>
@@ -1766,7 +1781,7 @@ Course Objectives</label>
     <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
       <div className="flex items-center justify-between mb-3">
         <label className="text-sm font-semibold text-gray-700">
-          Textbook References
+          Textbooks
         </label>
         <span className="text-xs text-gray-400">
           {(mod.textbooks || []).length} added
@@ -1782,7 +1797,7 @@ Course Objectives</label>
                             bg-white border border-gray-200 rounded-lg px-4 py-3">
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-slate-700">
-                  TB{tb.slNo} — {tb.bookTitle}
+                  TB-{tb.slNo} 
                 </p>
                 <p className="text-xs text-slate-500 mt-0.5 truncate">
                   {tb.author} · {tb.publisher}{tb.year ? ` · ${tb.year}` : ""}
