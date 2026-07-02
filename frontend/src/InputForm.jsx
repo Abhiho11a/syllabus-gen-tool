@@ -29,6 +29,10 @@ export default function InputForm(){
     teaching_learning: useRef(null),
 };
 
+  // Check if we are in "Portal Submission Mode" by looking at the URL
+  const searchParams = new URLSearchParams(window.location.search);
+  const isFromPortal = searchParams.has("assignmentId") && searchParams.has("callbackUrl");
+
 
     {/* IF FormData doesnot contains COPO-Mapping Object then add to formData */}
     // const [formData,setFormData] = useState(DataSchema)
@@ -1181,7 +1185,6 @@ function ModuleTextbookForm({ onAdd }) {
 
     setTb(empty);
   }
-
   return (
 
     <div className="border border-dashed border-slate-300 rounded-2xl p-5 bg-white">
@@ -1250,7 +1253,51 @@ function ModuleTextbookForm({ onAdd }) {
     </div>
   );
 }
+ const [submitBtnText, setSubmitButtonText] = useState("Submit to Portal");
 
+  async function uploadFileToCloud() {
+  const params       = new URLSearchParams(window.location.search);
+  const assignmentId = params.get("assignmentId");
+  const callbackUrl  = params.get("callbackUrl");
+
+  try {
+    setSubmitButtonText("Generating PDF…");
+
+    const pdfRes = await fetch(`${apiUrl}/generate-pdf`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(formData),
+    });
+
+    if (!pdfRes.ok) throw new Error("PDF generation failed");
+    const pdfBlob = await pdfRes.blob(); 
+    setSubmitButtonText("Uploading…");
+
+    const fd = new FormData();
+    const timestamp = Date.now(); // <-- Unique timestamp
+    const pdfFile = new File([pdfBlob], `syllabus_${assignmentId}_${timestamp}.pdf`, { type: "application/pdf" });
+    
+    fd.append("file",          pdfFile);         
+    fd.append("upload_preset", "v1conote");
+    fd.append("folder",        "syllabi");
+    fd.append("public_id",     `syllabus_${assignmentId}_${timestamp}`); // <-- Unique ID
+
+    const cloudRes = await fetch("https://api.cloudinary.com/v1_1/dxsgtzp7i/image/upload", { method: "POST", body: fd });
+    const cloudData = await cloudRes.json();
+    if (!cloudData.secure_url) throw new Error("Cloudinary upload failed");
+
+    let pdfUrl = cloudData.secure_url;
+    // Redirect back to portal
+    const redirect = new URL(callbackUrl);
+    redirect.searchParams.set("pdf_url", pdfUrl);
+    redirect.searchParams.set("assignmentId", assignmentId);
+    window.location.href = redirect.toString();
+
+  } catch (err) {
+    alert("❌ " + (err.message || "Something went wrong"));
+    setSubmitButtonText("Submit to Portal");
+  }
+}
 
     return (
         <div ref={topRef} className="max-w-4xl mx-auto bg-white shadow-md rounded-xl p-8 border border-gray-200 mt-10">
@@ -2348,114 +2395,140 @@ Activity-Based Learning  </label>
             Save Course Details
             </button> */}
 
-            {!showDownloads && 
-            <div ref={bottomRef}>
-  {!showDownloads && (
-    <button 
-            disabled={isgen}
+            {/* ======== ACTION SECTION ======== */}
+{/* ======== ACTION SECTION ======== */}
+<div ref={bottomRef} className="mt-8 border-t border-slate-200 pt-6">
 
-            onClick={()=>generateDocument()}
-  className={`mx-auto mt-6
-             flex items-center justify-center gap-2
-             rounded-xl bg-indigo-600 px-8 py-2
-             text-white font-medium hover:bg-indigo-800 ${isgen?"cursor-no-drop":"cursor-pointer"}`}
->
-  {isgen&&<div className="spinner-segmented"></div>}
-  <span className="text-ms ">{generateBtnText}</span>
-</button>
+  {/* 1. INITIAL GENERATE BUTTON */}
+  {!showDownloads && (
+    <button
+      disabled={isgen}
+      onClick={() => generateDocument()}
+      className={`mx-auto flex items-center justify-center gap-3 rounded-xl 
+                  bg-indigo-600 px-8 py-3 text-white font-semibold text-lg
+                  transition-all duration-200 shadow-md hover:bg-indigo-700 hover:shadow-lg
+                  ${isgen ? "opacity-75 cursor-not-allowed" : "cursor-pointer"}`}
+    >
+      {isgen && <div className="spinner-segmented"></div>}
+      <span>{generateBtnText}</span>
+    </button>
+  )}
+
+  {/* 2. DOWNLOAD, PREVIEW & SUBMIT OPTIONS (After Generation) */}
+  {showDownloads && (
+    <div className="flex flex-col items-center w-full animate-in fade-in zoom-in duration-300">
+      
+      {/* Checkboxes Row (Always visible) */}
+      <div className="flex gap-6 bg-slate-50 px-8 py-4 rounded-xl border border-slate-200 mb-6">
+        <label className="flex items-center gap-2 cursor-pointer group">
+          <input
+            type="checkbox"
+            className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+            checked={downloadOptions.pdf}
+            onChange={() => setDownloadOptions(prev => ({ ...prev, pdf: !prev.pdf }))}
+          />
+          <span className="font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">PDF</span>
+        </label>
+
+        <label className="flex items-center gap-2 cursor-pointer group border-l pl-6 border-slate-300">
+          <input
+            type="checkbox"
+            className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+            checked={downloadOptions.docx}
+            onChange={() => setDownloadOptions(prev => ({ ...prev, docx: !prev.docx }))}
+          />
+          <span className="font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">DOCX</span>
+        </label>
+
+        <label className="flex items-center gap-2 cursor-pointer group border-l pl-6 border-slate-300">
+          <input
+            type="checkbox"
+            className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+            checked={downloadOptions.json}
+            onChange={() => setDownloadOptions(prev => ({ ...prev, json: !prev.json }))}
+          />
+          <span className="font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">JSON</span>
+        </label>
+      </div>
+
+      {/* Action Buttons Row */}
+      <div className="flex flex-wrap items-center justify-center gap-4 mb-6">
+        <button
+          onClick={() => {
+            const baseType = formData.course_type.split(" ")[0];
+            setFormData(prev => ({ ...prev, course_type: baseType }));
+            setDocGen(false);
+            setShowDownloads(false);
+            setGenenerateBtnText("Generate Course Document");
+            setDownloadOptions({ pdf: false, json: false, docx: false });
+          }}
+          className="flex items-center gap-2 bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 px-6 py-2.5 rounded-lg font-medium transition-colors"
+        >
+          <Edit2 size={16} /> Edit & Regenerate
+        </button>
+
+        <button
+          disabled={downloadBtnText === "Downloading..."}
+          onClick={triggerAllDownloads}
+          className={`flex items-center gap-2 px-8 py-2.5 rounded-lg font-semibold text-white shadow-sm transition-all
+            ${downloadBtnText === "Downloading..."
+              ? "bg-indigo-400 cursor-not-allowed"
+              : "bg-indigo-600 hover:bg-indigo-700 hover:shadow"}`}
+        >
+          <ArrowDown size={18} />
+          {downloadBtnText === "Download All" ? "Download Selected" : downloadBtnText} 
+        </button>
+
+        <button
+          onClick={previewPDF}
+          className={`px-6 py-2.5 rounded-lg font-medium transition-colors
+            ${previewBtnText === "Preview PDF" 
+              ? "bg-slate-700 hover:bg-slate-800 text-white cursor-pointer" 
+              : "bg-slate-400 text-white cursor-not-allowed"}`}
+        >
+          {previewBtnText}
+        </button>
+
+        <button
+          onClick={() => {
+            setDocGen(false);
+            resetForm();
+            setShowDownloads(false);
+            setGenenerateBtnText("Generate Course Document");
+            handleRemoveFile();
+            setDownloadAll(false);
+            setDownloadOptions({ pdf: false, json: false, docx: false });
+            localStorage.removeItem(DRAFT_KEY);
+            lastSavedDataRef.current = null;
+            lastSavedTimeRef.current = 0;
+            setShowPopup("Data Reset Successful");
+          }}
+          className="flex items-center gap-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-200 px-6 py-2.5 rounded-lg font-medium transition-colors"
+        >
+          <Plus size={16} /> Generate New
+        </button>
+      </div>
+
+      {/* ── PORTAL SUBMISSION BUTTON (Only visible if from portal) ── */}
+      {isFromPortal && (
+        <div className="w-full max-w-lg mt-2 pt-6 border-t border-slate-200 flex flex-col items-center">
+          {/* <p className="text-sm font-medium text-slate-500 mb-3">
+            Satisfied with the generated syllabus?
+          </p> */}
+          <button
+            onClick={uploadFileToCloud}
+            className="w-full bg-green-600 hover:bg-green-700 text-white px-8 py-3.5 rounded-xl font-bold text-lg shadow-md hover:shadow-lg transition-all flex justify-center items-center gap-2"
+          >
+            <Check size={22} />
+            {submitBtnText}
+          </button>
+        </div>
+      )}
+
+    </div>
   )}
 </div>
-            
-            }
 
-{showDownloads && 
-<div className="flex flex-col justify-center items-center">
-  <div className="flex gap-5 mt-5">
-  <label className="flex items-center gap-2 text-md font-semibold text-slate-600">
-    <span>PDF</span>
-    <input
-      type="checkbox"
-      checked={downloadOptions.pdf}
-      onChange={() => setDownloadOptions(prev => ({ ...prev, pdf: !prev.pdf }))}
-    />
-  </label>
-
-  <label className="flex items-center gap-2 text-md font-semibold text-slate-600">
-    <span>DOCX</span>
-    <input
-      type="checkbox"
-      checked={downloadOptions.docx}
-      onChange={() => setDownloadOptions(prev => ({ ...prev, docx: !prev.docx }))}
-    />
-  </label>
-
-  <label className="flex items-center gap-2 text-md font-semibold text-slate-600">
-    <span>JSON</span>
-    <input
-      type="checkbox"
-      checked={downloadOptions.json}
-      onChange={() => setDownloadOptions(prev => ({ ...prev, json: !prev.json }))}
-    />
-  </label>
- </div>
-
-  <div className="flex gap items-center justify-center gap-5 mt-5">
-    <button onClick={() => {
-      const baseType = formData.course_type.split(" ")[0]; // 👈 MAGIC
-
-    setFormData(prev => ({
-      ...prev,
-      course_type: baseType
-    }));
-    setDocGen(false)
-      setShowDownloads(false);
-      setGenenerateBtnText("Generate Course Document")
-      setDownloadOptions({
-        pdf: false,
-        json: false,
-        docx: false
-      })  }} 
-    className="flex bg-slate-700 cursor-pointer hover:bg-slate-800 text-white px-5 py-2 rounded-md text-md">Edit & Regenerate</button>
-    <button
-    disabled={downloadBtnText === "Downloading..."}
-    onClick={triggerAllDownloads}
-    className={`px-6 py-2 cursor-pointer rounded-md text-white
-      ${downloadBtnText === "Downloading..."
-        ? "bg-gray-400 cursor-not-allowed"
-        : "bg-indigo-600 hover:bg-indigo-800"}
-    `}
-  >
-    {downloadBtnText}
-  </button>
-    <button
-    onClick={previewPDF}
-    className={`px-6 py-2 ${previewBtnText === "Preview PDF"?"cursor-pointer":"cursor-no-drop"} rounded-md text-white bg-gray-500 hover:bg-gray-600
-    `}
-  >
-    {previewBtnText}
-  </button>
-
-    <button onClick={()=> {
-          setDocGen(false)
-
-      resetForm()
-      setShowDownloads(false)
-      setGenenerateBtnText("Generate Course Document")
-      handleRemoveFile()
-      setDownloadAll(false)
-      setDownloadOptions({
-        pdf: false,
-        json: false,
-        docx: false
-      })
-      localStorage.removeItem(DRAFT_KEY);
-      localStorage.removeItem(DRAFT_KEY); 
-      lastSavedDataRef.current = null;
-      lastSavedTimeRef.current = 0;
-      setShowPopup("Data Reset Successfull")
-    }} className="flex bg-green-700 cursor-pointer hover:bg-green-800 text-white px-5 py-2 rounded-md text-md">Generate New</button>
-  </div>
-</div>}
 
 {showPreview && pdfPreviewUrl && (
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-1000">
