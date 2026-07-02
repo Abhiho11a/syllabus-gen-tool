@@ -29,6 +29,10 @@ export default function InputForm(){
     teaching_learning: useRef(null),
 };
 
+  // Check if we are in "Portal Submission Mode" by looking at the URL
+  const searchParams = new URLSearchParams(window.location.search);
+  const isFromPortal = searchParams.has("assignmentId") && searchParams.has("callbackUrl");
+
 
     {/* IF FormData doesnot contains COPO-Mapping Object then add to formData */}
     // const [formData,setFormData] = useState(DataSchema)
@@ -188,6 +192,26 @@ const removeAuthor = (index) => {
     const updated = [...authors];
     updated.splice(index, 1);
     setFormData({ ...formData, textbooks: updated });
+};
+
+{/* Dynamic References Details and TEXTBOOK Details Adding */}
+const references = formData.references || [];
+
+const addReference = () => {
+    const updated = [...references, { slNo: "", author: "", bookTitle: "", publisher: "" }];
+    setFormData({ ...formData, references: updated });
+};
+
+const updateReference = (index, field, value) => {
+    const updated = [...references];
+    updated[index][field] = value;
+    setFormData({ ...formData, references: updated });
+};
+
+const removeReference = (index) => {
+    const updated = [...references];
+    updated.splice(index, 1);
+    setFormData({ ...formData, references: updated });
 };
 
 
@@ -567,6 +591,8 @@ function generateDocument() {
   setIsGen(true)
   setDocGen(true)
 
+  console.log(formData)
+
   setGenenerateBtnText("Validating course details…")
 
   const checks = [
@@ -665,7 +691,21 @@ if (!hasRealUserContent(formData.teaching_learning)) {
       "Enter course type:\nT → Theory\nL → Lab\n",
       true, true, false, false
     );
-  } 
+  }
+  else if(baseType === "MC"){
+    formData.course_type = "NCMC";
+    // formData.credits = 0;
+    formData.exam_type = "-";
+
+    let credits = 0;
+    let exam_type = "-" 
+
+    user_res = {
+    course_type: "NCMC",
+    credits,
+    exam_type
+  }
+  }
   else if (baseType.startsWith("MC_")) {
   const value = formData.course_type;
 
@@ -1129,18 +1169,15 @@ function ModuleTextbookForm({ onAdd }) {
 
   const empty = {
     slNo: "",
-    chapter: "",
-    rbt: "",
-    wkt: ""
+    chapter: ""
   };
 
   const [tb, setTb] = useState(empty);
 
   function handleAdd() {
-    console.log(tb)
 
     if (!tb.slNo || !tb.chapter) {
-      alert("Please fill Sl.No and Chapter/Article No");
+      alert("Please fill TB No and Chapter/Article");
       return;
     }
 
@@ -1148,28 +1185,30 @@ function ModuleTextbookForm({ onAdd }) {
 
     setTb(empty);
   }
-
   return (
+
     <div className="border border-dashed border-slate-300 rounded-2xl p-5 bg-white">
 
       <p className="text-sm font-semibold text-slate-600 mb-4">
         Add Textbook Details
       </p>
 
-      {/* Single Row */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
 
-        {/* Sl No */}
+        {/* TB No */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Sl. No *
+            TB No *
           </label>
 
           <input
             type="text"
             value={tb.slNo}
             onChange={(e) =>
-              setTb((p) => ({ ...p, slNo: e.target.value }))
+              setTb((p) => ({
+                ...p,
+                slNo: e.target.value
+              }))
             }
             placeholder="1"
             className="w-full p-3 py-2 bg-gray-100 border border-gray-300
@@ -1188,47 +1227,12 @@ function ModuleTextbookForm({ onAdd }) {
             type="text"
             value={tb.chapter}
             onChange={(e) =>
-              setTb((p) => ({ ...p, chapter: e.target.value }))
+              setTb((p) => ({
+                ...p,
+                chapter: e.target.value
+              }))
             }
             placeholder="24.1, 24.4..."
-            className="w-full p-3 py-2 bg-gray-100 border border-gray-300
-                       rounded-xl outline-none focus:ring-2
-                       focus:ring-slate-400"
-          />
-        </div>
-
-        {/* RBT */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            RBT
-          </label>
-
-          <input
-            type="text"
-            value={tb.rbt}
-            onChange={(e) =>
-              setTb((p) => ({ ...p, rbt: e.target.value }))
-            }
-            placeholder="3 4"
-            className="w-full p-3 py-2 bg-gray-100 border border-gray-300
-                       rounded-xl outline-none focus:ring-2
-                       focus:ring-slate-400"
-          />
-        </div>
-
-        {/* WKT */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            WKT
-          </label>
-
-          <input
-            type="text"
-            value={tb.wkt}
-            onChange={(e) =>
-              setTb((p) => ({ ...p, wkt: e.target.value }))
-            }
-            placeholder="4,5"
             className="w-full p-3 py-2 bg-gray-100 border border-gray-300
                        rounded-xl outline-none focus:ring-2
                        focus:ring-slate-400"
@@ -1239,7 +1243,7 @@ function ModuleTextbookForm({ onAdd }) {
         <button
           type="button"
           onClick={handleAdd}
-          className="h-[48px]  px-6 text-sm bg-slate-700 hover:bg-slate-800
+          className="h-[48px] px-6 text-sm bg-slate-700 hover:bg-slate-800
                      text-white rounded-xl font-semibold transition-all"
         >
           Add Details
@@ -1249,7 +1253,53 @@ function ModuleTextbookForm({ onAdd }) {
     </div>
   );
 }
+ const [submitBtnText, setSubmitButtonText] = useState("Submit to Portal");
+async function uploadFileToCloud() {
+  const params       = new URLSearchParams(window.location.search);
+  const assignmentId = params.get("assignmentId");
+  const callbackUrl  = params.get("callbackUrl");
 
+  try {
+    setSubmitButtonText("Generating PDF…");
+
+    const pdfRes = await fetch(`${apiUrl}/generate-pdf`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(formData),
+    });
+
+    if (!pdfRes.ok) throw new Error("PDF generation failed");
+    const pdfBlob = await pdfRes.blob(); 
+    setSubmitButtonText("Uploading…");
+
+    const fd = new FormData();
+    const timestamp = Date.now(); 
+    
+    // Using a unique timestamp so Cloudinary accepts the Unsigned Upload
+    const pdfFile = new File([pdfBlob], `syllabus_${assignmentId}_${timestamp}.pdf`, { type: "application/pdf" });
+    
+    fd.append("file",          pdfFile);         
+    fd.append("upload_preset", "v1conote");
+    fd.append("folder",        "syllabi");
+    fd.append("public_id",     `syllabus_${assignmentId}_${timestamp}`); 
+
+    const cloudRes = await fetch("https://api.cloudinary.com/v1_1/dxsgtzp7i/image/upload", { method: "POST", body: fd });
+    const cloudData = await cloudRes.json();
+    if (!cloudData.secure_url) throw new Error("Cloudinary upload failed");
+
+    let pdfUrl = cloudData.secure_url;
+    
+    // Redirect back to portal
+    const redirect = new URL(callbackUrl);
+    redirect.searchParams.set("pdf_url", pdfUrl);
+    redirect.searchParams.set("assignmentId", assignmentId);
+    window.location.href = redirect.toString();
+
+  } catch (err) {
+    alert("❌ " + (err.message || "Something went wrong"));
+    setSubmitButtonText("Submit to Portal");
+  }
+}
 
     return (
         <div ref={topRef} className="max-w-4xl mx-auto bg-white shadow-md rounded-xl p-8 border border-gray-200 mt-10">
@@ -1531,6 +1581,7 @@ className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg
                         <option value="BSC">BSC</option>
                         <option value="HSMS">HSMS</option>
                         <option value="HSMC">HSMC</option>
+                        <option value="MC">NCMC</option>
                         <option value="MC_EXAM_1">MC with exam (1 credit)</option>
                         <option value="MC_EXAM_2">MC with exam (2 credits)</option>
                         <option value="MC_NO_EXAM">MC without exam</option>
@@ -1696,7 +1747,7 @@ Course Objectives</label>
             <div className="mt-8">
                 <div className="mt-8 flex items-center justify-between">
   <label className="text-sm font-semibold text-slate-600">
-    Modern AI tools
+    Modern tools
   </label>
 
   <button
@@ -1779,7 +1830,7 @@ Course Objectives</label>
     <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
       <div className="flex items-center justify-between mb-3">
         <label className="text-sm font-semibold text-gray-700">
-          Textbook References
+          Textbooks
         </label>
         <span className="text-xs text-gray-400">
           {(mod.textbooks || []).length} added
@@ -1795,7 +1846,7 @@ Course Objectives</label>
                             bg-white border border-gray-200 rounded-lg px-4 py-3">
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-slate-700">
-                  TB{tb.slNo} — {tb.bookTitle}
+                  TB-{tb.slNo} 
                 </p>
                 <p className="text-xs text-slate-500 mt-0.5 truncate">
                   {tb.author} · {tb.publisher}{tb.year ? ` · ${tb.year}` : ""}
@@ -1831,19 +1882,31 @@ Course Objectives</label>
       {/* Add new textbook form */}
       <ModuleTextbookForm
         onAdd={(tb) => {
-          setFormData(prev => {
+
+          setFormData((prev) => {
+
             const updated = [...prev.modules];
+
             updated[idx] = {
               ...updated[idx],
-              textbooks: [...(updated[idx].textbooks || []), tb]
+
+              textbooks: [
+                ...(updated[idx].textbooks || []),
+                tb
+              ]
             };
-            return { ...prev, modules: updated };
+
+            return {
+              ...prev,
+              modules: updated
+            };
           });
+
         }}
       />
     </div>
 
-    <div>
+    {/* <div>
       <label className="text-sm font-medium">Chapter Article No.</label>
       <input
         name="chapter"
@@ -1852,7 +1915,7 @@ Course Objectives</label>
         className="w-full mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg
                    resize-none focus:ring-2 focus:ring-slate-400 outline-none"
       />
-    </div>
+    </div> */}
 
     <div>
       <label className="text-sm font-medium">RBT Level(s)</label>
@@ -1920,7 +1983,7 @@ Course Objectives</label>
              {/* ======== TEXTBOOK AUTHORS (DYNAMIC) ======== */}
             <div className="mt-10">
                 <h3 className="text-lg font-semibold text-slate-700 mb-4 flex justify-between">
-                    Textbooks / References
+                    Textbooks 
                     <button
                     onClick={addAuthor}
                     className="px-3 py-1 bg-slate-600 text-white rounded-lg text-sm hover:bg-slate-700"
@@ -2004,6 +2067,97 @@ Course Objectives</label>
     placeholder="e.g. 2021"
   />
 </div>
+
+                    </div>
+                ))}
+            </div>
+
+            <div className="mt-10">
+                <h3 className="text-lg font-semibold text-slate-700 mb-4 flex justify-between">
+                    References
+                    <button
+                    onClick={addReference}
+                    className="px-3 py-1 bg-slate-600 text-white rounded-lg text-sm hover:bg-slate-700"
+                    >
+                    + Add Author
+                    </button>
+                </h3>
+
+                {references.length === 0 && (
+                    <p className="text-gray-500 mb-4">No authors added yet.</p>
+                )}
+                {references.map((item, index) => (
+                    <div
+                    key={index}
+                    className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg relative"
+                    >
+                    {/* Remove Button */}
+                    <button
+                        onClick={() => removeReference(index)}
+                        className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-sm"
+                    >
+                        ✕
+                    </button>
+
+                    {/* Sl No */}
+                    <div>
+                        <label className="text-sm font-semibold text-slate-600">Sl. No</label>
+                        <input
+                        type="text"
+                        value={item.slNo}
+                        onChange={e => updateReference(index, "slNo", e.target.value)}
+                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
+                                    focus:ring-2 focus:ring-slate-400 outline-none"
+                        />
+                    </div>
+
+                    {/* Author */}
+                    <div>
+                        <label className="text-sm font-semibold text-slate-600">Author</label>
+                        <input
+                        type="text"
+                        value={item.author}
+                        onChange={e => updateReference(index, "author", e.target.value)}
+                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
+                                    focus:ring-2 focus:ring-slate-400 outline-none"
+                        />
+                    </div>
+
+                    {/* Book Title */}
+                    <div>
+                        <label className="text-sm font-semibold text-slate-600">Book Title</label>
+                        <input
+                        type="text"
+                        value={item.bookTitle}
+                        onChange={e => updateReference(index, "bookTitle", e.target.value)}
+                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
+                                    focus:ring-2 focus:ring-slate-400 outline-none"
+                        />
+                    </div>
+
+                    {/* Publisher */}
+                    <div>
+                        <label className="text-sm font-semibold text-slate-600">Publisher&Edition</label>
+                        <input
+                        type="text"
+                        value={item.publisher}
+                        onChange={e => updateReference(index, "publisher", e.target.value)}
+                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
+                                    focus:ring-2 focus:ring-slate-400 outline-none"
+                        />
+                    </div>
+                    {/* Year */}
+                    <div>
+                      <label className="text-sm font-semibold text-slate-600">Year</label>
+                      <input
+                        type="number"
+                        value={item.year}
+                        onChange={e => updateReference(index, "year", e.target.value)}
+                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
+                                  focus:ring-2 focus:ring-slate-400 outline-none"
+                        placeholder="e.g. 2021"
+                      />
+                    </div>
 
                     </div>
                 ))}
@@ -2243,114 +2397,140 @@ Activity-Based Learning  </label>
             Save Course Details
             </button> */}
 
-            {!showDownloads && 
-            <div ref={bottomRef}>
-  {!showDownloads && (
-    <button 
-            disabled={isgen}
+            {/* ======== ACTION SECTION ======== */}
+{/* ======== ACTION SECTION ======== */}
+<div ref={bottomRef} className="mt-8 border-t border-slate-200 pt-6">
 
-            onClick={()=>generateDocument()}
-  className={`mx-auto mt-6
-             flex items-center justify-center gap-2
-             rounded-xl bg-indigo-600 px-8 py-2
-             text-white font-medium hover:bg-indigo-800 ${isgen?"cursor-no-drop":"cursor-pointer"}`}
->
-  {isgen&&<div className="spinner-segmented"></div>}
-  <span className="text-ms ">{generateBtnText}</span>
-</button>
+  {/* 1. INITIAL GENERATE BUTTON */}
+  {!showDownloads && (
+    <button
+      disabled={isgen}
+      onClick={() => generateDocument()}
+      className={`mx-auto flex items-center justify-center gap-3 rounded-xl 
+                  bg-indigo-600 px-8 py-3 text-white font-semibold text-lg
+                  transition-all duration-200 shadow-md hover:bg-indigo-700 hover:shadow-lg
+                  ${isgen ? "opacity-75 cursor-not-allowed" : "cursor-pointer"}`}
+    >
+      {isgen && <div className="spinner-segmented"></div>}
+      <span>{generateBtnText}</span>
+    </button>
+  )}
+
+  {/* 2. DOWNLOAD, PREVIEW & SUBMIT OPTIONS (After Generation) */}
+  {showDownloads && (
+    <div className="flex flex-col items-center w-full animate-in fade-in zoom-in duration-300">
+      
+      {/* Checkboxes Row (Always visible) */}
+      <div className="flex gap-6 bg-slate-50 px-8 py-4 rounded-xl border border-slate-200 mb-6">
+        <label className="flex items-center gap-2 cursor-pointer group">
+          <input
+            type="checkbox"
+            className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+            checked={downloadOptions.pdf}
+            onChange={() => setDownloadOptions(prev => ({ ...prev, pdf: !prev.pdf }))}
+          />
+          <span className="font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">PDF</span>
+        </label>
+
+        <label className="flex items-center gap-2 cursor-pointer group border-l pl-6 border-slate-300">
+          <input
+            type="checkbox"
+            className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+            checked={downloadOptions.docx}
+            onChange={() => setDownloadOptions(prev => ({ ...prev, docx: !prev.docx }))}
+          />
+          <span className="font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">DOCX</span>
+        </label>
+
+        <label className="flex items-center gap-2 cursor-pointer group border-l pl-6 border-slate-300">
+          <input
+            type="checkbox"
+            className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+            checked={downloadOptions.json}
+            onChange={() => setDownloadOptions(prev => ({ ...prev, json: !prev.json }))}
+          />
+          <span className="font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">JSON</span>
+        </label>
+      </div>
+
+      {/* Action Buttons Row */}
+      <div className="flex flex-wrap items-center justify-center gap-4 mb-6">
+        <button
+          onClick={() => {
+            const baseType = formData.course_type.split(" ")[0];
+            setFormData(prev => ({ ...prev, course_type: baseType }));
+            setDocGen(false);
+            setShowDownloads(false);
+            setGenenerateBtnText("Generate Course Document");
+            setDownloadOptions({ pdf: false, json: false, docx: false });
+          }}
+          className="flex items-center gap-2 bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 px-6 py-2.5 rounded-lg font-medium transition-colors"
+        >
+          <Edit2 size={16} /> Edit & Regenerate
+        </button>
+
+        <button
+          disabled={downloadBtnText === "Downloading..."}
+          onClick={triggerAllDownloads}
+          className={`flex items-center gap-2 px-8 py-2.5 rounded-lg font-semibold text-white shadow-sm transition-all
+            ${downloadBtnText === "Downloading..."
+              ? "bg-indigo-400 cursor-not-allowed"
+              : "bg-indigo-600 hover:bg-indigo-700 hover:shadow"}`}
+        >
+          <ArrowDown size={18} />
+          {downloadBtnText === "Download All" ? "Download Selected" : downloadBtnText} 
+        </button>
+
+        <button
+          onClick={previewPDF}
+          className={`px-6 py-2.5 rounded-lg font-medium transition-colors
+            ${previewBtnText === "Preview PDF" 
+              ? "bg-slate-700 hover:bg-slate-800 text-white cursor-pointer" 
+              : "bg-slate-400 text-white cursor-not-allowed"}`}
+        >
+          {previewBtnText}
+        </button>
+
+        <button
+          onClick={() => {
+            setDocGen(false);
+            resetForm();
+            setShowDownloads(false);
+            setGenenerateBtnText("Generate Course Document");
+            handleRemoveFile();
+            setDownloadAll(false);
+            setDownloadOptions({ pdf: false, json: false, docx: false });
+            localStorage.removeItem(DRAFT_KEY);
+            lastSavedDataRef.current = null;
+            lastSavedTimeRef.current = 0;
+            setShowPopup("Data Reset Successful");
+          }}
+          className="flex items-center gap-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-200 px-6 py-2.5 rounded-lg font-medium transition-colors"
+        >
+          <Plus size={16} /> Generate New
+        </button>
+      </div>
+
+      {/* ── PORTAL SUBMISSION BUTTON (Only visible if from portal) ── */}
+      {isFromPortal && (
+        <div className="w-full max-w-lg mt-2 pt-6 border-t border-slate-200 flex flex-col items-center">
+          {/* <p className="text-sm font-medium text-slate-500 mb-3">
+            Satisfied with the generated syllabus?
+          </p> */}
+          <button
+            onClick={uploadFileToCloud}
+            className="w-full bg-green-600 hover:bg-green-700 text-white px-8 py-3.5 rounded-xl font-bold text-lg shadow-md hover:shadow-lg transition-all flex justify-center items-center gap-2"
+          >
+            <Check size={22} />
+            {submitBtnText}
+          </button>
+        </div>
+      )}
+
+    </div>
   )}
 </div>
-            
-            }
 
-{showDownloads && 
-<div className="flex flex-col justify-center items-center">
-  <div className="flex gap-5 mt-5">
-  <label className="flex items-center gap-2 text-md font-semibold text-slate-600">
-    <span>PDF</span>
-    <input
-      type="checkbox"
-      checked={downloadOptions.pdf}
-      onChange={() => setDownloadOptions(prev => ({ ...prev, pdf: !prev.pdf }))}
-    />
-  </label>
-
-  <label className="flex items-center gap-2 text-md font-semibold text-slate-600">
-    <span>DOCX</span>
-    <input
-      type="checkbox"
-      checked={downloadOptions.docx}
-      onChange={() => setDownloadOptions(prev => ({ ...prev, docx: !prev.docx }))}
-    />
-  </label>
-
-  <label className="flex items-center gap-2 text-md font-semibold text-slate-600">
-    <span>JSON</span>
-    <input
-      type="checkbox"
-      checked={downloadOptions.json}
-      onChange={() => setDownloadOptions(prev => ({ ...prev, json: !prev.json }))}
-    />
-  </label>
- </div>
-
-  <div className="flex gap items-center justify-center gap-5 mt-5">
-    <button onClick={() => {
-      const baseType = formData.course_type.split(" ")[0]; // 👈 MAGIC
-
-    setFormData(prev => ({
-      ...prev,
-      course_type: baseType
-    }));
-    setDocGen(false)
-      setShowDownloads(false);
-      setGenenerateBtnText("Generate Course Document")
-      setDownloadOptions({
-        pdf: false,
-        json: false,
-        docx: false
-      })  }} 
-    className="flex bg-slate-700 cursor-pointer hover:bg-slate-800 text-white px-5 py-2 rounded-md text-md">Edit & Regenerate</button>
-    <button
-    disabled={downloadBtnText === "Downloading..."}
-    onClick={triggerAllDownloads}
-    className={`px-6 py-2 cursor-pointer rounded-md text-white
-      ${downloadBtnText === "Downloading..."
-        ? "bg-gray-400 cursor-not-allowed"
-        : "bg-indigo-600 hover:bg-indigo-800"}
-    `}
-  >
-    {downloadBtnText}
-  </button>
-    <button
-    onClick={previewPDF}
-    className={`px-6 py-2 ${previewBtnText === "Preview PDF"?"cursor-pointer":"cursor-no-drop"} rounded-md text-white bg-gray-500 hover:bg-gray-600
-    `}
-  >
-    {previewBtnText}
-  </button>
-
-    <button onClick={()=> {
-          setDocGen(false)
-
-      resetForm()
-      setShowDownloads(false)
-      setGenenerateBtnText("Generate Course Document")
-      handleRemoveFile()
-      setDownloadAll(false)
-      setDownloadOptions({
-        pdf: false,
-        json: false,
-        docx: false
-      })
-      localStorage.removeItem(DRAFT_KEY);
-      localStorage.removeItem(DRAFT_KEY); 
-      lastSavedDataRef.current = null;
-      lastSavedTimeRef.current = 0;
-      setShowPopup("Data Reset Successfull")
-    }} className="flex bg-green-700 cursor-pointer hover:bg-green-800 text-white px-5 py-2 rounded-md text-md">Generate New</button>
-  </div>
-</div>}
 
 {showPreview && pdfPreviewUrl && (
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-1000">

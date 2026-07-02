@@ -34,7 +34,7 @@ export default function InputForm(){
   const isFromPortal = searchParams.has("assignmentId") && searchParams.has("callbackUrl");
 
 
-    {/* IF FormData doesnot contains COPO-Mapping Object then add to formData */}
+    // IF FormData doesnot contains COPO-Mapping Object then add to formData 
     // const [formData,setFormData] = useState(DataSchema)
     const emptyModule = {
       title: "",
@@ -174,7 +174,7 @@ if(!formData.copoMapping) {
         });
 }
 
-{/* Dynamic AUTHOR Details and TEXTBOOK Details Adding */}
+// Dynamic AUTHOR Details and TEXTBOOK Details Adding
 const authors = formData.textbooks || [];
 
 const addAuthor = () => {
@@ -194,7 +194,7 @@ const removeAuthor = (index) => {
     setFormData({ ...formData, textbooks: updated });
 };
 
-{/* Dynamic References Details and TEXTBOOK Details Adding */}
+// Dynamic References Details and TEXTBOOK Details Adding 
 const references = formData.references || [];
 
 const addReference = () => {
@@ -215,7 +215,7 @@ const removeReference = (index) => {
 };
 
 
-{/* DYNAMIC PSO Cols in COPO Mapping Table */}
+// DYNAMIC PSO Cols in COPO Mapping Table 
 function addPsoCol () {
   const updatedRows = formData.copoMapping.rows.map(row => ({
       ...row,
@@ -228,7 +228,7 @@ function addPsoCol () {
       ...formData.copoMapping,
       rows: updatedRows,
       }
-  });                           
+  });                              
 };
 
 function removePsoCol () {
@@ -463,22 +463,35 @@ function handleJsonFileUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  if (file.type !== "application/json") {
+  // Accept .json files
+  if (file.type !== "application/json" && !file.name.endsWith(".json")) {
     alert("Please upload a valid JSON file");
     return;
   }
 
-  setSelectedFileName(file.name)
+  setSelectedFileName(file.name);
 
   const reader = new FileReader();
 
   reader.onload = (event) => {
     try {
       const text = event.target.result;
-      JSON.parse(text); // validation check
-      setJsonText(text); // 🔥 load into textarea
+      const parsed = JSON.parse(text); // Parse immediately
+
+      // Automatically fill the form data
+      setFormData({
+        ...parsed,
+        modules: parsed.modules?.length ? parsed.modules : [{ ...emptyModule }],
+        course_type: parseCourseType(parsed.course_type).base
+      });
+
+      setJsonError("");
+      setShowPopup("Data loaded successfully from JSON!");
+      
     } catch (err) {
-      alert("Invalid JSON file");
+      alert("Invalid JSON structure");
+      setJsonError("Invalid JSON structure");
+      handleRemoveFile(); // Clear file if it fails
     }
   };
 
@@ -542,7 +555,7 @@ const DEFAULT_TEMPLATES = [
 function normalizeLine(line = "") {
   return line
     .toLowerCase()
-    .replace(/\*\*/g, "")     // remove markdown **
+    .replace(/\*\*/g, "")      // remove markdown **
     .replace(/:/g, "")        // remove colons
     .replace(/\s+/g, " ")     // normalize spaces
     .trim();
@@ -678,11 +691,11 @@ if (!hasRealUserContent(formData.teaching_learning)) {
   //               setGenenerateBtnText("Generate Course Document")
   //   },1400)
   //   setTimeout(()=>{
-  //           alert("Please fill all fields");
-  //         },1500)
+  //            alert("Please fill all fields");
+  //          },1500)
   //   return;
   //   }
-   
+    
   const baseType = formData.course_type;
   let user_res = null;
 
@@ -1042,29 +1055,29 @@ useEffect(() => {
         activity:false
       })
 
-  //       useEffect(() => {
-  //   setShowSections({
-  //     objectives:
-  //       Array.isArray(formData.course_objectives) &&
-  //       formData.course_objectives.length > 0,
+  //        useEffect(() => {
+  //    setShowSections({
+  //      objectives:
+  //        Array.isArray(formData.course_objectives) &&
+  //        formData.course_objectives.length > 0,
 
-  //     tl:
-  //       Array.isArray(formData.teaching_learning) &&
-  //       formData.teaching_learning.length > 0,
+  //      tl:
+  //        Array.isArray(formData.teaching_learning) &&
+  //        formData.teaching_learning.length > 0,
 
-  //     tools:
-  //       Array.isArray(formData.modern_tools) &&
-  //       formData.modern_tools.length > 0,
+  //      tools:
+  //        Array.isArray(formData.modern_tools) &&
+  //        formData.modern_tools.length > 0,
 
-  //     outcomes:
-  //       Array.isArray(formData.course_outcomes) &&
-  //       formData.course_outcomes.length > 0,
+  //      outcomes:
+  //        Array.isArray(formData.course_outcomes) &&
+  //        formData.course_outcomes.length > 0,
 
-  //     activity:
-  //       typeof formData.activity_based_learning === "string" &&
-  //       formData.activity_based.trim() !== "",
-  //   });
-  // }, [formData]);
+  //      activity:
+  //        typeof formData.activity_based_learning === "string" &&
+  //        formData.activity_based.trim() !== "",
+  //    });
+  //  }, [formData]);
 
 
 const toggleSection = (key) => {
@@ -1254,1367 +1267,1228 @@ function ModuleTextbookForm({ onAdd }) {
   );
 }
  const [submitBtnText, setSubmitButtonText] = useState("Submit to Portal");
-
   async function uploadFileToCloud() {
-  const params       = new URLSearchParams(window.location.search);
-  const assignmentId = params.get("assignmentId");
-  const callbackUrl  = params.get("callbackUrl");
+    const params       = new URLSearchParams(window.location.search);
+    const assignmentId = params.get("assignmentId");
+    const callbackUrl  = params.get("callbackUrl");
 
-  try {
-    setSubmitButtonText("Generating PDF…");
+    try {
+      setSubmitButtonText("Generating PDF…");
 
-    const pdfRes = await fetch(`${apiUrl}/generate-pdf`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(formData),
-    });
+      const pdfRes = await fetch(`${apiUrl}/generate-pdf`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(formData),
+      });
 
-    if (!pdfRes.ok) throw new Error("PDF generation failed");
-    const pdfBlob = await pdfRes.blob(); 
-    setSubmitButtonText("Uploading…");
+      if (!pdfRes.ok) throw new Error("PDF generation failed");
+      const pdfBlob = await pdfRes.blob(); 
+      setSubmitButtonText("Uploading…");
 
-    const fd = new FormData();
-    const timestamp = Date.now(); // <-- Unique timestamp
-    const pdfFile = new File([pdfBlob], `syllabus_${assignmentId}_${timestamp}.pdf`, { type: "application/pdf" });
-    
-    fd.append("file",          pdfFile);         
-    fd.append("upload_preset", "v1conote");
-    fd.append("folder",        "syllabi");
-    fd.append("public_id",     `syllabus_${assignmentId}_${timestamp}`); // <-- Unique ID
+      const fd = new FormData();
+      const timestamp = Date.now(); 
+      
+      // Using a unique timestamp so Cloudinary accepts the Unsigned Upload
+      const pdfFile = new File([pdfBlob], `syllabus_${assignmentId}_${timestamp}.pdf`, { type: "application/pdf" });
+      
+      // Read variables from Vite environment
+      fd.append("file",          pdfFile);         
+      fd.append("upload_preset", import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+      fd.append("folder",        import.meta.env.VITE_CLOUDINARY_FOLDER);
+      fd.append("public_id",     `syllabus_${assignmentId}_${timestamp}`); 
 
-    const cloudRes = await fetch("https://api.cloudinary.com/v1_1/dxsgtzp7i/image/upload", { method: "POST", body: fd });
-    const cloudData = await cloudRes.json();
-    if (!cloudData.secure_url) throw new Error("Cloudinary upload failed");
+      // Fetch using the ENV URL
+      const cloudRes = await fetch(import.meta.env.VITE_CLOUDINARY_UPLOAD_URL, { 
+        method: "POST", 
+        body: fd 
+      });
+      
+      const cloudData = await cloudRes.json();
+      if (!cloudData.secure_url) throw new Error("Cloudinary upload failed");
 
-    let pdfUrl = cloudData.secure_url;
-    // Redirect back to portal
-    const redirect = new URL(callbackUrl);
-    redirect.searchParams.set("pdf_url", pdfUrl);
-    redirect.searchParams.set("assignmentId", assignmentId);
-    window.location.href = redirect.toString();
+      let pdfUrl = cloudData.secure_url;
+      
+      // Redirect back to portal
+      const redirect = new URL(callbackUrl);
+      redirect.searchParams.set("pdf_url", pdfUrl);
+      redirect.searchParams.set("assignmentId", assignmentId);
+      window.location.href = redirect.toString();
 
-  } catch (err) {
-    alert("❌ " + (err.message || "Something went wrong"));
-    setSubmitButtonText("Submit to Portal");
+    } catch (err) {
+      alert("❌ " + (err.message || "Something went wrong"));
+      setSubmitButtonText("Submit to Portal");
+    }
   }
-}
 
     return (
-        <div ref={topRef} className="max-w-4xl mx-auto bg-white shadow-md rounded-xl p-8 border border-gray-200 mt-10">
-          {showPopup && (
-            <Popup
-              position={popupPosition}
-              message={showPopup}
-              duration={3000}
-              onClose={() => setShowPopup(null)}
-            />
-        )}
-            {/* Heading */}
-            <div className="flex w-full justify-between">
-                <h2 className="text-2xl font-semibold text-slate-700 mb-6">Add / Edit Course Details</h2>
-                {/* <X size={40} className="rounded-lg cursor-pointer hover:scale-110 bg-gray-100 p-1" onClick={()=>closeForm()}/> */}
-            </div>
-
-
-            {/* ===== INPUT MODE SELECTION ===== */}
-        <div onClick={()=>{resetForm()
-        }
-
-        } className="flex gap-2 w-30 text-center justify-center text-white items-center bg-gray-600 rounded-md cursor-pointer my-2 p-1 hover:bg-gray-800"><RefreshCcw size={18}/> <button className="cursor-pointer">Reset Form</button> </div>
-        <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-          <h3 className="font-semibold text-slate-700 mb-3">
-            How do you want to provide course data?
-          </h3>
-
-          <div className="flex gap-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                checked={inputMode === "manual"}
-                onChange={() => setInputMode("manual")}
-              />
-              Manual Entry
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                checked={inputMode === "json"}
-                onChange={() => setInputMode("json")}
-              />
-              Load from JSON
-            </label>
-          </div>
-
-
-        {inputMode === "json" && <div className="flex gap-9 mt-2">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                checked={jsonType === "text"}
-                onChange={() => setJsonType("text")}
-              />
-              Paste JSON
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                checked={jsonType === "file"}
-                onChange={() => setJsonType("file")}
-              />
-              Upload JSON file
-            </label>
-        </div>}
-
-
-        </div>
-
-        {inputMode === "json" && <button 
-        className="flex bg-gray-600 mb-1 cursor-pointer hover:bg-gray-800 px-5 items-center gap-2 text-white py-1 rounded-md"
-        onClick={() => {
-          setJsonText("")
-          handleRemoveFile()
-        }}>
-
-          <RefreshCcw size={18}/>
-          <h2>Reset JSON Data</h2>
-        </button>}
-
-
-
-        {inputMode === "json" && jsonType === "text" && (
-          <div className="mb-4 p-4 border rounded-lg bg-blue-50">
-            <label className="text-sm font-semibold text-slate-600">
-              Paste Course JSON
-            </label>
-
-            <textarea
-              rows={8}
-              value={jsonText}
-              onChange={(e) => setJsonText(e.target.value)}
-              className="w-full mt-2 p-3 bg-white border rounded-lg font-mono text-sm"
-              placeholder="Paste JSON downloaded earlier..."
-            />
-
-            {jsonError && (
-              <p className="text-red-600 text-sm mt-2">{jsonError}</p>
-            )}
-
-          </div>
-        )}
-
-        
-
-        {inputMode === "json" && jsonType === "file" && <div className="mt-6 mb-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-5">
-  
-  <p className="text-center text-sm font-medium text-slate-700">
-    Import course data from JSON
-  </p>
-
-  <div className="mt-4 flex items-center justify-center gap-4">
-    <label
-      htmlFor="jsonUpload"
-      className="inline-flex items-center gap-2
-                 rounded-lg bg-slate-700 px-5 py-2
-                 text-sm font-medium text-white
-                 cursor-pointer hover:bg-slate-800 transition"
-    >
-      Choose JSON file
-    </label>
-
-    <span className="text-sm text-slate-500">
-      { selectedFileName || "No file chosen"}
-    </span>
-
-    <input
-      ref={fileInputRef}
-      id="jsonUpload"
-      type="file"
-      accept=".json,application/json"
-      onChange={handleJsonFileUpload}
-      className="hidden"
-    />
-  </div>
-
-  <p className="mt-3 text-center text-xs text-slate-500">
-    Uploading a file will replace the JSON above
-  </p>
-
-  
-</div>
-
-
-}
-
-{inputMode === "json" && <button
-    onClick={handleLoadJson}
-    className="mb-6 px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+  <div
+    ref={topRef}
+    className="max-w-4xl mx-auto bg-white shadow-md rounded-xl p-8 border border-gray-200 mt-10"
   >
-    Load JSON into Form
-  </button>}
-
-
-
-
-
-            {/* ======== Course and sem ======== */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-5">
-                {/* Course Title */}
-                <div>
-                    <label className="text-sm font-semibold text-slate-600">Department</label>
-                    <select
-                    ref={refs.department}
-                    name="" id="" value={formData.department}
-                      onChange={e => setFormData({ ...formData, department: e.target.value })}
-className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg 
-                                focus:ring-2 focus:ring-slate-400 outline-none w-full"
-                    >
-                      <option value="" disabled hidden>Select</option>
-                      {programStructure["BE/BTECH"].departments.map(dept => <option value={dept}>{dept}</option>)}
-                    </select>
-                </div>
-                {/* Course Code */}
-                <div>
-                     <div className="w1/2">
-                    <label className="text-sm font-semibold text-slate-600">Semester</label>
-                    <select
-                      ref={refs.sem}            // ✅ ADD
-
-                        value={formData.sem}
-                        onChange={e => setFormData({ ...formData, sem: e.target.value })}
-                        className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg 
-                                focus:ring-2 focus:ring-slate-400 outline-none w-full"
-                    >
-                        <option value="" hidden>Select</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                        <option value="7">7</option>
-                        <option value="8">8</option>
-                    </select>
-                    </div>
-                </div>
-            </div>
-            {/* ======== BASIC DETAILS (GRID) ======== */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-3">
-                {/* Course Title */}
-                <div>
-                    <label className="text-sm font-semibold text-slate-600">Course Title</label>
-                    <input
-  ref={refs.course_title}   // ✅ ADD THIS
-  type="text"
-  value={formData.course_title}
-  onChange={e =>
-    setFormData({ ...formData, course_title: e.target.value })
-  }
-  className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg 
-                                focus:ring-2 focus:ring-slate-400 outline-none w-full"
-                    placeholder="Course Title"
-/>
-
-                </div>
-                {/* Course Code */}
-                <div>
-                    <label className="text-sm font-semibold text-slate-600">Course Code</label>
-                    <input
-  ref={refs.course_code}    // ✅ ADD
-  type="text"
-  value={formData.course_code}
-  onChange={e =>
-    setFormData({ ...formData, course_code: e.target.value })
-  }
-  className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg 
-                                focus:ring-2 focus:ring-slate-400 outline-none w-full"
-/>
-
-                </div>
-            </div>
-
-            {/* ======== SEM + COURSE TYPE + CREDITS + MARKS ======== */}
-            <div className="w-full flex flex-col md:flex-row md:justify-between gap-2 mt-6">
-                {/* Course Type */}
-                <div className="md:w-1/4 w-full flex gap-2">
-                    {/* <div className="w-1/2">
-                    <label className="text-sm font-semibold text-slate-600">Semester</label>
-                    <select
-                        value={formData.sem}
-                        onChange={e => setFormData({ ...formData, sem: e.target.value })}
-                        className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg 
-                                focus:ring-2 focus:ring-slate-400 outline-none w-full"
-                    >
-                        <option value="" hidden>Select</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                        <option value="7">7</option>
-                        <option value="8">8</option>
-                    </select>
-                    </div> */}
-                    <div className="w-1/2">
-                    <label className="text-sm font-semibold text-slate-600">Course Type</label>
-                    <select
-                      ref={refs.course_type}    // ✅ ADD
-
-                        value={formData.course_type}
-                        onChange={e => setFormData({...formData,course_type: e.target.value})}
-                        className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg 
-                                focus:ring-2 focus:ring-slate-400 outline-none w-full"
-                    >
-                        <option value="" hidden>Select</option>
-                        <option value="IPCC">IPCC</option>
-                        <option value="PCC">PCC</option>
-                        <option value="AEC">AEC</option>
-                        <option value="OEC">OEC</option>
-                        <option value="PEC">PEC</option>
-                        <option value="ESC">ESC</option>
-                        <option value="PCCL">PCCL</option>
-                        <option value="UHV">UHV</option>
-                        <option value="BSC">BSC</option>
-                        <option value="HSMS">HSMS</option>
-                        <option value="HSMC">HSMC</option>
-                        <option value="MC">NCMC</option>
-                        <option value="MC_EXAM_1">MC with exam (1 credit)</option>
-                        <option value="MC_EXAM_2">MC with exam (2 credits)</option>
-                        <option value="MC_NO_EXAM">MC without exam</option>
-                    </select>
-                    </div>
-                </div>
-                <div className="md:w-1/5 w-full">
-                    <label className="text-sm font-semibold text-slate-600">L-T-P-S</label>
-                    <input
-                    type="text"
-                    value={formData.ltps}
-                    onChange={e => setFormData({ ...formData, ltps: e.target.value })}
-                    className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg 
-                                focus:ring-2 focus:ring-slate-400 outline-none w-full"
-                    placeholder="4:2:1:0"
-                    />
-                </div>
-
-                {/* Course Credits */}
-                <div className="md:w-1/4   flex w-full gap-2">
-                    <div>
-                        <label className="text-sm font-semibold text-slate-600"> Credits</label>
-                        <input
-                        type="number"
-                          ref={refs.credits}      
-
-                        value={formData.credits}
-                        onChange={e => setFormData({ ...formData, credits: e.target.value })}
-                        className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg 
-                                    focus:ring-2 focus:ring-slate-400 outline-none w-full"
-                        />
-                    </div>
-                    <div className="">
-                        <label className="text-sm font-semibold text-slate-600">Exam hrs</label>
-                        <input
-                        type="text"
-                        ref={refs.exam_hours}
-                        value={formData.exam_hours}
-                        onChange={e => setFormData({ ...formData, exam_hours: e.target.value })}
-                        className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg 
-                                    focus:ring-2 focus:ring-slate-400 outline-none w-full"
-                        placeholder="3"
-                        />
-                    </div>    
-                </div>
-
-                <div className="md:w-1/8 w-full">
-                    <label className="text-sm font-semibold text-slate-600">Pedagogy</label>
-                    <input
-                    type="text"
-                    value={formData.pedagogy}
-                    onChange={e => setFormData({ ...formData, pedagogy: e.target.value })}
-                    className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg 
-                                focus:ring-2 focus:ring-slate-400 outline-none w-full"
-                        placeholder="40+20"
-                    />
-                </div>
-
-                <div className="md:w-1/4 w-full flex gap-2">
-                    {/* CIE Marks */}
-                    <div className="">
-                        <label className="text-sm font-semibold text-slate-600">CIE Marks</label>
-                        <input
-                          ref={refs.cie}            // ✅ ADD
-
-                            type="number"
-                            value={formData.cie}
-                            onChange={e => setFormData({ ...formData, cie: e.target.value })}
-                            className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg 
-                                    focus:ring-2 focus:ring-slate-400 outline-none w-full"
-                        />
-                    </div>
-                    {/* SEE Marks */}
-                    <div className="">
-                    <label className="text-sm font-semibold text-slate-600">SEE Marks</label>
-                    <input
-                        type="number"
-                          ref={refs.see}            // ✅ ADD
-
-                        value={formData.see}
-                        onChange={e => setFormData({ ...formData, see: e.target.value })}
-                        className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg 
-                                focus:ring-2 focus:ring-slate-400 outline-none w-full"
-                    />
-                    </div>
-                </div>
-            </div>
-
-
-            {/* ======== COURSE OBJECTIVES ======== */}
-            <div className="mt-8">
-
-                <div className="mt-8 flex items-center justify-between">
-  <label className="text-sm font-semibold text-slate-600">
-Course Objectives</label>
-
-  <button
-    type="button"
-    onClick={() => toggleSection("objectives")}
-    className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300"
-  >
-    {showSections.objectives ? "Hide" : "Show"}
-  </button>
-</div>
-
-                {showSections.objectives && <NumberedTextarea
-                isGen={docGen}
-  inputRef={refs.course_objectives}
-  value={
-    Array.isArray(formData.course_objectives)
-      ? formData.course_objectives.join("\n")
-      : formData.course_objectives || ""
-  }
-  onChange={(val) =>
-    setFormData(prev => ({
-      ...prev,
-      course_objectives: val.split("\n").filter(Boolean)
-    }))
-  }
-  placeholder="Enter course objectives"
-/>}
-
-
-            </div>
-
-            {/* ======== TEACHING LEARNING ======== */}
-            <div className="mt-6">
-                <div className="mt-8 flex items-center justify-between">
-  <label className="text-sm font-semibold text-slate-600">
-    Teaching & Learning
-  </label>
-
-  <button
-    type="button"
-    onClick={() => toggleSection("tl")}
-    className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300"
-  >
-    {showSections.tl ? "Hide" : "Show"}
-  </button>
-</div>
-
-                {showSections.tl && <NumberedTextarea
-                isGen={docGen}
-  inputRef={refs.teaching_learning}
-  value={
-    Array.isArray(formData.teaching_learning)
-      ? formData.teaching_learning.join("\n")
-      : formData.teaching_learning || ""
-  }
-  onChange={(val) =>
-    setFormData(prev => ({
-      ...prev,
-      teaching_learning: val.split("\n").filter(Boolean)
-    }))
-  }
-  placeholder="Teaching & Learning Process"
-/>}
-
-
-
-            </div>
-            {/* MODERN AI TOOL USED */}
-            <div className="mt-8">
-                <div className="mt-8 flex items-center justify-between">
-  <label className="text-sm font-semibold text-slate-600">
-    Modern tools
-  </label>
-
-  <button
-    type="button"
-    onClick={() => toggleSection("tools")}
-    className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300"
-  >
-    {showSections.tools ? "Hide" : "Show"}
-  </button>
-</div>
-
-                {showSections.tools && <NumberedTextarea
-                isGen={docGen}
-  inputRef={refs.modern_tools}
-  value={
-    Array.isArray(formData.modern_tools)
-      ? formData.modern_tools.join("\n")
-      : formData.modern_tools || ""
-  }
-  onChange={(val) =>
-    setFormData(prev => ({
-      ...prev,
-      modern_tools: val.split("\n").filter(Boolean)
-    }))
-  }
-  placeholder="Enter details regarding modern AI tools..."
-/>}
-
-
-
-            </div>
-
-            {/* Modules Details */}
-            {formData.course_type !== "PCCL" &&<div className="flex flex-col gap-10 mt-5">
-  <div className="flex justify-between items-center">
-    <h2 className="text-sm font-semibold text-slate-600">
-      Modules Details
-    </h2>
-
-    <button
-      type="button"
-      onClick={addModule}
-      className="px-3 py-1.5 text-sm font-semibold rounded bg-blue-600 text-white hover:bg-blue-700"
-    >
-      + Add Module
-    </button>
-  </div>
-
-  {formData.modules.map((mod, idx) => (
-  <div key={idx} className="border-2 p-4 border-gray-200 space-y-4 relative">
-    <h2 className="text-center text-lg font-semibold">Module {idx + 1}</h2>
-
-    {formData.modules.length > 1 && (
-      <button
-        type="button"
-        onClick={() => removeModule(idx)}
-        className="absolute top-3 right-3 text-sm font-semibold bg-red-500
-                   hover:bg-red-600 rounded-md text-white py-1.5 px-3">
-        Remove
-      </button>
+    {/* ======== POPUP NOTIFICATION ======== */}
+    {showPopup && (
+      <Popup
+        position={popupPosition}
+        message={showPopup}
+        duration={3000}
+        onClose={() => setShowPopup(null)}
+      />
     )}
 
-    {/* CONTENT */}
-    <div>
-      <p className="text-red-600 text-xs">
-        Wrap words inside <b>** **</b> for bold text in PDF
-      </p>
-      <label className="block text-sm font-medium text-gray-700">Topics Covered</label>
-      <textarea
-        name="content"
-        value={mod.content}
-        onChange={(e) => handleModuleChange(idx, e)}
-        rows={5}
-        className="w-full mt-1 p-3 bg-gray-50 border border-gray-300 rounded-lg
-                   resize-none focus:ring-2 focus:ring-slate-400 outline-none"
-      />
+    {/* ======== HEADER ======== */}
+    <div className="flex w-full justify-between items-center mb-6">
+      <h2 className="text-2xl font-semibold text-slate-700">
+        Add / Edit Course Details
+      </h2>
     </div>
 
-    {/* ── TEXTBOOK DETAILS — dynamic list ─────────────────────────── */}
-    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-      <div className="flex items-center justify-between mb-3">
-        <label className="text-sm font-semibold text-gray-700">
-          Textbooks
+    {/* ======== INPUT MODE SELECTION ======== */}
+    <div
+      onClick={resetForm}
+      className="flex gap-2 w-36 text-center justify-center text-white items-center bg-gray-600 rounded-md cursor-pointer mb-4 p-2 hover:bg-gray-800 transition-colors"
+    >
+      <RefreshCcw size={18} />
+      <button className="cursor-pointer font-medium">Reset Form</button>
+    </div>
+
+    <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+      <h3 className="font-semibold text-slate-700 mb-3">
+        How do you want to provide course data?
+      </h3>
+
+      <div className="flex gap-6">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="radio"
+            checked={inputMode === "manual"}
+            onChange={() => setInputMode("manual")}
+            className="text-indigo-600 focus:ring-indigo-500"
+          />
+          Manual Entry
         </label>
-        <span className="text-xs text-gray-400">
-          {(mod.textbooks || []).length} added
-        </span>
+
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="radio"
+            checked={inputMode === "json"}
+            onChange={() => setInputMode("json")}
+            className="text-indigo-600 focus:ring-indigo-500"
+          />
+          Load from JSON
+        </label>
+      </div>
+    </div>
+
+    {/* ======== AUTOMATIC JSON UPLOAD ======== */}
+    {inputMode === "json" && (
+      <div className="mb-8 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-8 relative transition-colors hover:border-indigo-400 hover:bg-indigo-50/30">
+        
+        {/* Reset File Button */}
+        {selectedFileName && (
+          <button
+            onClick={() => {
+              handleRemoveFile();
+              resetForm(); // Clears the form data back to default
+            }}
+            className="absolute top-4 right-4 flex items-center gap-1 text-xs font-semibold text-red-500 hover:text-red-700 transition-colors cursor-pointer"
+          >
+            <X size={14} /> Clear File
+          </button>
+        )}
+
+        <p className="text-center text-sm font-semibold text-slate-700">
+          Upload JSON to auto-fill course details
+        </p>
+        
+        <div className="mt-5 flex flex-col items-center justify-center gap-3">
+          <label
+            htmlFor="jsonUpload"
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white cursor-pointer hover:bg-indigo-700 shadow-sm transition-all"
+          >
+            Choose JSON file
+          </label>
+          
+          <span className="text-sm font-medium text-slate-500">
+            {selectedFileName || "No file chosen"}
+          </span>
+          
+          <input
+            ref={fileInputRef}
+            id="jsonUpload"
+            type="file"
+            accept=".json,application/json"
+            onChange={handleJsonFileUpload}
+            className="hidden"
+          />
+        </div>
+      </div>
+    )}
+
+
+    {/* ======== DEPARTMENT & SEMESTER ======== */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-5">
+      <div>
+        <label className="text-sm font-semibold text-slate-600">Department</label>
+        <select
+          ref={refs.department}
+          value={formData.department}
+          onChange={(e) =>
+            setFormData({ ...formData, department: e.target.value })
+          }
+          className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
+        >
+          <option value="" disabled hidden>
+            Select
+          </option>
+          {programStructure["BE/BTECH"].departments.map((dept, index) => (
+            <option key={index} value={dept}>
+              {dept}
+            </option>
+          ))}
+        </select>
+      </div>
+      
+      <div>
+        <label className="text-sm font-semibold text-slate-600">Semester</label>
+        <select
+          ref={refs.sem}
+          value={formData.sem}
+          onChange={(e) => setFormData({ ...formData, sem: e.target.value })}
+          className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
+        >
+          <option value="" hidden>
+            Select
+          </option>
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+            <option key={num} value={num}>
+              {num}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+
+    {/* ======== BASIC DETAILS ======== */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+      <div>
+        <label className="text-sm font-semibold text-slate-600">Course Title</label>
+        <input
+          ref={refs.course_title}
+          type="text"
+          value={formData.course_title}
+          onChange={(e) =>
+            setFormData({ ...formData, course_title: e.target.value })
+          }
+          className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
+          placeholder="e.g., Data Structures"
+        />
+      </div>
+      <div>
+        <label className="text-sm font-semibold text-slate-600">Course Code</label>
+        <input
+          ref={refs.course_code}
+          type="text"
+          value={formData.course_code}
+          onChange={(e) =>
+            setFormData({ ...formData, course_code: e.target.value })
+          }
+          className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
+          placeholder="e.g., CS201"
+        />
+      </div>
+    </div>
+
+    {/* ======== COURSE TYPE, CREDITS, MARKS ======== */}
+    <div className="w-full flex flex-col md:flex-row md:justify-between gap-4 mt-6">
+      
+      {/* Course Type */}
+      <div className="md:w-1/4 w-full flex gap-2">
+        <div className="w-full">
+          <label className="text-sm font-semibold text-slate-600">Course Type</label>
+          <select
+            ref={refs.course_type}
+            value={formData.course_type}
+            onChange={(e) =>
+              setFormData({ ...formData, course_type: e.target.value })
+            }
+            className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
+          >
+            <option value="" hidden>Select</option>
+            <option value="IPCC">IPCC</option>
+            <option value="PCC">PCC</option>
+            <option value="AEC">AEC</option>
+            <option value="OEC">OEC</option>
+            <option value="PEC">PEC</option>
+            <option value="ESC">ESC</option>
+            <option value="PCCL">PCCL</option>
+            <option value="UHV">UHV</option>
+            <option value="BSC">BSC</option>
+            <option value="HSMS">HSMS</option>
+            <option value="HSMC">HSMC</option>
+            <option value="MC">NCMC</option>
+            <option value="MC_EXAM_1">MC with exam (1 credit)</option>
+            <option value="MC_EXAM_2">MC with exam (2 credits)</option>
+            <option value="MC_NO_EXAM">MC without exam</option>
+          </select>
+        </div>
       </div>
 
-      {/* Added textbooks list */}
-      {(mod.textbooks || []).length > 0 && (
-        <div className="space-y-2 mb-4">
-          {(mod.textbooks || []).map((tb, tbIdx) => (
-            <div key={tbIdx}
-                 className="flex items-start justify-between gap-3
-                            bg-white border border-gray-200 rounded-lg px-4 py-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-slate-700">
-                  TB-{tb.slNo} 
-                </p>
-                <p className="text-xs text-slate-500 mt-0.5 truncate">
-                  {tb.author} · {tb.publisher}{tb.year ? ` · ${tb.year}` : ""}
-                </p>
-                {tb.chapter && (
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Ch: {tb.chapter}
-                  </p>
-                )}
-              </div>
+      {/* L-T-P-S */}
+      <div className="md:w-1/5 w-full">
+        <label className="text-sm font-semibold text-slate-600">L-T-P-S</label>
+        <input
+          type="text"
+          value={formData.ltps}
+          onChange={(e) => setFormData({ ...formData, ltps: e.target.value })}
+          className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
+          placeholder="4:2:1:0"
+        />
+      </div>
+
+      {/* Credits & Exam Hours */}
+      <div className="md:w-1/4 flex w-full gap-4">
+        <div className="w-1/2">
+          <label className="text-sm font-semibold text-slate-600">Credits</label>
+          <input
+            type="number"
+            ref={refs.credits}
+            value={formData.credits}
+            onChange={(e) =>
+              setFormData({ ...formData, credits: e.target.value })
+            }
+            className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
+          />
+        </div>
+        <div className="w-1/2">
+          <label className="text-sm font-semibold text-slate-600">Exam hrs</label>
+          <input
+            type="text"
+            ref={refs.exam_hours}
+            value={formData.exam_hours}
+            onChange={(e) =>
+              setFormData({ ...formData, exam_hours: e.target.value })
+            }
+            className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
+            placeholder="3"
+          />
+        </div>
+      </div>
+
+      {/* Pedagogy */}
+      <div className="md:w-1/6 w-full">
+        <label className="text-sm font-semibold text-slate-600">Pedagogy</label>
+        <input
+          type="text"
+          value={formData.pedagogy}
+          onChange={(e) =>
+            setFormData({ ...formData, pedagogy: e.target.value })
+          }
+          className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
+          placeholder="40+20"
+        />
+      </div>
+
+      {/* CIE & SEE Marks */}
+      <div className="md:w-1/4 w-full flex gap-4">
+        <div className="w-1/2">
+          <label className="text-sm font-semibold text-slate-600">CIE Marks</label>
+          <input
+            ref={refs.cie}
+            type="number"
+            value={formData.cie}
+            onChange={(e) => setFormData({ ...formData, cie: e.target.value })}
+            className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
+          />
+        </div>
+        <div className="w-1/2">
+          <label className="text-sm font-semibold text-slate-600">SEE Marks</label>
+          <input
+            ref={refs.see}
+            type="number"
+            value={formData.see}
+            onChange={(e) => setFormData({ ...formData, see: e.target.value })}
+            className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
+          />
+        </div>
+      </div>
+    </div>
+
+    {/* ======== COURSE OBJECTIVES ======== */}
+    <div className="mt-8">
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-sm font-semibold text-slate-600">
+          Course Objectives
+        </label>
+        <button
+          type="button"
+          onClick={() => toggleSection("objectives")}
+          className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition-colors"
+        >
+          {showSections.objectives ? "Hide" : "Show"}
+        </button>
+      </div>
+
+      {showSections.objectives && (
+        <NumberedTextarea
+          isGen={docGen}
+          inputRef={refs.course_objectives}
+          value={
+            Array.isArray(formData.course_objectives)
+              ? formData.course_objectives.join("\n")
+              : formData.course_objectives || ""
+          }
+          onChange={(val) =>
+            setFormData((prev) => ({
+              ...prev,
+              course_objectives: val.split("\n").filter(Boolean),
+            }))
+          }
+          placeholder="Enter course objectives"
+        />
+      )}
+    </div>
+
+    {/* ======== TEACHING LEARNING ======== */}
+    <div className="mt-8">
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-sm font-semibold text-slate-600">
+          Teaching & Learning
+        </label>
+        <button
+          type="button"
+          onClick={() => toggleSection("tl")}
+          className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition-colors"
+        >
+          {showSections.tl ? "Hide" : "Show"}
+        </button>
+      </div>
+
+      {showSections.tl && (
+        <NumberedTextarea
+          isGen={docGen}
+          inputRef={refs.teaching_learning}
+          value={
+            Array.isArray(formData.teaching_learning)
+              ? formData.teaching_learning.join("\n")
+              : formData.teaching_learning || ""
+          }
+          onChange={(val) =>
+            setFormData((prev) => ({
+              ...prev,
+              teaching_learning: val.split("\n").filter(Boolean),
+            }))
+          }
+          placeholder="Teaching & Learning Process"
+        />
+      )}
+    </div>
+
+    {/* ======== MODERN AI TOOLS USED ======== */}
+    <div className="mt-8">
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-sm font-semibold text-slate-600">
+          Modern tools
+        </label>
+        <button
+          type="button"
+          onClick={() => toggleSection("tools")}
+          className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition-colors"
+        >
+          {showSections.tools ? "Hide" : "Show"}
+        </button>
+      </div>
+
+      {showSections.tools && (
+        <NumberedTextarea
+          isGen={docGen}
+          inputRef={refs.modern_tools}
+          value={
+            Array.isArray(formData.modern_tools)
+              ? formData.modern_tools.join("\n")
+              : formData.modern_tools || ""
+          }
+          onChange={(val) =>
+            setFormData((prev) => ({
+              ...prev,
+              modern_tools: val.split("\n").filter(Boolean),
+            }))
+          }
+          placeholder="Enter details regarding modern AI tools..."
+        />
+      )}
+    </div>
+
+    {/* ======== MODULES DETAILS ======== */}
+    {formData.course_type !== "PCCL" && (
+      <div className="flex flex-col gap-10 mt-8">
+        <div className="flex justify-between items-center border-b pb-2">
+          <h2 className="text-lg font-semibold text-slate-700">
+            Modules Details
+          </h2>
+          <button
+            type="button"
+            onClick={addModule}
+            className="px-4 py-2 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-colors"
+          >
+            + Add Module
+          </button>
+        </div>
+
+        {formData.modules.map((mod, idx) => (
+          <div
+            key={idx}
+            className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm space-y-5 relative"
+          >
+            <h2 className="text-lg font-bold text-slate-700 border-b pb-2">
+              Module {idx + 1}
+            </h2>
+
+            {formData.modules.length > 1 && (
               <button
                 type="button"
-                onClick={() => {
-                  setFormData(prev => {
+                onClick={() => removeModule(idx)}
+                className="absolute top-5 right-5 text-sm font-semibold bg-red-50 text-red-600 hover:bg-red-500 hover:text-white transition-colors rounded-md py-1.5 px-3"
+              >
+                Remove
+              </button>
+            )}
+
+            {/* Content Textarea */}
+            <div>
+              <div className="flex justify-between items-end mb-1">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Topics Covered
+                </label>
+                <span className="text-red-500 text-xs font-medium">
+                  Wrap words inside ** ** for bold text in PDF
+                </span>
+              </div>
+              <textarea
+                name="content"
+                value={mod.content}
+                onChange={(e) => handleModuleChange(idx, e)}
+                rows={5}
+                className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg resize-y focus:ring-2 focus:ring-slate-400 outline-none"
+              />
+            </div>
+
+            {/* Textbook Details - Dynamic List */}
+            <div className="border border-gray-200 rounded-lg p-5 bg-slate-50">
+              <div className="flex items-center justify-between mb-4">
+                <label className="text-sm font-semibold text-gray-700">
+                  Textbooks
+                </label>
+                <span className="text-xs font-medium bg-slate-200 px-2 py-1 rounded text-slate-600">
+                  {(mod.textbooks || []).length} added
+                </span>
+              </div>
+
+              {(mod.textbooks || []).length > 0 && (
+                <div className="space-y-3 mb-5">
+                  {(mod.textbooks || []).map((tb, tbIdx) => (
+                    <div
+                      key={tbIdx}
+                      className="flex items-start justify-between gap-3 bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-800">
+                          TB-{tb.slNo}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1 truncate">
+                          {tb.author} &bull; {tb.publisher}
+                          {tb.year ? ` • ${tb.year}` : ""}
+                        </p>
+                        {tb.chapter && (
+                          <p className="text-xs text-indigo-500 font-medium mt-1">
+                            Chapter: {tb.chapter}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => {
+                            const updated = [...prev.modules];
+                            updated[idx] = {
+                              ...updated[idx],
+                              textbooks: updated[idx].textbooks.filter(
+                                (_, i) => i !== tbIdx
+                              ),
+                            };
+                            return { ...prev, modules: updated };
+                          });
+                        }}
+                        className="text-red-400 hover:text-red-600 flex-shrink-0 w-8 h-8 flex items-center justify-center bg-red-50 rounded-md hover:bg-red-100 transition-colors"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <ModuleTextbookForm
+                onAdd={(tb) => {
+                  setFormData((prev) => {
                     const updated = [...prev.modules];
                     updated[idx] = {
                       ...updated[idx],
-                      textbooks: updated[idx].textbooks.filter((_, i) => i !== tbIdx)
+                      textbooks: [...(updated[idx].textbooks || []), tb],
                     };
                     return { ...prev, modules: updated };
                   });
                 }}
-                className="text-red-400 hover:text-red-600 flex-shrink-0
-                           w-6 h-6 flex items-center justify-center
-                           bg-red-50 rounded-md hover:bg-red-100 transition-colors">
-                <X size={12} />
-              </button>
+              />
             </div>
-          ))}
-        </div>
-      )}
 
-      {/* Add new textbook form */}
-      <ModuleTextbookForm
-        onAdd={(tb) => {
-
-          setFormData((prev) => {
-
-            const updated = [...prev.modules];
-
-            updated[idx] = {
-              ...updated[idx],
-
-              textbooks: [
-                ...(updated[idx].textbooks || []),
-                tb
-              ]
-            };
-
-            return {
-              ...prev,
-              modules: updated
-            };
-          });
-
-        }}
-      />
-    </div>
-
-    {/* <div>
-      <label className="text-sm font-medium">Chapter Article No.</label>
-      <input
-        name="chapter"
-        value={mod.chapter}
-        onChange={(e) => handleModuleChange(idx, e)}
-        className="w-full mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg
-                   resize-none focus:ring-2 focus:ring-slate-400 outline-none"
-      />
-    </div> */}
-
-    <div>
-      <label className="text-sm font-medium">RBT Level(s)</label>
-      <input
-        name="rbt"
-        value={mod.rbt}
-        onChange={(e) => handleModuleChange(idx, e)}
-        className="w-full mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg
-                   resize-none focus:ring-2 focus:ring-slate-400 outline-none"
-      />
-    </div>
-
-    <div>
-      <label className="text-sm font-medium">WKT</label>
-      <input
-        name="wkt"
-        value={mod.wkt}
-        onChange={(e) => handleModuleChange(idx, e)}
-        className="w-full mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg
-                   resize-none focus:ring-2 focus:ring-slate-400 outline-none"
-      />
-    </div>
-  </div>
-))}
-</div>}
-
-      
-
-            {/* Experiments */}            
-            {(formData.course_type === "PCCL"||formData.course_type === "IPCC" || formData.course_type === "AEC" || formData.course_type === "ESC" || formData.experiments) && (
-   <ExperimentsSection  formData = {formData}
-  setFormData = {setFormData}
-  hasParts = {hasParts}
-  setHasParts = {setHasParts}
-  newExpNo = {newExpNo}
-  setNewExpNo = {setNewExpNo}
-  newExpCont = {newExpCont}
-  setNewExpCont = {setNewExpCont}
-  newExpPart = {newExpPart}
-  setNewExpPart = {setNewExpPart}
-  editingExpIndex = {editingExpIndex}
-  setEditingExpIndex = {setEditingExpIndex}
-  editExpNo = {editExpNo}
-  setEditExpNo = {setEditExpNo}
-  editExpCont = {editExpCont}
-  setEditExpCont = {setEditExpCont}
-  editExpPart = {editExpPart}
-  setEditExpPart = {setEditExpPart}/>
-)}
-
-            
-            {/* ======== COURSE OUTCOMES ======== */}
-            {/* <div className="mt-8">
-                <label className="text-sm font-semibold text-slate-600">Course Outcomes</label>
-                <textarea
-                    value={formData.course_outcomes}
-                    onChange={e => setFormData({ ...formData, course_outcomes: e.target.value })}
-                    className="w-full mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg h-32 resize-none
-                            focus:ring-2 focus:ring-slate-400 outline-none"
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-semibold text-gray-700">
+                  RBT Level(s)
+                </label>
+                <input
+                  name="rbt"
+                  value={mod.rbt}
+                  onChange={(e) => handleModuleChange(idx, e)}
+                  className="w-full mt-1 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
                 />
-            </div> */}
+              </div>
 
-
-
-             {/* ======== TEXTBOOK AUTHORS (DYNAMIC) ======== */}
-            <div className="mt-10">
-                <h3 className="text-lg font-semibold text-slate-700 mb-4 flex justify-between">
-                    Textbooks 
-                    <button
-                    onClick={addAuthor}
-                    className="px-3 py-1 bg-slate-600 text-white rounded-lg text-sm hover:bg-slate-700"
-                    >
-                    + Add Author
-                    </button>
-                </h3>
-
-                {authors.length === 0 && (
-                    <p className="text-gray-500 mb-4">No authors added yet.</p>
-                )}
-                {authors.map((item, index) => (
-                    <div
-                    key={index}
-                    className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg relative"
-                    >
-                    {/* Remove Button */}
-                    <button
-                        onClick={() => removeAuthor(index)}
-                        className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-sm"
-                    >
-                        ✕
-                    </button>
-
-                    {/* Sl No */}
-                    <div>
-                        <label className="text-sm font-semibold text-slate-600">Sl. No</label>
-                        <input
-                        type="text"
-                        value={item.slNo}
-                        onChange={e => updateAuthor(index, "slNo", e.target.value)}
-                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
-                                    focus:ring-2 focus:ring-slate-400 outline-none"
-                        />
-                    </div>
-
-                    {/* Author */}
-                    <div>
-                        <label className="text-sm font-semibold text-slate-600">Author</label>
-                        <input
-                        type="text"
-                        value={item.author}
-                        onChange={e => updateAuthor(index, "author", e.target.value)}
-                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
-                                    focus:ring-2 focus:ring-slate-400 outline-none"
-                        />
-                    </div>
-
-                    {/* Book Title */}
-                    <div>
-                        <label className="text-sm font-semibold text-slate-600">Book Title</label>
-                        <input
-                        type="text"
-                        value={item.bookTitle}
-                        onChange={e => updateAuthor(index, "bookTitle", e.target.value)}
-                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
-                                    focus:ring-2 focus:ring-slate-400 outline-none"
-                        />
-                    </div>
-
-                    {/* Publisher */}
-                    <div>
-                        <label className="text-sm font-semibold text-slate-600">Publisher&Edition</label>
-                        <input
-                        type="text"
-                        value={item.publisher}
-                        onChange={e => updateAuthor(index, "publisher", e.target.value)}
-                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
-                                    focus:ring-2 focus:ring-slate-400 outline-none"
-                        />
-                    </div>
-                    {/* Year */}
-<div>
-  <label className="text-sm font-semibold text-slate-600">Year</label>
-  <input
-    type="number"
-    value={item.year}
-    onChange={e => updateAuthor(index, "year", e.target.value)}
-    className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
-               focus:ring-2 focus:ring-slate-400 outline-none"
-    placeholder="e.g. 2021"
-  />
-</div>
-
-                    </div>
-                ))}
+              <div>
+                <label className="text-sm font-semibold text-gray-700">
+                  WKT
+                </label>
+                <input
+                  name="wkt"
+                  value={mod.wkt}
+                  onChange={(e) => handleModuleChange(idx, e)}
+                  className="w-full mt-1 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                />
+              </div>
             </div>
-
-            <div className="mt-10">
-                <h3 className="text-lg font-semibold text-slate-700 mb-4 flex justify-between">
-                    References
-                    <button
-                    onClick={addReference}
-                    className="px-3 py-1 bg-slate-600 text-white rounded-lg text-sm hover:bg-slate-700"
-                    >
-                    + Add Author
-                    </button>
-                </h3>
-
-                {references.length === 0 && (
-                    <p className="text-gray-500 mb-4">No authors added yet.</p>
-                )}
-                {references.map((item, index) => (
-                    <div
-                    key={index}
-                    className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg relative"
-                    >
-                    {/* Remove Button */}
-                    <button
-                        onClick={() => removeReference(index)}
-                        className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-sm"
-                    >
-                        ✕
-                    </button>
-
-                    {/* Sl No */}
-                    <div>
-                        <label className="text-sm font-semibold text-slate-600">Sl. No</label>
-                        <input
-                        type="text"
-                        value={item.slNo}
-                        onChange={e => updateReference(index, "slNo", e.target.value)}
-                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
-                                    focus:ring-2 focus:ring-slate-400 outline-none"
-                        />
-                    </div>
-
-                    {/* Author */}
-                    <div>
-                        <label className="text-sm font-semibold text-slate-600">Author</label>
-                        <input
-                        type="text"
-                        value={item.author}
-                        onChange={e => updateReference(index, "author", e.target.value)}
-                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
-                                    focus:ring-2 focus:ring-slate-400 outline-none"
-                        />
-                    </div>
-
-                    {/* Book Title */}
-                    <div>
-                        <label className="text-sm font-semibold text-slate-600">Book Title</label>
-                        <input
-                        type="text"
-                        value={item.bookTitle}
-                        onChange={e => updateReference(index, "bookTitle", e.target.value)}
-                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
-                                    focus:ring-2 focus:ring-slate-400 outline-none"
-                        />
-                    </div>
-
-                    {/* Publisher */}
-                    <div>
-                        <label className="text-sm font-semibold text-slate-600">Publisher&Edition</label>
-                        <input
-                        type="text"
-                        value={item.publisher}
-                        onChange={e => updateReference(index, "publisher", e.target.value)}
-                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
-                                    focus:ring-2 focus:ring-slate-400 outline-none"
-                        />
-                    </div>
-                    {/* Year */}
-                    <div>
-                      <label className="text-sm font-semibold text-slate-600">Year</label>
-                      <input
-                        type="number"
-                        value={item.year}
-                        onChange={e => updateReference(index, "year", e.target.value)}
-                        className="w-full mt-2 p-3 bg-white border border-gray-300 rounded-lg
-                                  focus:ring-2 focus:ring-slate-400 outline-none"
-                        placeholder="e.g. 2021"
-                      />
-                    </div>
-
-                    </div>
-                ))}
-            </div>
-
-            <div className="mt-8">
-                <div className="mt-8 flex items-center justify-between">
-  <label className="text-sm font-semibold text-slate-600">
-    Course Outcomes
-  </label>
-
-  <button
-    type="button"
-    onClick={() => toggleSection("outcomes")}
-    className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300"
-  >
-    {showSections.outcomes ? "Hide" : "Show"}
-  </button>
-</div>
-
-               {showSections.outcomes && <NumberedTextarea
-               isGen={docGen}
-                 inputRef={refs.course_outcomes}     // ✅ ADD
-
-  value={
-    Array.isArray(formData.course_outcomes)
-      ? formData.course_outcomes.join("\n")
-      : formData.course_outcomes
-  }
-  onChange={(val) =>
-    setFormData({
-      ...formData,
-      course_outcomes: val.split("\n").filter(Boolean)
-    })
-  }
-  placeholder="Enter course outcomes"
-/>}
-
-
-            </div>
-            
-
-           
-
-            {/* ======== WEB LINKS ======== */}
-            <div className="mt-10">
-                
-
-  <div className="mt-8 flex items-center justify-between">
-  <label className="text-sm font-semibold text-slate-600">
-Web Links & Video Lectures      </label>
-
-  <button
-    type="button"
-    onClick={() => toggleSection("links")}
-    className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300"
-  >
-    {showSections.links ? "Hide" : "Show "}
-  </button>
-</div>
-
-                {showSections.links && <NumberedTextarea
-                isGen={docGen}
-    inputRef={refs.links}
-
-    value={
-      Array.isArray(formData.referral_links)
-        ? formData.referral_links.join("\n")
-        : formData.referral_links || ""
-    }
-
-    onChange={(val) =>
-      setFormData(prev => ({
-        ...prev,
-        referral_links: val.split("\n").filter(Boolean)
-      }))
-    }
-
-    placeholder="Enter Web Links"
-  />}
-            </div>
-
-            {/* ======== ACTIVITIES ======== */}
-            <div className="mt-10">
-
-                <div className="mt-8 flex items-center justify-between">
-  <label className="text-sm font-semibold text-slate-600">
-Activity-Based Learning  </label>
-
-  <button
-    type="button"
-    onClick={() => toggleSection("activity")}
-    className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300"
-  >
-    {showSections.activity ? "Hide" : "Show"}
-  </button>
-</div>
-
-                {showSections.activity && (
-  <NumberedTextarea
-  isGen={docGen}
-    inputRef={refs.activity_based}
-
-    value={
-      Array.isArray(formData.activity_based)
-        ? formData.activity_based.join("\n")
-        : formData.activity_based || ""
-    }
-
-    onChange={(val) =>
-      setFormData(prev => ({
-        ...prev,
-        activity_based: val.split("\n").filter(Boolean)
-      }))
-    }
-
-    placeholder="Enter activity-based learning methods"
-  />
-)}
-
-
-            </div>
-
-            {/* ======== CO-PO MAPPING TABLE ======== */}
-            <div className="mt-10">
-                <h3 className="text-lg font-semibold text-slate-700 mb-4">
-                    CO - PO - PSO Mapping Table
-                </h3>
-
-                {/* Add and remove btn for PSO Cols (DYNAMIC) */}
-                      <div className="flex flex-col md:flex-row gap-5 my-4 justify-between text-xs">
-                        <div className="flex gap-3">
-                          <div className="group">
-                            <button
-                              onClick={addCoRow}
-                        className="border rounded-md cursor-pointer border-white px-4 py-2 text-white bg-slate-500 "    >
-                          <h2 className="hidden group-hover:block absolute backdrop-blur-3xl text-black -mt-10 -ml-10 px-2 py-1 ">Add CO Row</h2>
-                              Add CO 
-                            </button>
-                          </div>
-
-                          <div className="group">
-                            <button
-                              onClick={removeCoRow}
-                              className="border rounded-md cursor-pointer border-white px-4 py-2 text-white bg-red-500 "    >
-                                <h2 className="hidden group-hover:block absolute backdrop-blur-3xl text-black -mt-10 -ml-10 px-2 py-1">Add CO Row</h2>
-
-                              Remove CO
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-3">
-                          <div className="group"> 
-                          <button onClick={()=>addPsoCol()} className="border rounded-md cursor-pointer border-white px-4 py-2 text-white bg-slate-500 "><h2 className="hidden group-hover:block absolute backdrop-blur-3xl text-black -mt-10 -ml-10 px-2 py-1">Add PSO Column</h2> Add PSO</button>
-                          </div>
-                          <div className="group">
-                          <button onClick={()=>removePsoCol()} className="border rounded-md cursor-pointer border-white px-4 py-2 text-white bg-red-500"><h2 className="hidden group-hover:block absolute backdrop-blur-3xl text-black -mt-10 -ml-10 px-2 py-1">Remove Last PSO Column</h2> Remove PSO</button>
-                          </div>
-                        </div>
-                </div>
-
-
-                <div className="overflow-x-auto border rounded-lg shadow-sm">
-                    <table className="w-full text-center border-collapse">
-                        <thead className="bg-gray-100">
-                            <tr>
-                            <th className="border p-2 font-semibold">CO</th>
-
-                            {/* PO HEADERS */}
-                            {formData.copoMapping.headers.map((h, idx) => (
-                                <th key={idx} className="border p-2 font-semibold">
-                                {h}
-                                </th>
-                            ))}
-
-                            {/* NEW PSO HEADERS */}
-                            {formData.copoMapping.rows[0].pso.map((_, i) => (
-                            <th key={i} className="border p-2 font-semibold">PSO{i + 1}</th>
-                            ))}
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            {formData.copoMapping.rows.map((row, rIdx) => (
-                            <tr key={rIdx} className="hover:bg-gray-50">
-                                {/* CO Column */}
-                                <td className="border p-2 font-semibold">{row.co}</td>
-
-                                {/* PO Values */}
-                                {row.vals.map((val, cIdx) => (
-                                <td key={cIdx} className="border p-1">
-                                    <input
-                                    type="number"
-                                    min="0"
-                                    max="3"
-                                    className="w-12 md:w-16 text-center border outline-none rounded-md p-1 focus:ring-2 focus:ring-slate-400"
-                                    value={val}
-                                    onChange={(e) => {
-                                        const updated = { ...formData };
-                                        updated.copoMapping.rows[rIdx].vals[cIdx] = e.target.value;
-                                        setFormData(updated);
-                                    }}
-                                    />
-                                </td>
-                                ))}
-
-                                {/* PSO Cols */}
-                                {row.pso.map((val, pIdx) => (
-                                    <td className="border p-1" key={pIdx}>
-                                        <input
-                                        type="number"
-                                        min="0"
-                                        max="3"
-                                        className="w-12 md:w-16 text-center border outline-none rounded-md p-1 focus:ring-2 focus:ring-slate-400"
-                                        value={val}
-                                        onChange={(e) => {
-                                            const updated = { ...formData };
-                                            updated.copoMapping.rows[rIdx].pso[pIdx] = e.target.value;
-                                            setFormData(updated);
-                                        }}
-                                        />
-                                    </td>
-                                ))}
-                            </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* ======== SUBMIT BUTTON ======== */}
-            {/* <button
-            onClick={onSubmit}
-            className="mt-10 w-full bg-slate-600 text-white py-3 rounded-lg hover:bg-slate-700 transition"
-            >
-            Save Course Details
-            </button> */}
-
-            {/* ======== ACTION SECTION ======== */}
-{/* ======== ACTION SECTION ======== */}
-<div ref={bottomRef} className="mt-8 border-t border-slate-200 pt-6">
-
-  {/* 1. INITIAL GENERATE BUTTON */}
-  {!showDownloads && (
-    <button
-      disabled={isgen}
-      onClick={() => generateDocument()}
-      className={`mx-auto flex items-center justify-center gap-3 rounded-xl 
-                  bg-indigo-600 px-8 py-3 text-white font-semibold text-lg
-                  transition-all duration-200 shadow-md hover:bg-indigo-700 hover:shadow-lg
-                  ${isgen ? "opacity-75 cursor-not-allowed" : "cursor-pointer"}`}
-    >
-      {isgen && <div className="spinner-segmented"></div>}
-      <span>{generateBtnText}</span>
-    </button>
-  )}
-
-  {/* 2. DOWNLOAD, PREVIEW & SUBMIT OPTIONS (After Generation) */}
-  {showDownloads && (
-    <div className="flex flex-col items-center w-full animate-in fade-in zoom-in duration-300">
-      
-      {/* Checkboxes Row (Always visible) */}
-      <div className="flex gap-6 bg-slate-50 px-8 py-4 rounded-xl border border-slate-200 mb-6">
-        <label className="flex items-center gap-2 cursor-pointer group">
-          <input
-            type="checkbox"
-            className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-            checked={downloadOptions.pdf}
-            onChange={() => setDownloadOptions(prev => ({ ...prev, pdf: !prev.pdf }))}
-          />
-          <span className="font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">PDF</span>
-        </label>
-
-        <label className="flex items-center gap-2 cursor-pointer group border-l pl-6 border-slate-300">
-          <input
-            type="checkbox"
-            className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-            checked={downloadOptions.docx}
-            onChange={() => setDownloadOptions(prev => ({ ...prev, docx: !prev.docx }))}
-          />
-          <span className="font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">DOCX</span>
-        </label>
-
-        <label className="flex items-center gap-2 cursor-pointer group border-l pl-6 border-slate-300">
-          <input
-            type="checkbox"
-            className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-            checked={downloadOptions.json}
-            onChange={() => setDownloadOptions(prev => ({ ...prev, json: !prev.json }))}
-          />
-          <span className="font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">JSON</span>
-        </label>
+          </div>
+        ))}
       </div>
+    )}
 
-      {/* Action Buttons Row */}
-      <div className="flex flex-wrap items-center justify-center gap-4 mb-6">
-        <button
-          onClick={() => {
-            const baseType = formData.course_type.split(" ")[0];
-            setFormData(prev => ({ ...prev, course_type: baseType }));
-            setDocGen(false);
-            setShowDownloads(false);
-            setGenenerateBtnText("Generate Course Document");
-            setDownloadOptions({ pdf: false, json: false, docx: false });
-          }}
-          className="flex items-center gap-2 bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 px-6 py-2.5 rounded-lg font-medium transition-colors"
-        >
-          <Edit2 size={16} /> Edit & Regenerate
-        </button>
+    {/* ======== EXPERIMENTS ======== */}
+    {(formData.course_type === "PCCL" ||
+      formData.course_type === "IPCC" ||
+      formData.course_type === "AEC" ||
+      formData.course_type === "ESC" ||
+      formData.experiments) && (
+      <ExperimentsSection
+        formData={formData}
+        setFormData={setFormData}
+        hasParts={hasParts}
+        setHasParts={setHasParts}
+        newExpNo={newExpNo}
+        setNewExpNo={setNewExpNo}
+        newExpCont={newExpCont}
+        setNewExpCont={setNewExpCont}
+        newExpPart={newExpPart}
+        setNewExpPart={setNewExpPart}
+        editingExpIndex={editingExpIndex}
+        setEditingExpIndex={setEditingExpIndex}
+        editExpNo={editExpNo}
+        setEditExpNo={setEditExpNo}
+        editExpCont={editExpCont}
+        setEditExpCont={setEditExpCont}
+        editExpPart={editExpPart}
+        setEditExpPart={setEditExpPart}
+      />
+    )}
 
+    {/* ======== TEXTBOOK AUTHORS ======== */}
+    <div className="mt-12">
+      <div className="flex justify-between items-center border-b pb-2 mb-6">
+        <h3 className="text-lg font-semibold text-slate-700">Textbooks</h3>
         <button
-          disabled={downloadBtnText === "Downloading..."}
-          onClick={triggerAllDownloads}
-          className={`flex items-center gap-2 px-8 py-2.5 rounded-lg font-semibold text-white shadow-sm transition-all
-            ${downloadBtnText === "Downloading..."
-              ? "bg-indigo-400 cursor-not-allowed"
-              : "bg-indigo-600 hover:bg-indigo-700 hover:shadow"}`}
+          onClick={addAuthor}
+          className="px-4 py-2 bg-slate-600 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors"
         >
-          <ArrowDown size={18} />
-          {downloadBtnText === "Download All" ? "Download Selected" : downloadBtnText} 
-        </button>
-
-        <button
-          onClick={previewPDF}
-          className={`px-6 py-2.5 rounded-lg font-medium transition-colors
-            ${previewBtnText === "Preview PDF" 
-              ? "bg-slate-700 hover:bg-slate-800 text-white cursor-pointer" 
-              : "bg-slate-400 text-white cursor-not-allowed"}`}
-        >
-          {previewBtnText}
-        </button>
-
-        <button
-          onClick={() => {
-            setDocGen(false);
-            resetForm();
-            setShowDownloads(false);
-            setGenenerateBtnText("Generate Course Document");
-            handleRemoveFile();
-            setDownloadAll(false);
-            setDownloadOptions({ pdf: false, json: false, docx: false });
-            localStorage.removeItem(DRAFT_KEY);
-            lastSavedDataRef.current = null;
-            lastSavedTimeRef.current = 0;
-            setShowPopup("Data Reset Successful");
-          }}
-          className="flex items-center gap-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-200 px-6 py-2.5 rounded-lg font-medium transition-colors"
-        >
-          <Plus size={16} /> Generate New
+          + Add Author
         </button>
       </div>
 
-      {/* ── PORTAL SUBMISSION BUTTON (Only visible if from portal) ── */}
-      {isFromPortal && (
-        <div className="w-full max-w-lg mt-2 pt-6 border-t border-slate-200 flex flex-col items-center">
-          {/* <p className="text-sm font-medium text-slate-500 mb-3">
-            Satisfied with the generated syllabus?
-          </p> */}
-          <button
-            onClick={uploadFileToCloud}
-            className="w-full bg-green-600 hover:bg-green-700 text-white px-8 py-3.5 rounded-xl font-bold text-lg shadow-md hover:shadow-lg transition-all flex justify-center items-center gap-2"
-          >
-            <Check size={22} />
-            {submitBtnText}
-          </button>
-        </div>
+      {authors.length === 0 && (
+        <p className="text-gray-500 italic mb-4">No authors added yet.</p>
       )}
 
-    </div>
-  )}
-</div>
-
-
-{showPreview && pdfPreviewUrl && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-1000">
-    <div className="bg-white w-[90%] h-[90%] rounded-lg shadow-lg flex flex-col">
-      
-      {/* Header */}
-      <div className="flex justify-between items-center p-3 border-b">
-        <h2 className="font-semibold">PDF Preview</h2>
-        <button
-          onClick={() => {
-            setShowPreview(false);
-            URL.revokeObjectURL(pdfPreviewUrl);
-            setPdfPreviewUrl(null);
-            setpreviewBtnText("Preview PDF")
-          }}
-          className="text-red-500 font-bold cursor-pointer"
+      {authors.map((item, index) => (
+        <div
+          key={index}
+          className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4 p-5 bg-slate-50 border border-slate-200 rounded-xl relative group"
         >
-          ✕
+          <button
+            onClick={() => removeAuthor(index)}
+            className="absolute top-2 right-2 text-red-400 hover:text-red-600 bg-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Remove Author"
+          >
+            <X size={16} />
+          </button>
+
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sl. No</label>
+            <input
+              type="text"
+              value={item.slNo}
+              onChange={(e) => updateAuthor(index, "slNo", e.target.value)}
+              className="w-full mt-1 p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Author</label>
+            <input
+              type="text"
+              value={item.author}
+              onChange={(e) => updateAuthor(index, "author", e.target.value)}
+              className="w-full mt-1 p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Book Title</label>
+            <input
+              type="text"
+              value={item.bookTitle}
+              onChange={(e) => updateAuthor(index, "bookTitle", e.target.value)}
+              className="w-full mt-1 p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Publisher</label>
+            <input
+              type="text"
+              value={item.publisher}
+              onChange={(e) => updateAuthor(index, "publisher", e.target.value)}
+              className="w-full mt-1 p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Year</label>
+            <input
+              type="number"
+              value={item.year}
+              onChange={(e) => updateAuthor(index, "year", e.target.value)}
+              className="w-full mt-1 p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+              placeholder="e.g. 2021"
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+
+    {/* ======== REFERENCES ======== */}
+    <div className="mt-12">
+      <div className="flex justify-between items-center border-b pb-2 mb-6">
+        <h3 className="text-lg font-semibold text-slate-700">References</h3>
+        <button
+          onClick={addReference}
+          className="px-4 py-2 bg-slate-600 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors"
+        >
+          + Add Reference
         </button>
       </div>
 
-      {/* PDF */}
-      <iframe
-        src={pdfPreviewUrl}
-        className="flex-1 w-full"
-        title="PDF Preview"
-      />
+      {references.length === 0 && (
+        <p className="text-gray-500 italic mb-4">No references added yet.</p>
+      )}
 
-      {/* Footer */}
-      <div className="p-3 border-t flex justify-end gap-3">
-        <button
-          onClick={downloadPdf}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-md cursor-pointer hover:bg-indigo-500"
+      {references.map((item, index) => (
+        <div
+          key={index}
+          className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4 p-5 bg-slate-50 border border-slate-200 rounded-xl relative group"
         >
-          Download PDF
+          <button
+            onClick={() => removeReference(index)}
+            className="absolute top-2 right-2 text-red-400 hover:text-red-600 bg-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Remove Reference"
+          >
+            <X size={16} />
+          </button>
+
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sl. No</label>
+            <input
+              type="text"
+              value={item.slNo}
+              onChange={(e) => updateReference(index, "slNo", e.target.value)}
+              className="w-full mt-1 p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Author</label>
+            <input
+              type="text"
+              value={item.author}
+              onChange={(e) => updateReference(index, "author", e.target.value)}
+              className="w-full mt-1 p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Book Title</label>
+            <input
+              type="text"
+              value={item.bookTitle}
+              onChange={(e) => updateReference(index, "bookTitle", e.target.value)}
+              className="w-full mt-1 p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Publisher</label>
+            <input
+              type="text"
+              value={item.publisher}
+              onChange={(e) => updateReference(index, "publisher", e.target.value)}
+              className="w-full mt-1 p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Year</label>
+            <input
+              type="number"
+              value={item.year}
+              onChange={(e) => updateReference(index, "year", e.target.value)}
+              className="w-full mt-1 p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+              placeholder="e.g. 2021"
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+
+    {/* ======== COURSE OUTCOMES ======== */}
+    <div className="mt-8">
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-sm font-semibold text-slate-600">
+          Course Outcomes
+        </label>
+        <button
+          type="button"
+          onClick={() => toggleSection("outcomes")}
+          className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition-colors"
+        >
+          {showSections.outcomes ? "Hide" : "Show"}
         </button>
       </div>
 
+      {showSections.outcomes && (
+        <NumberedTextarea
+          isGen={docGen}
+          inputRef={refs.course_outcomes}
+          value={
+            Array.isArray(formData.course_outcomes)
+              ? formData.course_outcomes.join("\n")
+              : formData.course_outcomes
+          }
+          onChange={(val) =>
+            setFormData({
+              ...formData,
+              course_outcomes: val.split("\n").filter(Boolean),
+            })
+          }
+          placeholder="Enter course outcomes"
+        />
+      )}
     </div>
-  </div>
-)}
 
+    {/* ======== WEB LINKS ======== */}
+    <div className="mt-8">
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-sm font-semibold text-slate-600">
+          Web Links & Video Lectures
+        </label>
+        <button
+          type="button"
+          onClick={() => toggleSection("links")}
+          className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition-colors"
+        >
+          {showSections.links ? "Hide" : "Show"}
+        </button>
+      </div>
 
-            {showDownloads && <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-5 justify-between mt-5">
-              <PdfRender courseData={formData} strtDownload={downloadAll}/>
-              <DocxRender courseData={formData} strtDownload={downloadAll}/>
-              <JsonRender courseData={formData} strtDownload={downloadAll}/>
+      {showSections.links && (
+        <NumberedTextarea
+          isGen={docGen}
+          inputRef={refs.links}
+          value={
+            Array.isArray(formData.referral_links)
+              ? formData.referral_links.join("\n")
+              : formData.referral_links || ""
+          }
+          onChange={(val) =>
+            setFormData((prev) => ({
+              ...prev,
+              referral_links: val.split("\n").filter(Boolean),
+            }))
+          }
+          placeholder="Enter Web Links"
+        />
+      )}
+    </div>
 
-{/* <button
-  disabled={downloadBtnText === "Downloading..."}
-  onClick={triggerAllDownloads}
-  className={`px-6 py-2 rounded-md text-white
-    ${downloadBtnText === "Downloading..."
-      ? "bg-gray-400 cursor-not-allowed"
-      : "bg-indigo-600 hover:bg-indigo-800"}
-  `}
->
-  {downloadBtnText}
-</button> */}
+    {/* ======== ACTIVITIES ======== */}
+    <div className="mt-8">
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-sm font-semibold text-slate-600">
+          Activity-Based Learning
+        </label>
+        <button
+          type="button"
+          onClick={() => toggleSection("activity")}
+          className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition-colors"
+        >
+          {showSections.activity ? "Hide" : "Show"}
+        </button>
+      </div>
 
-            </div>}
+      {showSections.activity && (
+        <NumberedTextarea
+          isGen={docGen}
+          inputRef={refs.activity_based}
+          value={
+            Array.isArray(formData.activity_based)
+              ? formData.activity_based.join("\n")
+              : formData.activity_based || ""
+          }
+          onChange={(val) =>
+            setFormData((prev) => ({
+              ...prev,
+              activity_based: val.split("\n").filter(Boolean),
+            }))
+          }
+          placeholder="Enter activity-based learning methods"
+        />
+      )}
+    </div>
+
+    {/* ======== CO-PO MAPPING TABLE ======== */}
+    <div className="mt-12">
+      <h3 className="text-lg font-semibold text-slate-700 mb-4 border-b pb-2">
+        CO - PO - PSO Mapping Table
+      </h3>
+
+      <div className="flex flex-col md:flex-row gap-5 my-4 justify-between text-xs">
+        <div className="flex gap-3">
+          <div className="group relative">
+            <button
+              onClick={addCoRow}
+              className="border rounded-md cursor-pointer border-transparent px-4 py-2 text-white bg-slate-600 hover:bg-slate-700 transition-colors"
+            >
+              Add CO
+            </button>
+          </div>
+          <div className="group relative">
+            <button
+              onClick={removeCoRow}
+              className="border rounded-md cursor-pointer border-transparent px-4 py-2 text-white bg-red-500 hover:bg-red-600 transition-colors"
+            >
+              Remove CO
+            </button>
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <div className="group relative">
+            <button
+              onClick={addPsoCol}
+              className="border rounded-md cursor-pointer border-transparent px-4 py-2 text-white bg-slate-600 hover:bg-slate-700 transition-colors"
+            >
+              Add PSO
+            </button>
+          </div>
+          <div className="group relative">
+            <button
+              onClick={removePsoCol}
+              className="border rounded-md cursor-pointer border-transparent px-4 py-2 text-white bg-red-500 hover:bg-red-600 transition-colors"
+            >
+              Remove PSO
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto border border-slate-200 rounded-lg shadow-sm mt-4">
+        <table className="w-full text-center border-collapse bg-white">
+          <thead className="bg-slate-100">
+            <tr>
+              <th className="border border-slate-200 p-3 font-semibold text-slate-700">CO</th>
+              {/* PO HEADERS */}
+              {formData.copoMapping.headers.map((h, idx) => (
+                <th key={idx} className="border border-slate-200 p-3 font-semibold text-slate-700">
+                  {h}
+                </th>
+              ))}
+              {/* NEW PSO HEADERS */}
+              {formData.copoMapping.rows[0].pso.map((_, i) => (
+                <th key={i} className="border border-slate-200 p-3 font-semibold text-slate-700">
+                  PSO{i + 1}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {formData.copoMapping.rows.map((row, rIdx) => (
+              <tr key={rIdx} className="hover:bg-slate-50 transition-colors">
+                {/* CO Column */}
+                <td className="border border-slate-200 p-2 font-bold text-slate-600 bg-slate-50">
+                  {row.co}
+                </td>
+                {/* PO Values */}
+                {row.vals.map((val, cIdx) => (
+                  <td key={cIdx} className="border border-slate-200 p-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="3"
+                      className="w-12 md:w-16 text-center border outline-none rounded-md p-1.5 focus:ring-2 focus:ring-indigo-400 mx-auto block"
+                      value={val}
+                      onChange={(e) => {
+                        const updated = { ...formData };
+                        updated.copoMapping.rows[rIdx].vals[cIdx] = e.target.value;
+                        setFormData(updated);
+                      }}
+                    />
+                  </td>
+                ))}
+                {/* PSO Cols */}
+                {row.pso.map((val, pIdx) => (
+                  <td className="border border-slate-200 p-1" key={pIdx}>
+                    <input
+                      type="number"
+                      min="0"
+                      max="3"
+                      className="w-12 md:w-16 text-center border outline-none rounded-md p-1.5 focus:ring-2 focus:ring-indigo-400 mx-auto block"
+                      value={val}
+                      onChange={(e) => {
+                        const updated = { ...formData };
+                        updated.copoMapping.rows[rIdx].pso[pIdx] = e.target.value;
+                        setFormData(updated);
+                      }}
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {/* ======== ACTION SECTION ======== */}
+    <div ref={bottomRef} className="mt-8 border-t border-slate-200 pt-3 pb-2">
+      {/* 1. INITIAL GENERATE BUTTON */}
+      {!showDownloads && (
+        <button
+          disabled={isgen}
+          onClick={() => generateDocument()}
+          className={`mx-auto flex items-center justify-center gap-2 rounded-lg px-6 py-2.5 text-white font-semibold text-base transition-all shadow-sm 
+            ${
+              isgen
+                ? "bg-indigo-400 opacity-75 cursor-not-allowed"
+                : "bg-indigo-600 hover:bg-indigo-700 hover:shadow cursor-pointer"
+            }`}
+        >
+          {isgen && <div className="spinner-segmented"></div>}
+          <span>{generateBtnText}</span>
+        </button>
+      )}
+
+      {/* 2. DOWNLOAD, PREVIEW & SUBMIT OPTIONS */}
+      {showDownloads && (
+        <div className="flex flex-col items-center w-full animate-in fade-in zoom-in duration-300">
+          
+          {/* Checkboxes Row */}
+          <div className="flex gap-4 bg-slate-50 px-5 py-2.5 rounded-lg border border-slate-200 mb-5 shadow-sm">
+            <label className="flex items-center gap-2 cursor-pointer group text-sm">
+              <input
+                type="checkbox"
+                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                checked={downloadOptions.pdf}
+                onChange={() =>
+                  setDownloadOptions((prev) => ({ ...prev, pdf: !prev.pdf }))
+                }
+              />
+              <span className="font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                PDF
+              </span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer group border-l pl-4 border-slate-300 text-sm">
+              <input
+                type="checkbox"
+                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                checked={downloadOptions.docx}
+                onChange={() =>
+                  setDownloadOptions((prev) => ({ ...prev, docx: !prev.docx }))
+                }
+              />
+              <span className="font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                DOCX
+              </span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer group border-l pl-4 border-slate-300 text-sm">
+              <input
+                type="checkbox"
+                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                checked={downloadOptions.json}
+                onChange={() =>
+                  setDownloadOptions((prev) => ({ ...prev, json: !prev.json }))
+                }
+              />
+              <span className="font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">
+                JSON
+              </span>
+            </label>
+          </div>
+
+          {/* Action Buttons Row */}
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-4">
+            <button
+              onClick={() => {
+                const baseType = formData.course_type.split(" ")[0];
+                setFormData((prev) => ({ ...prev, course_type: baseType }));
+                setDocGen(false);
+                setShowDownloads(false);
+                setGenenerateBtnText("Generate Course Document");
+                setDownloadOptions({ pdf: false, json: false, docx: false });
+              }}
+              className="flex items-center gap-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              <Edit2 size={14} /> Edit & Regenerate
+            </button>
 
             <button
-  onClick={() => {
-    if (showDownArrow) {
-      bottomRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    } else {
-      topRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }
-  }}
-  className="fixed cursor-pointer right-5 bottom-5 z-50 xl:right-60
-             bg-slate-700 text-white
-             p-3 rounded-full shadow-lg
-             hover:bg-slate-900 transition"
->
-  {showDownArrow ? <ArrowDown/> : <ArrowUp/>}
-</button>
+              disabled={downloadBtnText === "Downloading..."}
+              onClick={triggerAllDownloads}
+              className={`flex items-center gap-1.5 px-5 py-2 rounded-md text-sm font-semibold text-white shadow-sm transition-all
+                ${
+                  downloadBtnText === "Downloading..."
+                    ? "bg-indigo-400 cursor-not-allowed"
+                    : "bg-indigo-600 hover:bg-indigo-700 hover:shadow"
+                }`}
+            >
+              <ArrowDown size={16} />
+              {downloadBtnText === "Download All" ? "Download Selected" : downloadBtnText}
+            </button>
 
+            <button
+              onClick={previewPDF}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors
+                ${
+                  previewBtnText === "Preview PDF"
+                    ? "bg-slate-700 hover:bg-slate-800 text-white cursor-pointer"
+                    : "bg-slate-400 text-white cursor-not-allowed"
+                }`}
+            >
+              {previewBtnText}
+            </button>
 
+            <button
+              onClick={() => {
+                setDocGen(false);
+                resetForm();
+                setShowDownloads(false);
+                setGenenerateBtnText("Generate Course Document");
+                handleRemoveFile();
+                setDownloadAll(false);
+                setDownloadOptions({ pdf: false, json: false, docx: false });
+                localStorage.removeItem(DRAFT_KEY);
+                lastSavedDataRef.current = null;
+                lastSavedTimeRef.current = 0;
+                setShowPopup("Data Reset Successful");
+              }}
+              className="flex items-center gap-1.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-200 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              <Plus size={14} /> Generate New
+            </button>
+          </div>
 
+          {/* PORTAL SUBMISSION BUTTON */}
+          {isFromPortal && (
+            <div className="w-full max-w-lg mt-2 pt-4 border-t border-slate-200 flex flex-col items-center">
+              <button
+                onClick={uploadFileToCloud}
+                className="w-full bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-md font-semibold text-sm shadow-sm hover:shadow transition-all flex justify-center items-center gap-2"
+              >
+                <Check size={18} />
+                {submitBtnText}
+              </button>
+            </div>
+          )}
         </div>
+      )}
+    </div>
+
+    {/* ======== PDF PREVIEW MODAL ======== */}
+    {showPreview && pdfPreviewUrl && (
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
+        <div className="bg-white w-full max-w-5xl h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-200">
+          {/* Header */}
+          <div className="flex justify-between items-center p-4 border-b bg-slate-50">
+            <h2 className="font-bold text-slate-700 text-lg">PDF Preview</h2>
+            <button
+              onClick={() => {
+                setShowPreview(false);
+                URL.revokeObjectURL(pdfPreviewUrl);
+                setPdfPreviewUrl(null);
+                setpreviewBtnText("Preview PDF");
+              }}
+              className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+            >
+              <X size={24} />
+            </button>
+          </div>
+
+          {/* PDF Viewer */}
+          <iframe
+            src={pdfPreviewUrl}
+            className="flex-1 w-full bg-slate-200"
+            title="PDF Preview"
+          />
+
+          {/* Footer */}
+          <div className="p-4 border-t bg-slate-50 flex justify-end gap-3">
+            <button
+              onClick={downloadPdf}
+              className="px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-lg shadow-sm cursor-pointer hover:bg-indigo-700 transition-colors"
+            >
+              Download PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ======== HIDDEN RENDERERS ======== */}
+    {showDownloads && (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-5 justify-between mt-5 hidden">
+        <PdfRender courseData={formData} strtDownload={downloadAll} />
+        <DocxRender courseData={formData} strtDownload={downloadAll} />
+        <JsonRender courseData={formData} strtDownload={downloadAll} />
+      </div>
+    )}
+
+    {/* ======== SCROLL TO TOP / BOTTOM FAB ======== */}
+    <button
+      onClick={() => {
+        if (showDownArrow) {
+          bottomRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        } else {
+          topRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
+      }}
+      className="fixed cursor-pointer right-6 bottom-6 z-50 xl:right-12 bg-slate-700 text-white p-3.5 rounded-full shadow-lg hover:bg-slate-900 hover:scale-105 transition-all focus:outline-none focus:ring-4 focus:ring-slate-300"
+    >
+      {showDownArrow ? <ArrowDown size={24} /> : <ArrowUp size={24} />}
+    </button>
+  </div>
 );
 }
