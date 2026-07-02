@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import './App.css'
 import { DataSchema, programStructure } from "./config/appConfig";
 import { resetFormData } from "./config/resetFormData";
-import NumberedTextarea from "./NumberedTextArea";
+import NumberedTextarea from "./NumberedTextarea";
 import PdfRender from "./renders/PdfRender";
 import DocxRender from "./renders/DocxRender";
 import JsonRender from "./renders/JsonRender";
