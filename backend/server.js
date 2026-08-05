@@ -201,6 +201,67 @@ function buildActivityTableHTML(title, items = []) {
   `;
 }
 
+function buildTwSlTableHTML(termWork = [], selfLearning = []) {
+
+  const twRows = (termWork || [])
+    .filter(i => i.activity || i.hours)
+    .map((item, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${escapeHTML(item.activity || "-")}</td>
+        <td>${escapeHTML(item.hours || "-")}</td>
+      </tr>
+    `).join("");
+
+  const slRows = (selfLearning || [])
+    .filter(i => i.activity || i.hours)
+    .map((item, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${escapeHTML(item.activity || "-")}</td>
+        <td>${escapeHTML(item.hours || "-")}</td>
+      </tr>
+    `).join("");
+
+  return `
+  <div class="section">
+
+  <table class="twsl-table">
+
+      <tr>
+        <th colspan="3" style="text-align:left;">
+          Term Work (includes assignments, seminars, micro projects, industrial visits, any other student learning activities etc.)
+        </th>
+      </tr>
+
+      <tr>
+        <th style="width:12%">Sl. No.</th>
+        <th>Term Work (TW) Activity</th>
+        <th style="width:18%">Number of Hours / Semester</th>
+      </tr>
+
+      ${twRows}
+
+      <tr>
+        <th colspan="3" style="text-align:left;">
+          SL: Self Learning, MOOCs, Spoken Tutorials, Online Educational Resources etc.
+        </th>
+      </tr>
+
+      <tr>
+        <th>Sl. No.</th>
+        <th>Self Learning (SL) Activity</th>
+        <th>Number of Hours / Semester</th>
+      </tr>
+
+      ${slRows}
+
+  </table>
+
+  </div>
+  `;
+}
+
 function OutcomeslistToHTML(input) {
 
   let arr = [];
@@ -304,6 +365,7 @@ function splitExperimentContent(text, maxLines = 3) {
 function generateSyllabusHTML(templateHTML, courseData) {
   let html = templateHTML;
   const is2025 = is2025Scheme(courseData);
+  const ltpLabel = is2025 ? "L:T:P" : "L:T:P:S";
 
   // ================= SIMPLE FIELDS =================
   const simpleFields = [
@@ -337,6 +399,8 @@ function generateSyllabusHTML(templateHTML, courseData) {
       escapeHTML(key === "course_title" ? String(value).toUpperCase() : value)
     );
   });
+
+  html = html.replace(/{{LTP_LABEL}}/g, ltpLabel);
 
   // ================= COURSE OBJECTIVES =================
   if (hasMeaningfulContent(courseData.course_objectives)) {
@@ -419,14 +483,27 @@ function generateSyllabusHTML(templateHTML, courseData) {
     );
   }
 
+  // html = html.replace(
+  //   "{{TERM_WORK_SECTION}}",
+  //   is2025 ? buildActivityTableHTML("Term Work (TW)", courseData.termWorkActivities) : ""
+  // );
+  // html = html.replace(
+  //   "{{SELF_LEARNING_SECTION}}",
+  //   is2025 ? buildActivityTableHTML("Self Learning (SL)", courseData.selfLearningActivities) : ""
+  // );
+
   html = html.replace(
     "{{TERM_WORK_SECTION}}",
-    is2025 ? buildActivityTableHTML("Term Work (TW)", courseData.termWorkActivities) : ""
-  );
-  html = html.replace(
-    "{{SELF_LEARNING_SECTION}}",
-    is2025 ? buildActivityTableHTML("Self Learning (SL)", courseData.selfLearningActivities) : ""
-  );
+    is2025
+      ? buildTwSlTableHTML(
+          courseData.termWorkActivities,
+          courseData.selfLearningActivities
+        )
+      : ""
+);
+
+html = html.replace("{{SELF_LEARNING_SECTION}}", "");
+
 
   // ================= MODULES =================
   const validModules = (courseData.modules || []).filter(mod =>
