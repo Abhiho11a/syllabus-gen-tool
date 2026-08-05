@@ -146,6 +146,51 @@ function listToHTML(input) {
     .join("");
 }
 
+function hasMeaningfulActivityRows(items = []) {
+  return Array.isArray(items) && items.some(item => {
+    const activity = String(item?.activity || "").trim();
+    const hours = String(item?.hours || "").trim();
+    return activity || hours;
+  });
+}
+
+function buildActivityTableHTML(title, items = []) {
+  const rows = (Array.isArray(items) ? items : [])
+    .filter(item => {
+      const activity = String(item?.activity || "").trim();
+      const hours = String(item?.hours || "").trim();
+      return activity || hours;
+    })
+    .map((item, index) => `
+      <tr>
+        <td class="expSl">${index + 1}</td>
+        <td style="text-align:left;">${escapeHTML(item?.activity || "-")}</td>
+        <td class="twslHours">${escapeHTML(item?.hours || "-")}</td>
+      </tr>
+    `)
+    .join("");
+
+  if (!rows) return "";
+
+  return `
+    <div class="section">
+      <div class="section-title">${escapeHTML(title)}</div>
+      <table class="experiments twsl-table">
+        <thead>
+          <tr>
+            <th class="expSl">Sl. No.</th>
+            <th>Activity</th>
+            <th class="twslHours">Hours / Semester</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 function OutcomeslistToHTML(input) {
 
   let arr = [];
@@ -275,9 +320,10 @@ function generateSyllabusHTML(templateHTML, courseData) {
   }
 
   simpleFields.forEach(key => {
+    const value = courseData[key] ?? "-";
     html = html.replace(
       new RegExp(`{{${key}}}`, "g"),
-      escapeHTML(key === "course_title" ? courseData[key].toUpperCase() : courseData[key] ?? "-")
+      escapeHTML(key === "course_title" ? String(value).toUpperCase() : value)
     );
   });
 
@@ -361,6 +407,15 @@ function generateSyllabusHTML(templateHTML, courseData) {
       ""
     );
   }
+
+  html = html.replace(
+    "{{TERM_WORK_SECTION}}",
+    buildActivityTableHTML("Term Work (TW)", courseData.termWorkActivities)
+  );
+  html = html.replace(
+    "{{SELF_LEARNING_SECTION}}",
+    buildActivityTableHTML("Self Learning (SL)", courseData.selfLearningActivities)
+  );
 
   // ================= MODULES =================
   const validModules = (courseData.modules || []).filter(mod =>

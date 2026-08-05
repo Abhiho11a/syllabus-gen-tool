@@ -20,6 +20,13 @@ const { buildCopoTable } = require("./blocks/copo");
 const { buildPracticalTable } = require("./blocks/practicals");
 const { buildTextbooksTable } = require("./blocks/textbooks");
 
+const BORDER = {
+  top: { style: BorderStyle.SINGLE, size: 6 },
+  bottom: { style: BorderStyle.SINGLE, size: 6 },
+  left: { style: BorderStyle.SINGLE, size: 6 },
+  right: { style: BorderStyle.SINGLE, size: 6 },
+};
+
 
 const DEFAULT_LINES = [
   "This course will enable the students to:",
@@ -158,6 +165,118 @@ function hasRealContent(arr = []) {
     );
 }
 
+function hasMeaningfulActivityRows(items = []) {
+  return Array.isArray(items) && items.some(item => {
+    const activity = String(item?.activity || "").trim();
+    const hours = String(item?.hours || "").trim();
+    return activity || hours;
+  });
+}
+
+function buildActivitySection(title, items = []) {
+  const rows = (Array.isArray(items) ? items : [])
+    .filter(item => {
+      const activity = String(item?.activity || "").trim();
+      const hours = String(item?.hours || "").trim();
+      return activity || hours;
+    })
+    .map((item, index) =>
+      new TableRow({
+        children: [
+          new TableCell({
+            borders: BORDER,
+            width: { size: 14, type: WidthType.PERCENTAGE },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [new TextRun({ text: String(index + 1), size: 22 })],
+              }),
+            ],
+          }),
+          new TableCell({
+            borders: BORDER,
+            width: { size: 66, type: WidthType.PERCENTAGE },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.LEFT,
+                children: [new TextRun({ text: String(item?.activity || "-"), size: 22 })],
+              }),
+            ],
+          }),
+          new TableCell({
+            borders: BORDER,
+            width: { size: 20, type: WidthType.PERCENTAGE },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [new TextRun({ text: String(item?.hours || "-"), size: 22 })],
+              }),
+            ],
+          }),
+        ],
+      })
+    );
+
+  if (!rows.length) return [];
+
+  return [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 300, after: 150 },
+      children: [
+        new TextRun({
+          text: title,
+          bold: true,
+          size: 28,
+        }),
+      ],
+    }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              borders: BORDER,
+              width: { size: 14, type: WidthType.PERCENTAGE },
+              shading: { fill: "E6E6E6", type: ShadingType.CLEAR },
+              children: [
+                new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  children: [new TextRun({ text: "Sl.No", bold: true, size: 22 })],
+                }),
+              ],
+            }),
+            new TableCell({
+              borders: BORDER,
+              width: { size: 66, type: WidthType.PERCENTAGE },
+              shading: { fill: "E6E6E6", type: ShadingType.CLEAR },
+              children: [
+                new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  children: [new TextRun({ text: "Activity", bold: true, size: 22 })],
+                }),
+              ],
+            }),
+            new TableCell({
+              borders: BORDER,
+              width: { size: 20, type: WidthType.PERCENTAGE },
+              shading: { fill: "E6E6E6", type: ShadingType.CLEAR },
+              children: [
+                new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  children: [new TextRun({ text: "Hours / Semester", bold: true, size: 22 })],
+                }),
+              ],
+            }),
+          ],
+        }),
+        ...rows,
+      ],
+    }),
+  ];
+}
+
 function cleanList(arr = []) {
   return Array.isArray(arr) ? arr.slice(1) : [];
 }
@@ -233,6 +352,14 @@ if (hasRealModernToolsContent(courseData.modern_tools)) {
   }
   pushCleanSection(children, "Web Links", courseData.referral_links);
   pushCleanSection(children, "Activity-Based Learning", courseData.activity_based);
+
+  if (hasMeaningfulActivityRows(courseData.termWorkActivities)) {
+    children.push(...buildActivitySection("Term Work (TW)", courseData.termWorkActivities));
+  }
+
+  if (hasMeaningfulActivityRows(courseData.selfLearningActivities)) {
+    children.push(...buildActivitySection("Self Learning (SL)", courseData.selfLearningActivities));
+  }
 
   // 5️⃣ CO–PO–PSO
   children.push(...buildCopoTable(courseData.copoMapping));
