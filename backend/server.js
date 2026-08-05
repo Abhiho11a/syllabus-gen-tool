@@ -262,6 +262,21 @@ function buildTwSlTableHTML(termWork = [], selfLearning = []) {
   `;
 }
 
+function getTotalHours(ltps) {
+
+  if (!ltps) return "";
+
+  const nums = ltps
+      .split(":")
+      .map(Number)
+      .filter(n => !isNaN(n));
+
+  const total = nums.reduce((a,b)=>a+b,0);
+
+  return `${ltps}=${total}`;
+}
+
+
 function OutcomeslistToHTML(input) {
 
   let arr = [];
@@ -366,6 +381,7 @@ function generateSyllabusHTML(templateHTML, courseData) {
   let html = templateHTML;
   const is2025 = is2025Scheme(courseData);
   const ltpLabel = is2025 ? "L:T:P" : "L:T:P:S";
+  const totalHours = getTotalHours(courseData.ltps);
 
   // ================= SIMPLE FIELDS =================
   const simpleFields = [
@@ -401,6 +417,19 @@ function generateSyllabusHTML(templateHTML, courseData) {
   });
 
   html = html.replace(/{{LTP_LABEL}}/g, ltpLabel);
+  html = html.replace(
+    /{{PEDAGOGY_BLOCK}}/g,
+    is2025
+      ? `
+          <div>${escapeHTML(courseData.pedagogy || "-")}</div>
+          <div style="margin-top:6px;font-weight:bold;">
+            L:T:P:TW&SL = TH
+          </div>
+          <div>${escapeHTML(totalHours)}</div>
+        `
+      : escapeHTML(courseData.pedagogy || "-")
+);
+
 
   // ================= COURSE OBJECTIVES =================
   if (hasMeaningfulContent(courseData.course_objectives)) {
