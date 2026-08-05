@@ -203,21 +203,21 @@ function buildActivityTableHTML(title, items = []) {
 
 function buildTwSlTableHTML(termWork = [], selfLearning = []) {
 
-  const twRows = (termWork || [])
-    .filter(i => i.activity || i.hours)
-    .map((item, index) => `
+  const twRows = termWork
+    .filter(item => item.activity || item.hours)
+    .map((item, i) => `
       <tr>
-        <td>${index + 1}</td>
+        <td>${i + 1}</td>
         <td>${escapeHTML(item.activity || "-")}</td>
         <td>${escapeHTML(item.hours || "-")}</td>
       </tr>
     `).join("");
 
-  const slRows = (selfLearning || [])
-    .filter(i => i.activity || i.hours)
-    .map((item, index) => `
+  const slRows = selfLearning
+    .filter(item => item.activity || item.hours)
+    .map((item, i) => `
       <tr>
-        <td>${index + 1}</td>
+        <td>${i + 1}</td>
         <td>${escapeHTML(item.activity || "-")}</td>
         <td>${escapeHTML(item.hours || "-")}</td>
       </tr>
@@ -228,30 +228,39 @@ function buildTwSlTableHTML(termWork = [], selfLearning = []) {
 
   <table class="twsl-table">
 
+      <!-- Main Heading -->
       <tr>
-        <th colspan="3" style="text-align:left;">
-          Term Work (includes assignments, seminars, micro projects, industrial visits, any other student learning activities etc.)
-        </th>
+          <th colspan="3" class="table-title">
+              Term Work and Self Learning
+          </th>
+      </tr>
+
+      <!-- TW Heading -->
+      <tr>
+          <th colspan="3" class="sub-heading">
+              Term Work (TW)
+          </th>
       </tr>
 
       <tr>
-        <th style="width:12%">Sl. No.</th>
-        <th>Term Work (TW) Activity</th>
-        <th style="width:18%">Number of Hours / Semester</th>
+          <th style="width:10%">Sl.No.</th>
+          <th>Activity</th>
+          <th style="width:18%">Hours / Semester</th>
       </tr>
 
       ${twRows}
 
+      <!-- SL Heading -->
       <tr>
-        <th colspan="3" style="text-align:left;">
-          SL: Self Learning, MOOCs, Spoken Tutorials, Online Educational Resources etc.
-        </th>
+          <th colspan="3" class="sub-heading">
+              Self Learning (SL)
+          </th>
       </tr>
 
       <tr>
-        <th>Sl. No.</th>
-        <th>Self Learning (SL) Activity</th>
-        <th>Number of Hours / Semester</th>
+          <th>Sl.No.</th>
+          <th>Activity</th>
+          <th>Hours / Semester</th>
       </tr>
 
       ${slRows}
@@ -261,6 +270,7 @@ function buildTwSlTableHTML(termWork = [], selfLearning = []) {
   </div>
   `;
 }
+
 
 function getTotalHours(ltps) {
 
@@ -533,17 +543,30 @@ function generateSyllabusHTML(templateHTML, courseData) {
   //   is2025 ? buildActivityTableHTML("Self Learning (SL)", courseData.selfLearningActivities) : ""
   // );
 
-  html = html.replace(
+//   html = html.replace(
+//     "{{TERM_WORK_SECTION}}",
+//     is2025
+//       ? buildTwSlTableHTML(
+//           courseData.termWorkActivities,
+//           courseData.selfLearningActivities
+//         )
+//       : ""
+// );
+
+// html = html.replace("{{SELF_LEARNING_SECTION}}", "");
+
+html = html.replace(
     "{{TERM_WORK_SECTION}}",
     is2025
-      ? buildTwSlTableHTML(
-          courseData.termWorkActivities,
-          courseData.selfLearningActivities
-        )
-      : ""
+        ? buildTwSlTableHTML(
+              courseData.termWorkActivities,
+              courseData.selfLearningActivities
+          )
+        : ""
 );
 
 html = html.replace("{{SELF_LEARNING_SECTION}}", "");
+
 
 
   // ================= MODULES =================

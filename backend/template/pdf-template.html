@@ -183,7 +183,6 @@ table.experiments th {
   vertical-align: top;
 }
 
-/* ✅ THIS is the key */
 table.experiments tr {
   page-break-inside: auto;   /* allow row breaks */
 }
@@ -201,6 +200,33 @@ table.twsl-table .twslHours {
   width: 110px;
   text-align: center;
 }
+
+.twsl-table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:8px;
+    font-size:12px;
+}
+
+.twsl-table th,
+.twsl-table td{
+    border:1px solid #000;
+    padding:6px;
+}
+
+.twsl-table .table-title{
+    text-align:center;
+    font-size:15px;
+    font-weight:bold;
+    background:#efefef;
+}
+
+.twsl-table .sub-heading{
+    text-align:left;
+    background:#f8f8f8;
+    font-weight:bold;
+}
+
 
 /* ================= CO-PO TABLE ================= */
 .copo th {
