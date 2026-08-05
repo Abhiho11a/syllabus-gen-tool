@@ -61,9 +61,15 @@ function hasMeaningfulContent(input) {
     }).length > 0;
 }
 function hasRealModernToolsContent(input) {
-  if (!Array.isArray(input)) return false;
+  const arr = Array.isArray(input)
+    ? input
+    : typeof input === "string"
+      ? input.split("\n")
+      : [];
 
-  return input
+  if (!arr.length) return false;
+
+  return arr
     .map(v => String(v || "").trim())
     .filter(v => {
       if (!v) return false;
@@ -85,6 +91,10 @@ function hasRealModernToolsContent(input) {
 const DEFAULT_MODERN_TOOLS_LINES = [
   "**Modern AI tools used for this course:**"
 ];
+
+function is2025Scheme(courseData = {}) {
+  return String(courseData?.scheme_year || "2024").trim() === "2025";
+}
 
 
 function parseBoldRunsFromStars(text = "") {
@@ -292,6 +302,7 @@ function pushCleanSection(children, title, data) {
 
 async function generateSyllabusDocx(courseData) {
   const children = [];
+  const is2025 = is2025Scheme(courseData);
 
   // 1️⃣ COURSE INFO TABLE
   children.push(buildCourseInfoTable(courseData));
@@ -321,7 +332,7 @@ if (hasMeaningfulContent(courseData.teaching_learning)) {
 //   );
 // }
 
-if (hasRealModernToolsContent(courseData.modern_tools)) {
+if (!is2025 && hasRealModernToolsContent(courseData.modern_tools)) {
   children.push(
     sectionTitle("Modern AI Tools Used"),
     ...renderBulletList(courseData.modern_tools)
@@ -351,13 +362,18 @@ if (hasRealModernToolsContent(courseData.modern_tools)) {
     );
   }
   pushCleanSection(children, "Web Links", courseData.referral_links);
-  pushCleanSection(children, "Activity-Based Learning", courseData.activity_based);
+  if (!is2025 && (hasRealContent(courseData.activity_based) || hasMeaningfulContent(courseData.activity_based))) {
+    children.push(
+      sectionTitle("Activity-Based Learning"),
+      ...renderBulletList(courseData.activity_based)
+    );
+  }
 
-  if (hasMeaningfulActivityRows(courseData.termWorkActivities)) {
+  if (is2025 && hasMeaningfulActivityRows(courseData.termWorkActivities)) {
     children.push(...buildActivitySection("Term Work (TW)", courseData.termWorkActivities));
   }
 
-  if (hasMeaningfulActivityRows(courseData.selfLearningActivities)) {
+  if (is2025 && hasMeaningfulActivityRows(courseData.selfLearningActivities)) {
     children.push(...buildActivitySection("Self Learning (SL)", courseData.selfLearningActivities));
   }
 

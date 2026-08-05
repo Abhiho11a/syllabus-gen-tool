@@ -80,9 +80,15 @@ const DEFAULT_MODERN_TOOLS_LINES = [
 ];
 
 function hasRealModernToolsContent(input) {
-  if (!Array.isArray(input)) return false;
+  const arr = Array.isArray(input)
+    ? input
+    : typeof input === "string"
+      ? input.split("\n")
+      : [];
 
-  return input
+  if (!arr.length) return false;
+
+  return arr
     .map(v => String(v || "").trim())
     .filter(v => {
       if (!v) return false;
@@ -100,6 +106,10 @@ function hasRealModernToolsContent(input) {
       return true; // ✅ real user content
     })
     .length > 0;
+}
+
+function is2025Scheme(courseData = {}) {
+  return String(courseData?.scheme_year || "2024").trim() === "2025";
 }
 
 function hasRealContent(arr = []) {
@@ -293,6 +303,7 @@ function splitExperimentContent(text, maxLines = 3) {
 //Function to generate PDF
 function generateSyllabusHTML(templateHTML, courseData) {
   let html = templateHTML;
+  const is2025 = is2025Scheme(courseData);
 
   // ================= SIMPLE FIELDS =================
   const simpleFields = [
@@ -353,17 +364,17 @@ function generateSyllabusHTML(templateHTML, courseData) {
       ""
     );
   }
-  if (hasRealModernToolsContent(courseData.modern_tools)) {
-  html = html.replace(
-    /{{#each modern_tools}}[\s\S]*?{{\/each}}/g,
-    listToHTML(courseData.modern_tools)
-  );
-} else {
-  html = html.replace(
-    /<!-- SECTION: MODERN_TOOLS -->[\s\S]*?<!-- END: MODERN_TOOLS -->/,
-    ""
-  );
-}
+  if (!is2025 && hasRealModernToolsContent(courseData.modern_tools)) {
+    html = html.replace(
+      /{{#each modern_tools}}[\s\S]*?{{\/each}}/g,
+      listToHTML(courseData.modern_tools)
+    );
+  } else {
+    html = html.replace(
+      /<!-- SECTION: MODERN_TOOLS -->[\s\S]*?<!-- END: MODERN_TOOLS -->/,
+      ""
+    );
+  }
 
   // ================= COURSE OUTCOMES =================
   if (hasMeaningfulContent(courseData.course_outcomes)) {
@@ -395,7 +406,7 @@ function generateSyllabusHTML(templateHTML, courseData) {
   }
 
   // ================= ACTIVITY-BASED =================
-  if (hasRealContent(courseData.activity_based)) {
+  if (!is2025 && (hasRealContent(courseData.activity_based) || hasMeaningfulContent(courseData.activity_based))) {
     const cleanActivity = courseData.activity_based;
     html = html.replace(
       /{{#each activity_based}}[\s\S]*?{{\/each}}/g,
@@ -410,11 +421,11 @@ function generateSyllabusHTML(templateHTML, courseData) {
 
   html = html.replace(
     "{{TERM_WORK_SECTION}}",
-    buildActivityTableHTML("Term Work (TW)", courseData.termWorkActivities)
+    is2025 ? buildActivityTableHTML("Term Work (TW)", courseData.termWorkActivities) : ""
   );
   html = html.replace(
     "{{SELF_LEARNING_SECTION}}",
-    buildActivityTableHTML("Self Learning (SL)", courseData.selfLearningActivities)
+    is2025 ? buildActivityTableHTML("Self Learning (SL)", courseData.selfLearningActivities) : ""
   );
 
   // ================= MODULES =================
