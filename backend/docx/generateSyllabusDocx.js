@@ -19,6 +19,7 @@ const { buildModules } = require("./blocks/module");
 const { buildCopoTable } = require("./blocks/copo");
 const { buildPracticalTable } = require("./blocks/practicals");
 const { buildTextbooksTable } = require("./blocks/textbooks");
+const { buildTwSlTable } = require("./blocks/twsl");
 
 const BORDER = {
   top: { style: BorderStyle.SINGLE, size: 6 },
@@ -369,13 +370,28 @@ if (!is2025 && hasRealModernToolsContent(courseData.modern_tools)) {
     );
   }
 
-  if (is2025 && hasMeaningfulActivityRows(courseData.termWorkActivities)) {
-    children.push(...buildActivitySection("Term Work (TW)", courseData.termWorkActivities));
-  }
+  // if (is2025 && hasMeaningfulActivityRows(courseData.termWorkActivities)) {
+  //   children.push(...buildActivitySection("Term Work (TW)", courseData.termWorkActivities));
+  // }
 
-  if (is2025 && hasMeaningfulActivityRows(courseData.selfLearningActivities)) {
-    children.push(...buildActivitySection("Self Learning (SL)", courseData.selfLearningActivities));
-  }
+  // if (is2025 && hasMeaningfulActivityRows(courseData.selfLearningActivities)) {
+  //   children.push(...buildActivitySection("Self Learning (SL)", courseData.selfLearningActivities));
+  // }
+  if (
+  is2025 &&
+  (
+    hasMeaningfulActivityRows(courseData.termWorkActivities) ||
+    hasMeaningfulActivityRows(courseData.selfLearningActivities)
+  )
+) {
+  children.push(
+    ...buildTwSlTable(
+      courseData.termWorkActivities || [],
+      courseData.selfLearningActivities || []
+    )
+  );
+}
+
 
   // 5️⃣ CO–PO–PSO
   children.push(...buildCopoTable(courseData.copoMapping));
