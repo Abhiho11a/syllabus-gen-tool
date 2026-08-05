@@ -203,73 +203,110 @@ function buildActivityTableHTML(title, items = []) {
 
 function buildTwSlTableHTML(termWork = [], selfLearning = []) {
 
-  const twRows = termWork
-    .filter(item => item.activity || item.hours)
-    .map((item, i) => `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${escapeHTML(item.activity || "-")}</td>
-        <td>${escapeHTML(item.hours || "-")}</td>
-      </tr>
-    `).join("");
+  const validTW = Array.isArray(termWork)
+    ? termWork.filter(item =>
+        String(item?.activity || "").trim() ||
+        String(item?.hours || "").trim()
+      )
+    : [];
 
-  const slRows = selfLearning
-    .filter(item => item.activity || item.hours)
-    .map((item, i) => `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${escapeHTML(item.activity || "-")}</td>
-        <td>${escapeHTML(item.hours || "-")}</td>
-      </tr>
-    `).join("");
+  const validSL = Array.isArray(selfLearning)
+    ? selfLearning.filter(item =>
+        String(item?.activity || "").trim() ||
+        String(item?.hours || "").trim()
+      )
+    : [];
 
-  return `
+
+  // If no TW and no SL data, return nothing
+  if (validTW.length === 0 && validSL.length === 0) {
+    return "";
+  }
+
+
+  let tableHTML = `
   <div class="section">
 
   <table class="twsl-table">
 
-      <!-- Main Heading -->
       <tr>
           <th colspan="3" class="table-title">
               Term Work and Self Learning
           </th>
       </tr>
+  `;
 
-      <!-- TW Heading -->
+
+  // ---------- TERM WORK ----------
+  if (validTW.length > 0) {
+
+    const twRows = validTW.map((item, i) => `
       <tr>
-          <th colspan="3" class="sub-heading">
-              Term Work (TW)
-          </th>
+        <td>${i + 1}</td>
+        <td>${escapeHTML(item.activity || "-")}</td>
+        <td>${escapeHTML(item.hours || "-")}</td>
+      </tr>
+    `).join("");
+
+
+    tableHTML += `
+      <tr>
+        <th colspan="3" class="sub-heading">
+            Term Work (TW)
+        </th>
       </tr>
 
       <tr>
-          <th style="width:10%">Sl.No.</th>
-          <th>Activity</th>
-          <th style="width:18%">Hours / Semester</th>
+        <th style="width:10%">Sl.No.</th>
+        <th>Activity</th>
+        <th style="width:18%">Hours / Semester</th>
       </tr>
 
       ${twRows}
+    `;
+  }
 
-      <!-- SL Heading -->
+
+
+  // ---------- SELF LEARNING ----------
+  if (validSL.length > 0) {
+
+    const slRows = validSL.map((item, i) => `
       <tr>
-          <th colspan="3" class="sub-heading">
-              Self Learning (SL)
-          </th>
+        <td>${i + 1}</td>
+        <td>${escapeHTML(item.activity || "-")}</td>
+        <td>${escapeHTML(item.hours || "-")}</td>
+      </tr>
+    `).join("");
+
+
+    tableHTML += `
+      <tr>
+        <th colspan="3" class="sub-heading">
+            Self Learning (SL)
+        </th>
       </tr>
 
       <tr>
-          <th>Sl.No.</th>
-          <th>Activity</th>
-          <th>Hours / Semester</th>
+        <th>Sl.No.</th>
+        <th>Activity</th>
+        <th>Hours / Semester</th>
       </tr>
 
       ${slRows}
+    `;
+  }
 
-  </table>
 
-  </div>
+  tableHTML += `
+      </table>
+    </div>
   `;
+
+
+  return tableHTML;
 }
+
 
 
 function getTotalHours(ltps) {
