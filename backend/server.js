@@ -381,7 +381,7 @@ function generateSyllabusHTML(templateHTML, courseData) {
   let html = templateHTML;
   const is2025 = is2025Scheme(courseData);
   const ltpLabel = is2025 ? "L:T:P" : "L:T:P:S";
-  const totalHours = getTotalHours(courseData.ltps);
+  const totalHours = getTotalHours(courseData.pedagogy);
 
   // ================= SIMPLE FIELDS =================
   const simpleFields = [
