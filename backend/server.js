@@ -423,7 +423,7 @@ function generateSyllabusHTML(templateHTML, courseData) {
     ? `
       <div><b>Pedagogy</b></div>
       <div style="
-          font-size:6px;
+          font-size:8px;
           font-weight:normal;
           margin-top:2px;
           line-height:1.2;
