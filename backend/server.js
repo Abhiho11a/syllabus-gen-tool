@@ -418,13 +418,29 @@ function generateSyllabusHTML(templateHTML, courseData) {
 
   html = html.replace(/{{LTP_LABEL}}/g, ltpLabel);
   html = html.replace(
+  /{{PEDAGOGY_LABEL}}/g,
+  is2025
+    ? `
+      <div><b>Pedagogy</b></div>
+      <div style="
+          font-size:10px;
+          font-weight:normal;
+          margin-top:2px;
+          line-height:1.2;
+      ">
+        L:T:P:TW&SL = TH
+      </div>
+    `
+    : "Pedagogy"
+);
+  html = html.replace(
     /{{PEDAGOGY_BLOCK}}/g,
     is2025
       ? `
-          <div>${escapeHTML(courseData.pedagogy || "-")}</div>
-          <div style="margin-top:6px;font-weight:bold;">
-            L:T:P:TW&SL = TH
-          </div>
+          // <div>${escapeHTML(courseData.pedagogy || "-")}</div>
+          // <div style="margin-top:6px;font-weight:bold;">
+          //   L:T:P:TW&SL = TH
+          // </div>
           <div>${escapeHTML(totalHours)}</div>
         `
       : escapeHTML(courseData.pedagogy || "-")
