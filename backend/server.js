@@ -423,7 +423,7 @@ function generateSyllabusHTML(templateHTML, courseData) {
     ? `
       <div><b>Pedagogy</b></div>
       <div style="
-          font-size:10px;
+          font-size:6px;
           font-weight:normal;
           margin-top:2px;
           line-height:1.2;
@@ -437,7 +437,6 @@ function generateSyllabusHTML(templateHTML, courseData) {
     /{{PEDAGOGY_BLOCK}}/g,
     is2025
       ? `
-          
           <div>${escapeHTML(totalHours)}</div>
         `
       : escapeHTML(courseData.pedagogy || "-")
