@@ -224,7 +224,7 @@ function buildTwSlTableHTML(termWork = [], selfLearning = []) {
   }
 
 
-  tableHTML = `
+  let tableHTML = `
   <div class="section">
   <table class="twsl-table">
 
@@ -241,6 +241,21 @@ function buildTwSlTableHTML(termWork = [], selfLearning = []) {
   </tr>
   `;
 
+  const twRows = validTW.map((item, i) => `
+  <tr>
+    <td>${i + 1}</td>
+    <td>${escapeHTML(item.activity || "-")}</td>
+    <td>${escapeHTML(item.hours || "-")}</td>
+  </tr>
+`).join("");
+
+  const slRows = validSL.map((item, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${escapeHTML(item.activity || "-")}</td>
+      <td>${escapeHTML(item.hours || "-")}</td>
+    </tr>
+  `).join("");
 
   // ---------- TERM WORK ----------
   if (validTW.length) {
