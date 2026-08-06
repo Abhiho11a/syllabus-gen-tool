@@ -44,6 +44,33 @@ function headingRow(text) {
   });
 }
 
+function sectionRow(text) {
+  return new TableRow({
+    children: [
+      new TableCell({
+        columnSpan: 3,
+        borders: BORDER,
+        shading: {
+          fill: "EFEFEF",
+          type: ShadingType.CLEAR,
+        },
+        children: [
+          new Paragraph({
+            children: [
+              new TextRun({
+                text,
+                bold: true,
+                size: 22,
+              }),
+            ],
+          }),
+        ],
+      }),
+    ],
+  });
+}
+
+
 function headerRow() {
   return new TableRow({
     children: [
@@ -88,7 +115,10 @@ function headerRow() {
 
 function dataRows(items = []) {
   return items
-    .filter(i => i.activity || i.hours)
+    .filter(item =>
+      String(item?.activity || "").trim() ||
+      String(item?.hours || "").trim()
+    )
     .map((item, index) =>
       new TableRow({
         children: [
@@ -131,22 +161,42 @@ function dataRows(items = []) {
 
 function buildTwSlTable(termWork = [], selfLearning = []) {
 
-  const rows = [
+  const validTW = (termWork || []).filter(item =>
+    String(item?.activity || "").trim() ||
+    String(item?.hours || "").trim()
+  );
 
-    headingRow("Term Work and Self Learning"),
+  const validSL = (selfLearning || []).filter(item =>
+    String(item?.activity || "").trim() ||
+    String(item?.hours || "").trim()
+  );
 
-    headingRow("Term Work (TW)"),
+  // Nothing to show
+  if (!validTW.length && !validSL.length) {
+    return [];
+  }
 
-    headerRow(),
+  const rows = [];
 
-    ...dataRows(termWork),
+  // Main Heading
+  rows.push(
+    headingRow("Term Work and Self Learning")
+  );
 
-    headingRow("Self Learning (SL)"),
+  // Common header (only once)
+  rows.push(headerRow());
 
-    headerRow(),
+  // ---------- TERM WORK ----------
+  if (validTW.length > 0) {
+    rows.push(sectionRow("Term Work (TW)"));
+    rows.push(...dataRows(validTW));
+  }
 
-    ...dataRows(selfLearning),
-  ];
+  // ---------- SELF LEARNING ----------
+  if (validSL.length > 0) {
+    rows.push(sectionRow("Self Learning (SL)"));
+    rows.push(...dataRows(validSL));
+  }
 
   return [
     new Table({
@@ -158,5 +208,7 @@ function buildTwSlTable(termWork = [], selfLearning = []) {
     }),
   ];
 }
+
+
 
 module.exports = { buildTwSlTable };

@@ -2,6 +2,20 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { FileText, FileJson, File, Activity, AlertCircle, ArrowLeft } from "lucide-react";
 
+function getApiUrl() {
+  const envUrl = String(import.meta.env.VITE_API_URL || "").trim();
+
+  if (envUrl && !/localhost|127\.0\.0\.1/.test(envUrl)) {
+    return envUrl.replace(/\/$/, "");
+  }
+
+  if (typeof window !== "undefined" && window.location?.hostname) {
+    return `${window.location.protocol}//${window.location.hostname}:8000`;
+  }
+
+  return "http://localhost:8000";
+}
+
 export default function Analysis() {
   const [stats, setStats] = useState({
     totalGenerated: 0,
@@ -13,7 +27,7 @@ export default function Analysis() {
   const [error, setError] = useState(null);
 
   // Retrieve apiUrl the same way it's done in InputForm.jsx
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  const apiUrl = getApiUrl();
 
   useEffect(() => {
     fetchStats();

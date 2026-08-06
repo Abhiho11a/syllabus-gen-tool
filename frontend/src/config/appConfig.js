@@ -38,6 +38,10 @@ export const DataSchema = {
   see: "",
   ltps: "",
   exam_hours: "",
+  scheme_year: "2024",
+  curriculum_focus: "",
+  skill_enhancement: "",
+  industry_alignment: "",
 
   course_objectives: `**This course will enable the students to:**\n${DEFAULT_4_POINTS}`,
   course_outcomes: `**At the end of the course, the student will be able to:**\n${DEFAULT_4_POINTS}`,
@@ -49,6 +53,8 @@ export const DataSchema = {
 
   textbooks: [],
   references:[],
+  termWorkActivities: [],
+  selfLearningActivities: [],
 
   modules: [
     {

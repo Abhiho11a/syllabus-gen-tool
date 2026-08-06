@@ -9,7 +9,22 @@ import DocxRender from "./renders/DocxRender";
 import JsonRender from "./renders/JsonRender";
 import Popup from "./Popup";
 import ExperimentsSection from "./Experiments";
-const apiUrl = import.meta.env.VITE_API_URL  
+
+function getApiUrl() {
+  const envUrl = String(import.meta.env.VITE_API_URL || "").trim();
+
+  if (envUrl && !/localhost|127\.0\.0\.1/.test(envUrl)) {
+    return envUrl.replace(/\/$/, "");
+  }
+
+  if (typeof window !== "undefined" && window.location?.hostname) {
+    return `${window.location.protocol}//${window.location.hostname}:8000`;
+  }
+
+  return "http://localhost:8000";
+}
+
+const apiUrl = getApiUrl();
 
 export default function InputForm(){
 
@@ -50,6 +65,28 @@ const autosaveTimer = useRef(null);
 const lastSavedDataRef = useRef(null);
 const lastSavedTimeRef = useRef(0);
 const [popupPosition, setPopupPosition] = useState("top");
+const [scheme, setScheme] = useState(() => {
+  if (typeof window === "undefined") return "2024";
+
+  try {
+    const savedDraft = localStorage.getItem(DRAFT_KEY);
+    if (!savedDraft) return "2024";
+
+    const parsedDraft = JSON.parse(savedDraft);
+    return parsedDraft.scheme_year === "2025" ? "2025" : "2024";
+  } catch {
+    return "2024";
+  }
+});
+const is2025Scheme = scheme === "2025";
+
+const handleSchemeChange = (nextScheme) => {
+  setScheme(nextScheme);
+  setFormData((prev) => ({
+    ...prev,
+    scheme_year: nextScheme,
+  }));
+};
 useEffect(() => {
   const handleScroll = () => {
     const scrollY = window.scrollY;
@@ -74,6 +111,54 @@ function parseCourseType(courseType) {
   return { base: match[1], nature: match[2] };
 }
 
+function normalizeFormData(draft) {
+  const baseDraft = draft ? { ...DataSchema, ...draft } : { ...DataSchema };
+
+  const normalizedModules = Array.isArray(baseDraft.modules) && baseDraft.modules.length
+    ? baseDraft.modules.map((module, index) => ({
+        ...emptyModule,
+        ...module,
+        no: module.no ?? index + 1,
+      }))
+    : [{ ...emptyModule }];
+
+  const defaultCopoMapping = {
+    headers: [...DataSchema.copoMapping.headers],
+    rows: DataSchema.copoMapping.rows.map((row, index) => ({
+      co: row.co || `CO${index + 1}`,
+      vals: Array.isArray(row.vals) ? row.vals : Array(DataSchema.copoMapping.headers.length).fill(""),
+      pso: Array.isArray(row.pso) ? row.pso : ["", ""],
+    })),
+  };
+
+  const normalizedCopoMapping = baseDraft.copoMapping
+    ? {
+        headers: Array.isArray(baseDraft.copoMapping.headers) && baseDraft.copoMapping.headers.length
+          ? baseDraft.copoMapping.headers
+          : [...DataSchema.copoMapping.headers],
+        rows: Array.isArray(baseDraft.copoMapping.rows) && baseDraft.copoMapping.rows.length
+          ? baseDraft.copoMapping.rows.map((row, index) => ({
+              co: row.co || `CO${index + 1}`,
+              vals: Array.isArray(row.vals)
+                ? row.vals
+                : Array(DataSchema.copoMapping.headers.length).fill(""),
+              pso: Array.isArray(row.pso) ? row.pso : ["", ""],
+            }))
+          : defaultCopoMapping.rows,
+      }
+    : defaultCopoMapping;
+
+  return {
+    ...baseDraft,
+    course_type: parseCourseType(baseDraft.course_type).base,
+    modules: normalizedModules,
+    textbooks: Array.isArray(baseDraft.textbooks) ? baseDraft.textbooks : [],
+    references: Array.isArray(baseDraft.references) ? baseDraft.references : [],
+    termWorkActivities: Array.isArray(baseDraft.termWorkActivities) ? baseDraft.termWorkActivities : [],
+    selfLearningActivities: Array.isArray(baseDraft.selfLearningActivities) ? baseDraft.selfLearningActivities : [],
+    copoMapping: normalizedCopoMapping,
+  };
+}
 
 const [formData, setFormData] = useState(() => {
   const savedDraft = localStorage.getItem(DRAFT_KEY);
@@ -82,25 +167,16 @@ const [formData, setFormData] = useState(() => {
     try {
       const parsedDraft = JSON.parse(savedDraft);
 
-      // ✅ ADD THESE TWO LINES HERE
       lastSavedDataRef.current = parsedDraft;
       lastSavedTimeRef.current = Date.now();
 
-      return {
-  ...parsedDraft,
-  course_type: parseCourseType(parsedDraft.course_type).base  // ✅ "PCCL (L)" → "PCCL"
-};
+      return normalizeFormData(parsedDraft);
     } catch (err) {
       console.error("Invalid draft data, falling back");
     }
   }
 
-  return {
-    ...DataSchema,
-    modules: DataSchema.modules?.length
-      ? DataSchema.modules
-      : [{ ...emptyModule }]
-  };
+  return normalizeFormData(DataSchema);
 });
 
 const hasSavedOnceRef = useRef(false);
@@ -137,42 +213,6 @@ useEffect(() => {
   return () => clearTimeout(autosaveTimer.current);
 }, [formData]);
 
-
-useEffect(() => {
-  if (!formData.copoMapping) {
-    setFormData(prev => ({
-      ...prev,
-      copoMapping: {
-        headers: [
-          "PO1","PO2","PO3","PO4","PO5","PO6",
-          "PO7","PO8","PO9","PO10","PO11"
-        ],
-        rows: [
-          { co: "CO1", vals: Array(11).fill(""), pso: ["", ""] },
-          { co: "CO2", vals: Array(11).fill(""), pso: ["", ""] },
-          { co: "CO3", vals: Array(11).fill(""), pso: ["", ""] },
-          { co: "CO4", vals: Array(11).fill(""), pso: ["", ""] },
-          { co: "CO5", vals: Array(11).fill(""), pso: ["", ""] },
-        ]
-      }
-    }));
-  }
-}, []);
-
-if(!formData.copoMapping) {
-    setFormData({...formData,
-        copoMapping: {
-            headers: ["PO1","PO2","PO3","PO4","PO5","PO6","PO7","PO8","PO9","PO10","PO11"],
-            rows: [
-                { co: "CO1", vals: Array(11).fill(""), pso: ["", ""] },
-                { co: "CO2", vals: Array(11).fill(""), pso: ["", ""] },
-                { co: "CO3", vals: Array(11).fill(""), pso: ["", ""] },
-                { co: "CO4", vals: Array(11).fill(""), pso: ["", ""] },
-                { co: "CO5", vals: Array(11).fill(""), pso: ["", ""] },
-            ]
-            }
-        });
-}
 
 // Dynamic AUTHOR Details and TEXTBOOK Details Adding
 const authors = formData.textbooks || [];
@@ -317,12 +357,106 @@ const removeModule = (index) => {
   }));
 };
 
+const validateActivityRow = (item) => {
+  const errors = {};
+  const activity = String(item?.activity ?? "").trim();
+  const hoursValue = item?.hours;
+
+  if (!activity) {
+    errors.activity = "Activity Name is required.";
+  }
+
+  if (hoursValue === "" || hoursValue === null || hoursValue === undefined) {
+    errors.hours = "Hours is required.";
+  } else {
+    const parsedHours = Number(hoursValue);
+    if (!Number.isInteger(parsedHours) || parsedHours <= 0) {
+      errors.hours = "Hours must be a positive integer.";
+    }
+  }
+
+  return errors;
+};
+
+const addTermWorkActivity = () => {
+  setFormData(prev => ({
+    ...prev,
+    termWorkActivities: [
+      ...(prev.termWorkActivities || []),
+      { activity: "", hours: "" }
+    ]
+  }));
+  setTermWorkErrors(prev => [...prev, {}]);
+};
+
+const updateTermWorkActivity = (index, field, value) => {
+  setFormData(prev => {
+    const updated = [...(prev.termWorkActivities || [])];
+    updated[index] = { ...(updated[index] || {}), [field]: value };
+    return { ...prev, termWorkActivities: updated };
+  });
+
+  setTermWorkErrors(prev => {
+    const updated = [...prev];
+    updated[index] = validateActivityRow({
+      ...(formData.termWorkActivities?.[index] || {}),
+      [field]: value
+    });
+    return updated;
+  });
+};
+
+const removeTermWorkActivity = (index) => {
+  setFormData(prev => ({
+    ...prev,
+    termWorkActivities: (prev.termWorkActivities || []).filter((_, i) => i !== index)
+  }));
+  setTermWorkErrors(prev => prev.filter((_, i) => i !== index));
+};
+
+const addSelfLearningActivity = () => {
+  setFormData(prev => ({
+    ...prev,
+    selfLearningActivities: [
+      ...(prev.selfLearningActivities || []),
+      { activity: "", hours: "" }
+    ]
+  }));
+  setSelfLearningErrors(prev => [...prev, {}]);
+};
+
+const updateSelfLearningActivity = (index, field, value) => {
+  setFormData(prev => {
+    const updated = [...(prev.selfLearningActivities || [])];
+    updated[index] = { ...(updated[index] || {}), [field]: value };
+    return { ...prev, selfLearningActivities: updated };
+  });
+
+  setSelfLearningErrors(prev => {
+    const updated = [...prev];
+    updated[index] = validateActivityRow({
+      ...(formData.selfLearningActivities?.[index] || {}),
+      [field]: value
+    });
+    return updated;
+  });
+};
+
+const removeSelfLearningActivity = (index) => {
+  setFormData(prev => ({
+    ...prev,
+    selfLearningActivities: (prev.selfLearningActivities || []).filter((_, i) => i !== index)
+  }));
+  setSelfLearningErrors(prev => prev.filter((_, i) => i !== index));
+};
 
 const [newExpNo, setNewExpNo] = useState("");
 const [newExpCont, setNewExpCont] = useState("");
 const [editingExpIndex, setEditingExpIndex] = useState(null);
 const [editExpNo, setEditExpNo] = useState("");
 const [editExpCont, setEditExpCont] = useState("");
+const [termWorkErrors, setTermWorkErrors] = useState([]);
+const [selfLearningErrors, setSelfLearningErrors] = useState([]);
 
 //Adding new Experiment
 const addNewExperiment = () => {
@@ -439,9 +573,14 @@ function handleLoadJson() {
       modules: parsed.modules?.length
         ? parsed.modules
         : [{ ...emptyModule }],
-      course_type: parseCourseType(parsed.course_type).base
+      course_type: parseCourseType(parsed.course_type).base,
+      scheme_year: parsed.scheme_year === "2025" ? "2025" : "2024",
+      curriculum_focus: parsed.curriculum_focus || "",
+      skill_enhancement: parsed.skill_enhancement || "",
+      industry_alignment: parsed.industry_alignment || "",
     });
 
+    setScheme(parsed.scheme_year === "2025" ? "2025" : "2024");
     setJsonError("");
     setShowPopup("Data Loaded from JSON")
   } catch {
@@ -482,9 +621,14 @@ function handleJsonFileUpload(e) {
       setFormData({
         ...parsed,
         modules: parsed.modules?.length ? parsed.modules : [{ ...emptyModule }],
-        course_type: parseCourseType(parsed.course_type).base
+        course_type: parseCourseType(parsed.course_type).base,
+        scheme_year: parsed.scheme_year === "2025" ? "2025" : "2024",
+        curriculum_focus: parsed.curriculum_focus || "",
+        skill_enhancement: parsed.skill_enhancement || "",
+        industry_alignment: parsed.industry_alignment || "",
       });
 
+      setScheme(parsed.scheme_year === "2025" ? "2025" : "2024");
       setJsonError("");
       setShowPopup("Data loaded successfully from JSON!");
       
@@ -808,6 +952,7 @@ function resetForm(){
   {
     setInputMode("manual")
     setJsonType("text")
+    setScheme("2024")
     handleRemoveFile()
     resetFormData(setFormData)
 
@@ -898,35 +1043,43 @@ const triggerAllDownloads = async() => {
   // trigger downloads
   if (downloadOptions.pdf)
   {
-    console.log(apiUrl)
-    const res = await fetch(
-    `${apiUrl}/generate-pdf`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData)
+    try {
+      console.log(apiUrl)
+      const res = await fetch(
+      `${apiUrl}/generate-pdf`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      }
+    );
+
+    console.log("PDF status:", res.status);
+    console.log("Content-Type:", res.headers.get("content-type"));
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("PDF generation failed:", errText);
+      alert("PDF generation failed. Please check the form data and backend response.");
+      return;
     }
-  );
 
-  console.log("PDF status:", res.status);
-  console.log("Content-Type:", res.headers.get("content-type"));
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/pdf")) {
+      const text = await res.text();
+      console.error("Expected PDF, got:", text);
+      alert("Server did not return a PDF");
+      return;
+    }
 
-  if (!res.ok) {
-    throw new Error("PDF generation failed");
-  }
+    const blob = await res.blob();
+    const courseCode = (formData.course_code || "COURSE").replace(/\s+/g, "");
 
-  const contentType = res.headers.get("content-type");
-  if (!contentType || !contentType.includes("application/pdf")) {
-    const text = await res.text();
-    console.error("Expected PDF, got:", text);
-    alert("Server did not return a PDF");
-    return;
-  }
-
-  const blob = await res.blob();
-  const courseCode = (formData.course_code || "COURSE").replace(/\s+/g, "");
-
-  downloadFile(blob, `${courseCode}_${day}-${month}-${year}_${hours}-${minutes}.pdf`);
+    downloadFile(blob, `${courseCode}_${day}-${month}-${year}_${hours}-${minutes}.pdf`);
+    } catch (err) {
+      console.error("PDF download error:", err);
+      alert("Could not download PDF. Please check the backend connection.");
+    }
 
   // setTimeout(() => setDownloadAll("pdf"),200);
   
@@ -1129,34 +1282,42 @@ async function downloadPdf(){
 
   const hours = String(now.getHours()).padStart(2, "0");
   const minutes = String(now.getMinutes()).padStart(2, "0");
-  const res = await fetch(
-    `${apiUrl}/generate-pdf`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData)
+  try {
+    const res = await fetch(
+      `${apiUrl}/generate-pdf`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      }
+    );
+
+    console.log("PDF status:", res.status);
+    console.log("Content-Type:", res.headers.get("content-type"));
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("PDF generation failed:", errText);
+      alert("PDF generation failed. Please check the form data and backend response.");
+      return;
     }
-  );
 
-  console.log("PDF status:", res.status);
-  console.log("Content-Type:", res.headers.get("content-type"));
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/pdf")) {
+      const text = await res.text();
+      console.error("Expected PDF, got:", text);
+      alert("Server did not return a PDF");
+      return;
+    }
 
-  if (!res.ok) {
-    throw new Error("PDF generation failed");
+    const blob = await res.blob();
+    const courseCode = (formData.course_code || "COURSE").replace(/\s+/g, "");
+
+    downloadFile(blob, `${courseCode}_${day}-${month}-${year}_${hours}-${minutes}.pdf`);
+  } catch (err) {
+    console.error("PDF download error:", err);
+    alert("Could not download PDF. Please check the backend connection.");
   }
-
-  const contentType = res.headers.get("content-type");
-  if (!contentType || !contentType.includes("application/pdf")) {
-    const text = await res.text();
-    console.error("Expected PDF, got:", text);
-    alert("Server did not return a PDF");
-    return;
-  }
-
-  const blob = await res.blob();
-  const courseCode = (formData.course_code || "COURSE").replace(/\s+/g, "");
-
-  downloadFile(blob, `${courseCode}_${day}-${month}-${year}_${hours}-${minutes}.pdf`);
 }
 
 const [showPopup,setShowPopup] = useState(null)
@@ -1336,8 +1497,41 @@ function ModuleTextbookForm({ onAdd }) {
     )}
 
     {/* ======== HEADER ======== */}
-    <div className="flex w-full justify-between items-center mb-6">
-      <h2 className="text-2xl font-semibold text-slate-700">
+    <div className="flex flex-col gap-3 mb-6">
+      <div className="-mb-1">
+        <h3 className="text-sm font-semibold text-slate-700">
+          Select Academic Scheme
+        </h3>
+        <p className="mt-1 text-xs text-slate-500">
+          Choose the scheme for which you want to add or edit course details.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => {handleSchemeChange("2024");setShowPopup("Switched to 2024 Scheme")}}
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            scheme === "2024"
+              ? "bg-slate-700 text-white"
+              : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-100"
+          }`}
+        >
+          2024
+        </button>
+        <button
+          type="button"
+          onClick={() => {handleSchemeChange("2025");setShowPopup("Switched to 2025 Scheme")}}
+          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            scheme === "2025"
+              ? "bg-indigo-600 text-white"
+              : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-100"
+          }`}
+        >
+          2025
+        </button>
+      </div>
+      <h2 className="text-2xl font-semibold text-slate-700 mt-4 -mb-3">
         Add / Edit Course Details
       </h2>
     </div>
@@ -1533,19 +1727,21 @@ function ModuleTextbookForm({ onAdd }) {
         </div>
       </div>
 
-      {/* L-T-P-S */}
+      {/* L-T-P-S / L-T-P */}
       <div className="md:w-1/5 w-full">
-        <label className="text-sm font-semibold text-slate-600">L-T-P-S</label>
+        <label className="text-sm font-semibold text-slate-600">
+          {is2025Scheme ? "L-T-P" : "L-T-P-S"}
+        </label>
         <input
           type="text"
           value={formData.ltps}
           onChange={(e) => setFormData({ ...formData, ltps: e.target.value })}
           className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
-          placeholder="4:2:1:0"
+          placeholder={is2025Scheme ? "3:1:0" : "4:2:1:0"}
         />
       </div>
 
-      {/* Credits & Exam Hours */}
+      {/* Credits + Pedagogy (2025) / Exam Hours (Older) */}
       <div className="md:w-1/4 flex w-full gap-4">
         <div className="w-1/2">
           <label className="text-sm font-semibold text-slate-600">Credits</label>
@@ -1559,34 +1755,83 @@ function ModuleTextbookForm({ onAdd }) {
             className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
           />
         </div>
-        <div className="w-1/2">
-          <label className="text-sm font-semibold text-slate-600">Exam hrs</label>
-          <input
-            type="text"
-            ref={refs.exam_hours}
-            value={formData.exam_hours}
-            onChange={(e) =>
-              setFormData({ ...formData, exam_hours: e.target.value })
-            }
-            className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
-            placeholder="3"
-          />
-        </div>
+
+        {is2025Scheme ? (
+          <div className="w-1/2">
+            <label className="flex flex-col leading-none">
+              <span className="text-sm font-semibold text-slate-600">
+                Pedagogy
+              </span>
+              <span className="text-[10px] text-slate-500 font-normal">
+                (L:T:P:SL&TW)
+              </span>
+            </label>
+
+            <input
+              type="text"
+              value={formData.pedagogy}
+              onChange={(e) =>
+                setFormData({ ...formData, pedagogy: e.target.value })
+              }
+              className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
+              placeholder="3:0:0:0:0"
+            />
+          </div>
+        ) : (
+          <div className="w-1/2">
+            <label className="text-sm font-semibold text-slate-600">
+              Exam hrs
+            </label>
+            <input
+              type="text"
+              ref={refs.exam_hours}
+              value={formData.exam_hours}
+              onChange={(e) =>
+                setFormData({ ...formData, exam_hours: e.target.value })
+              }
+              className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
+              placeholder="3"
+            />
+          </div>
+        )}
       </div>
 
-      {/* Pedagogy */}
+      {/* Remaining field: Exam Hours (2025) / Pedagogy (Older) */}
       <div className="md:w-1/6 w-full">
-        <label className="text-sm font-semibold text-slate-600">Pedagogy</label>
-        <input
-          type="text"
-          value={formData.pedagogy}
-          onChange={(e) =>
-            setFormData({ ...formData, pedagogy: e.target.value })
-          }
-          className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
-          placeholder="40+20"
-        />
+        {is2025Scheme ? (
+          <>
+            <label className="text-sm font-semibold text-slate-600">
+              Exam hrs
+            </label>
+            <input
+              type="text"
+              ref={refs.exam_hours}
+              value={formData.exam_hours}
+              onChange={(e) =>
+                setFormData({ ...formData, exam_hours: e.target.value })
+              }
+              className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
+              placeholder="3"
+            />
+          </>
+        ) : (
+          <>
+            <label className="text-sm font-semibold text-slate-600">
+              Pedagogy
+            </label>
+            <input
+              type="text"
+              value={formData.pedagogy}
+              onChange={(e) =>
+                setFormData({ ...formData, pedagogy: e.target.value })
+              }
+              className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
+              placeholder="40+20"
+            />
+          </>
+        )}
       </div>
+
 
       {/* CIE & SEE Marks */}
       <div className="md:w-1/4 w-full flex gap-4">
@@ -1684,39 +1929,41 @@ function ModuleTextbookForm({ onAdd }) {
     </div>
 
     {/* ======== MODERN AI TOOLS USED ======== */}
-    <div className="mt-8">
-      <div className="flex items-center justify-between mb-2">
-        <label className="text-sm font-semibold text-slate-600">
-          Modern tools
-        </label>
-        <button
-          type="button"
-          onClick={() => toggleSection("tools")}
-          className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition-colors"
-        >
-          {showSections.tools ? "Hide" : "Show"}
-        </button>
-      </div>
+    {!is2025Scheme && (
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-semibold text-slate-600">
+            Modern tools
+          </label>
+          <button
+            type="button"
+            onClick={() => toggleSection("tools")}
+            className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition-colors"
+          >
+            {showSections.tools ? "Hide" : "Show"}
+          </button>
+        </div>
 
-      {showSections.tools && (
-        <NumberedTextarea
-          isGen={docGen}
-          inputRef={refs.modern_tools}
-          value={
-            Array.isArray(formData.modern_tools)
-              ? formData.modern_tools.join("\n")
-              : formData.modern_tools || ""
-          }
-          onChange={(val) =>
-            setFormData((prev) => ({
-              ...prev,
-              modern_tools: val.split("\n").filter(Boolean),
-            }))
-          }
-          placeholder="Enter details regarding modern AI tools..."
-        />
-      )}
-    </div>
+        {showSections.tools && (
+          <NumberedTextarea
+            isGen={docGen}
+            inputRef={refs.modern_tools}
+            value={
+              Array.isArray(formData.modern_tools)
+                ? formData.modern_tools.join("\n")
+                : formData.modern_tools || ""
+            }
+            onChange={(val) =>
+              setFormData((prev) => ({
+                ...prev,
+                modern_tools: val.split("\n").filter(Boolean),
+              }))
+            }
+            placeholder="Enter details regarding modern AI tools..."
+          />
+        )}
+      </div>
+    )}
 
     {/* ======== MODULES DETAILS ======== */}
     {formData.course_type !== "PCCL" && (
@@ -2128,39 +2375,189 @@ function ModuleTextbookForm({ onAdd }) {
     </div>
 
     {/* ======== ACTIVITIES ======== */}
-    <div className="mt-8">
-      <div className="flex items-center justify-between mb-2">
-        <label className="text-sm font-semibold text-slate-600">
-          Activity-Based Learning
-        </label>
-        <button
-          type="button"
-          onClick={() => toggleSection("activity")}
-          className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition-colors"
-        >
-          {showSections.activity ? "Hide" : "Show"}
-        </button>
-      </div>
+    {!is2025Scheme && (
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-semibold text-slate-600">
+            Activity-Based Learning
+          </label>
+          <button
+            type="button"
+            onClick={() => toggleSection("activity")}
+            className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition-colors"
+          >
+            {showSections.activity ? "Hide" : "Show"}
+          </button>
+        </div>
 
-      {showSections.activity && (
-        <NumberedTextarea
-          isGen={docGen}
-          inputRef={refs.activity_based}
-          value={
-            Array.isArray(formData.activity_based)
-              ? formData.activity_based.join("\n")
-              : formData.activity_based || ""
-          }
-          onChange={(val) =>
-            setFormData((prev) => ({
-              ...prev,
-              activity_based: val.split("\n").filter(Boolean),
-            }))
-          }
-          placeholder="Enter activity-based learning methods"
-        />
-      )}
-    </div>
+        {showSections.activity && (
+          <NumberedTextarea
+            isGen={docGen}
+            inputRef={refs.activity_based}
+            value={
+              Array.isArray(formData.activity_based)
+                ? formData.activity_based.join("\n")
+                : formData.activity_based || ""
+            }
+            onChange={(val) =>
+              setFormData((prev) => ({
+                ...prev,
+                activity_based: val.split("\n").filter(Boolean),
+              }))
+            }
+            placeholder="Enter activity-based learning methods"
+          />
+        )}
+      </div>
+    )}
+
+    {is2025Scheme && (
+      <>
+        {/* ======== TERM WORK ACTIVITIES ======== */}
+        <div className="mt-12">
+          <div className="flex justify-between items-center border-b pb-2 mb-6">
+            <h3 className="text-lg font-semibold text-slate-700">Term Work (TW) Activities</h3>
+            <button
+              type="button"
+              onClick={addTermWorkActivity}
+              className="px-3 py-2 bg-slate-600 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors"
+            >
+              + Add TW
+            </button>
+          </div>
+
+          {(formData.termWorkActivities || []).length === 0 && (
+            <p className="text-gray-500 italic mb-4">No term work activities added yet.</p>
+          )}
+
+          {(formData.termWorkActivities || []).map((item, index) => {
+            const errors = termWorkErrors[index] || {};
+            return (
+              <div key={index} className="grid grid-cols-1 md:grid-cols-[1.7fr_1fr_auto] gap-4 mb-4 p-5 bg-slate-50 border border-slate-200 rounded-xl relative group">
+                <button
+                  type="button"
+                  onClick={() => removeTermWorkActivity(index)}
+                  className="absolute top-2 right-2 text-red-400 hover:text-red-600 bg-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Remove Activity"
+                >
+                  <X size={16} />
+                </button>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Activity Name</label>
+                  <input
+                    type="text"
+                    value={item.activity}
+                    onChange={(e) => updateTermWorkActivity(index, "activity", e.target.value)}
+                    className="w-full mt-1 p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                  />
+                  {errors.activity && (
+                    <p className="mt-1 text-xs text-red-500">{errors.activity}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Number of Hours / Semester</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={item.hours}
+                    onChange={(e) => updateTermWorkActivity(index, "hours", e.target.value)}
+                    className="w-full mt-1 p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                  />
+                  {errors.hours && (
+                    <p className="mt-1 text-xs text-red-500">{errors.hours}</p>
+                  )}
+                </div>
+
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    onClick={() => removeTermWorkActivity(index)}
+                    className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ======== SELF LEARNING ACTIVITIES ======== */}
+        <div className="mt-12">
+          <div className="flex justify-between items-center border-b pb-2 mb-6">
+            <h3 className="text-lg font-semibold text-slate-700">Self Learning (SL) Activities</h3>
+            <button
+              type="button"
+              onClick={addSelfLearningActivity}
+              className="px-3 py-2 bg-slate-600 text-white rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors"
+            >
+              + Add SL
+            </button>
+          </div>
+
+          {(formData.selfLearningActivities || []).length === 0 && (
+            <p className="text-gray-500 italic mb-4">No self learning activities added yet.</p>
+          )}
+
+          {(formData.selfLearningActivities || []).map((item, index) => {
+            const errors = selfLearningErrors[index] || {};
+            return (
+              <div key={index} className="grid grid-cols-1 md:grid-cols-[1.7fr_1fr_auto] gap-4 mb-4 p-5 bg-slate-50 border border-slate-200 rounded-xl relative group">
+                <button
+                  type="button"
+                  onClick={() => removeSelfLearningActivity(index)}
+                  className="absolute top-2 right-2 text-red-400 hover:text-red-600 bg-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Remove Activity"
+                >
+                  <X size={16} />
+                </button>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Activity Name</label>
+                  <input
+                    type="text"
+                    value={item.activity}
+                    onChange={(e) => updateSelfLearningActivity(index, "activity", e.target.value)}
+                    className="w-full mt-1 p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                  />
+                  {errors.activity && (
+                    <p className="mt-1 text-xs text-red-500">{errors.activity}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Number of Hours / Semester</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={item.hours}
+                    onChange={(e) => updateSelfLearningActivity(index, "hours", e.target.value)}
+                    className="w-full mt-1 p-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                  />
+                  {errors.hours && (
+                    <p className="mt-1 text-xs text-red-500">{errors.hours}</p>
+                  )}
+                </div>
+
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    onClick={() => removeSelfLearningActivity(index)}
+                    className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </>
+    )}
 
     {/* ======== CO-PO MAPPING TABLE ======== */}
     <div className="mt-12">

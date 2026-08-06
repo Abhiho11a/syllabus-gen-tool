@@ -224,79 +224,42 @@ function buildTwSlTableHTML(termWork = [], selfLearning = []) {
   }
 
 
-  let tableHTML = `
+  tableHTML = `
   <div class="section">
-
   <table class="twsl-table">
 
-      <tr>
-          <th colspan="3" class="table-title">
-              Term Work and Self Learning
-          </th>
-      </tr>
+  <tr>
+      <th colspan="3" class="table-title">
+          Term Work and Self Learning
+      </th>
+  </tr>
+
+  <tr>
+      <th style="width:10%">Sl.No.</th>
+      <th>Activity</th>
+      <th style="width:18%">Hours / Semester</th>
+  </tr>
   `;
 
 
   // ---------- TERM WORK ----------
-  if (validTW.length > 0) {
-
-    const twRows = validTW.map((item, i) => `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${escapeHTML(item.activity || "-")}</td>
-        <td>${escapeHTML(item.hours || "-")}</td>
-      </tr>
-    `).join("");
-
-
+  if (validTW.length) {
     tableHTML += `
-      <tr>
-        <th colspan="3" class="sub-heading">
-            Term Work (TW)
-        </th>
-      </tr>
-
-      <tr>
-        <th style="width:10%">Sl.No.</th>
-        <th>Activity</th>
-        <th style="width:18%">Hours / Semester</th>
-      </tr>
-
-      ${twRows}
+        <tr>
+            <td colspan="3" class="sub-heading"><b>Term Work (TW)</b></td>
+        </tr>
+        ${twRows}
     `;
+}
+
+  if (validSL.length) {
+      tableHTML += `
+          <tr>
+              <td colspan="3" class="sub-heading"><b>Self Learning (SL)</b></td>
+          </tr>
+          ${slRows}
+      `;
   }
-
-
-
-  // ---------- SELF LEARNING ----------
-  if (validSL.length > 0) {
-
-    const slRows = validSL.map((item, i) => `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${escapeHTML(item.activity || "-")}</td>
-        <td>${escapeHTML(item.hours || "-")}</td>
-      </tr>
-    `).join("");
-
-
-    tableHTML += `
-      <tr>
-        <th colspan="3" class="sub-heading">
-            Self Learning (SL)
-        </th>
-      </tr>
-
-      <tr>
-        <th>Sl.No.</th>
-        <th>Activity</th>
-        <th>Hours / Semester</th>
-      </tr>
-
-      ${slRows}
-    `;
-  }
-
 
   tableHTML += `
       </table>
