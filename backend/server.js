@@ -201,88 +201,155 @@ function buildActivityTableHTML(title, items = []) {
   `;
 }
 
+
 function buildTwSlTableHTML(termWork = [], selfLearning = []) {
 
-  const validTW = Array.isArray(termWork)
-    ? termWork.filter(item =>
-        String(item?.activity || "").trim() ||
-        String(item?.hours || "").trim()
-      )
-    : [];
+    // Filter valid Term Work entries
+      const validTW = Array.isArray(termWork)
+          ? termWork.filter(item =>
+                  String(item?.activity || "").trim() ||
+                          String(item?.hours || "").trim()
+                                )
+                                    : [];
 
-  const validSL = Array.isArray(selfLearning)
-    ? selfLearning.filter(item =>
-        String(item?.activity || "").trim() ||
-        String(item?.hours || "").trim()
-      )
-    : [];
+                                      // Filter valid Self Learning entries
+                                        const validSL = Array.isArray(selfLearning)
+                                            ? selfLearning.filter(item =>
+                                                    String(item?.activity || "").trim() ||
+                                                            String(item?.hours || "").trim()
+                                                                  )
+                                                                      : [];
 
-
-  // If no TW and no SL data, return nothing
-  if (validTW.length === 0 && validSL.length === 0) {
-    return "";
-  }
-
-
-  let tableHTML = `
-  <div class="section">
-  <table class="twsl-table">
-cd
-  <tr>
-      <th colspan="3" class="table-title">
-          Term Work and Self Learning
-      </th>
-  </tr>
-
-  <tr>
-      <th style="width:10%">Sl.No.</th>
-      <th>Activity</th>
-      <th style="width:18%">Hours / Semester</th>
-  </tr>
-  `;
-
-  const twRows = validTW.map((item, i) => `
-  <tr>
-    <td>${i + 1}</td>
-    <td>${escapeHTML(item.activity || "-")}</td>
-    <td>${escapeHTML(item.hours || "-")}</td>
-  </tr>
-`).join("");
-
-  const slRows = validSL.map((item, i) => `
-    <tr>
-      <td>${i + 1}</td>
-      <td>${escapeHTML(item.activity || "-")}</td>
-      <td>${escapeHTML(item.hours || "-")}</td>
-    </tr>
-  `).join("");
-
-  // ---------- TERM WORK ----------
-  if (validTW.length) {
-    tableHTML += `
-        <tr>
-            <td colspan="3" class="sub-heading"><b>Term Work (TW)</b></td>
-        </tr>
-        ${twRows}
-    `;
-}
-
-  if (validSL.length) {
-      tableHTML += `
-          <tr>
-              <td colspan="3" class="sub-heading"><b>Self Learning (SL)</b></td>
-          </tr>
-          ${slRows}
-      `;
-  }
-
-  tableHTML += `
-      </table>
-    </div>
-  `;
+                                                                        // If there is no TW and no SL data, don't generate the table
+                                                                          if (validTW.length === 0 && validSL.length === 0) {
+                                                                              return "";
+                                                                                }
 
 
-  return tableHTML;
+                                                                                  // =========================================================
+                                                                                    // TERM WORK ROWS
+                                                                                      // =========================================================
+
+                                                                                        const twRows = validTW.map((item, index) => `
+                                                                                            <tr>
+                                                                                                  <td class="twsl-slno">
+                                                                                                          ${index + 1}.
+                                                                                                                </td>
+
+                                                                                                                      <td class="twsl-activity">
+                                                                                                                              ${escapeHTML(item.activity || "")}
+                                                                                                                                    </td>
+
+                                                                                                                                          <td class="twsl-hours">
+                                                                                                                                                  ${escapeHTML(item.hours || "")}
+                                                                                                                                                        </td>
+                                                                                                                                                            </tr>
+                                                                                                                                                              `).join("");
+
+
+                                                                                                                                                                // =========================================================
+                                                                                                                                                                  // SELF LEARNING ROWS
+                                                                                                                                                                    // =========================================================
+
+                                                                                                                                                                      const slRows = validSL.map((item, index) => `
+                                                                                                                                                                          <tr>
+                                                                                                                                                                                <td class="twsl-slno">
+                                                                                                                                                                                        ${index + 1}.
+                                                                                                                                                                                              </td>
+
+                                                                                                                                                                                                    <td class="twsl-activity">
+                                                                                                                                                                                                            ${escapeHTML(item.activity || "")}
+                                                                                                                                                                                                                  </td>
+
+                                                                                                                                                                                                                        <td class="twsl-hours">
+                                                                                                                                                                                                                                ${escapeHTML(item.hours || "")}
+                                                                                                                                                                                                                                      </td>
+                                                                                                                                                                                                                                          </tr>
+                                                                                                                                                                                                                                            `).join("");
+
+
+                                                                                                                                                                                                                                              // =========================================================
+                                                                                                                                                                                                                                                // ONE SINGLE TABLE
+                                                                                                                                                                                                                                                  // =========================================================
+
+                                                                                                                                                                                                                                                    return `
+                                                                                                                                                                                                                                                        <div class="section">
+
+                                                                                                                                                                                                                                                              <!-- MAIN TABLE TITLE -->
+                                                                                                                                                                                                                                                                    <div class="section-title">
+                                                                                                                                                                                                                                                                            Term Work (TW) and Self Learning (SL) components in
+                                                                                                                                                                                                                                                                                    Number of hours / semester
+                                                                                                                                                                                                                                                                                          </div>
+
+
+                                                                                                                                                                                                                                                                                                <table class="twsl-table">
+
+                                                                                                                                                                                                                                                                                                        <!-- =================================================
+                                                                                                                                                                                                                                                                                                                     TERM WORK COLUMN HEADINGS
+                                                                                                                                                                                                                                                                                                                                  ================================================= -->
+
+                                                                                                                                                                                                                                                                                                                                          <thead>
+
+                                                                                                                                                                                                                                                                                                                                                    <tr>
+                                                                                                                                                                                                                                                                                                                                                                <th class="twsl-slno">
+                                                                                                                                                                                                                                                                                                                                                                              SL. NO
+                                                                                                                                                                                                                                                                                                                                                                                          </th>
+
+                                                                                                                                                                                                                                                                                                                                                                                                      <th class="twsl-activity">
+                                                                                                                                                                                                                                                                                                                                                                                                                    Term work (TW)
+                                                                                                                                                                                                                                                                                                                                                                                                                                  (Assignment / Seminar / Micro projects /
+                                                                                                                                                                                                                                                                                                                                                                                                                                                Industrial visit, with any other student activities, etc.)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                            </th>
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <th class="twsl-hours">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      Number of hours / semester
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  </th>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            </tr>
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </thead>
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <tbody>
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      <!-- TERM WORK DATA -->
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ${twRows}
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          <!-- =================================================
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         SELF LEARNING COLUMN HEADINGS
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ================================================= -->
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  <tr class="sl-section-header">
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              <th class="twsl-slno">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            SL. NO
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </th>
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <th class="twsl-activity">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  Self learning (SL)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                [MOOC / Spoken tutorials /
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              online educational resources etc.]
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          </th>
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      <th class="twsl-hours">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    Number of hours / semester
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </th>
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          </tr>
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <!-- SELF LEARNING DATA -->
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              ${slRows}
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      </tbody>
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            </table>
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  `;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  }
 }
 
 
