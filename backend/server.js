@@ -227,7 +227,7 @@ function buildTwSlTableHTML(termWork = [], selfLearning = []) {
   let tableHTML = `
   <div class="section">
   <table class="twsl-table">
-
+cd
   <tr>
       <th colspan="3" class="table-title">
           Term Work and Self Learning
