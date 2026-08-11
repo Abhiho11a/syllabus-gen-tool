@@ -2126,7 +2126,7 @@ function ModuleTextbookForm({ onAdd }) {
                                                     name="teachingHours"
                                                           value={mod.teachingHours || ""}
                                                                 onChange={(e) =>
-                                                                        handleModuleChange(idx, e.target.value)
+                                                                        handleModuleChange(idx, e)
                                                                               }
                                                                                     placeholder="Enter hours"
                                                                                           className="w-full mt-1 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
