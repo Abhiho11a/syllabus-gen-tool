@@ -815,7 +815,7 @@ html = html.replace("{{SELF_LEARNING_SECTION}}", "");
             </span>
 
             <span>
-                TH: ${escapeHTML(mod.teachingHours || "-")}
+              Hours: ${escapeHTML(mod.teachingHours || "-")}
             </span>
           </div>
 
