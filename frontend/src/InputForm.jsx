@@ -57,7 +57,8 @@ export default function InputForm(){
       textbook: "",
       chapter: "",
       rbt: "",
-      wkt: ""
+      wkt: "",
+      teachingHours: ""
 };
 const DRAFT_KEY = "syllabus_form_draft";
 
@@ -2088,7 +2089,7 @@ function ModuleTextbookForm({ onAdd }) {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="text-sm font-semibold text-gray-700">
                   RBT Level(s)
@@ -2112,6 +2113,25 @@ function ModuleTextbookForm({ onAdd }) {
                   className="w-full mt-1 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
                 />
               </div>
+
+              {/* Teaching Hours */}
+                <div>
+                    <label className="text-sm font-semibold text-gray-700">
+                          Teaching Hours
+                              </label>
+
+                                  <input
+                                        type="number"
+                                              min="0"
+                                                    name="teachingHours"
+                                                          value={mod.teachingHours || ""}
+                                                                onChange={(e) =>
+                                                                        handleModuleChange(idx, e.target.value)
+                                                                              }
+                                                                                    placeholder="Enter hours"
+                                                                                          className="w-full mt-1 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                                                                              />
+                                                                                                </div>
             </div>
           </div>
         ))}
