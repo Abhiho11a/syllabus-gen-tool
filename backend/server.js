@@ -814,6 +814,9 @@ html = html.replace("{{SELF_LEARNING_SECTION}}", "");
               WK: ${escapeHTML(mod.wk || mod.wkt || "-")}
             </span>
 
+            <span>
+                TH: ${escapeHTML(mod.teachingHours || "-")}
+            </span>
           </div>
 
         </div>
