@@ -783,7 +783,7 @@ html = html.replace("{{SELF_LEARNING_SECTION}}", "");
           const slNo = escapeHTML(tb.slNo || "-");
           const chapter = escapeHTML(tb.chapter || "-");
 
-          return `TB${slNo}:${chapter}`;
+          return `TB${slNo}:Ch-${chapter}`;
         })
         .join(" , ");
 
@@ -815,7 +815,7 @@ html = html.replace("{{SELF_LEARNING_SECTION}}", "");
             </span>
 
             <span>
-              Hours: ${escapeHTML(mod.teachingHours || "-")}
+               ${escapeHTML(mod.teachingHours || "-")} hours
             </span>
           </div>
 
@@ -869,7 +869,7 @@ if (validExperiments.length > 0) {
         <thead>
           <tr>
             <th class="expSl">Sl. No.</th>
-            <th class="expCont">Experiment</th>
+            <th class="expCont">List of Experiments</th>
           </tr>
         </thead>
         <tbody style="font-size:11px;">${rowsHTML}</tbody>
@@ -916,7 +916,7 @@ if (validExperiments.length > 0) {
         <thead>
           <tr>
             <th class="expSl">Sl. No.</th>
-            <th class="expCont" >Experiment</th>
+            <th class="expCont" >List of Experiments</th>
           </tr>
         </thead>
         <tbody style="font-size:11px;">
