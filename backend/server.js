@@ -1076,7 +1076,7 @@ if (hasAnyPart) {
                                                   </td>
 
                                                           <td style="text-align:left;">
-                                                                    ${escapeHTML(exp.content || "")}
+                                                                    ${escapeHTML(exp.cont || "")}
                                                                             </td>
                                                                                   </tr>
                                                                                       `).join("");
