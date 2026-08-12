@@ -878,55 +878,92 @@ if (validExperiments.length > 0) {
   }
 
   if (hasAnyPart) {
-  const effectivePartA = [...noPart, ...partA];
+      const effectivePartA = [...noPart, ...partA];
 
-  // Build rows for a section with a part-header row inside the table
-  function buildPartRows(label, exps) {
-    if (exps.length === 0) return "";
+        // Check which parts actually contain experiments
+          const hasPartA = effectivePartA.length > 0;
+            const hasPartB = partB.length > 0;
 
-   const headerRow = `
-  <tr>
-    <td></td>
-    <td style="font-weight:bold; text-align:center; padding: 6px 10px;">
-      ${label}
-    </td>
-  </tr>
-`;
+              // Build experiment rows
+                function buildExperimentRows(exps) {
+                    if (!exps || exps.length === 0) return "";
 
-    const dataRows = exps.flatMap(exp => {
-      const parts = splitExperimentContent(
-        boldToHTML(escapeHTML(exp.cont || "")),
-        30
-      );
-      return parts.map((part, idx) => `
-        <tr>
-          <td>${idx === 0 ? escapeHTML(exp.slno) : ""}</td>
-          <td style="text-align:left;">${part}</td>
-        </tr>
-      `);
-    }).join("");
+                        return exps.map(exp => {
+                              const slNo = exp.slNo ? escapeHTML(exp.slNo) : "";
+                                    const content = buildHTML(
+                                            exp.exp || exp.content || ""
+                                                  );
 
-    return headerRow + dataRows;
+                                                        return `
+                                                                <tr>
+                                                                          <td style="text-align:left;">
+                                                                                      ${slNo}
+                                                                                                </td>
+                                                                                                          <td style="text-align:left;">
+                                                                                                                      ${content}
+                                                                                                                                </td>
+                                                                                                                                        </tr>
+                                                                                                                                              `;
+                                                                                                                                                  }).join("");
+                                                                                                                                                    }
+
+                                                                                                                                                      // Build rows for each part
+                                                                                                                                                        function buildPartRows(label, exps, showHeading) {
+                                                                                                                                                            if (!exps || exps.length === 0) return "";
+
+                                                                                                                                                                const dataRows = buildExperimentRows(exps);
+
+                                                                                                                                                                    // Only show Part A / Part B heading when BOTH parts exist
+                                                                                                                                                                        if (showHeading) {
+                                                                                                                                                                              return `
+                                                                                                                                                                                      <tr>
+                                                                                                                                                                                                <td colspan="2"
+                                                                                                                                                                                                              style="font-weight:bold;
+                                                                                                                                                                                                                                   text-align:center;
+                                                                                                                                                                                                                                                        padding:5px 10px;">
+                                                                                                                                                                                                                                                                    ${label}
+                                                                                                                                                                                                                                                                              </td>
+                                                                                                                                                                                                                                                                                      </tr>
+                                                                                                                                                                                                                                                                                              ${dataRows}
+                                                                                                                                                                                                                                                                                                    `;
+                                                                                                                                                                                                                                                                                                        }
+
+                                                                                                                                                                                                                                                                                                            return dataRows;
+                                                                                                                                                                                                                                                                                                              }
+
+                                                                                                                                                                                                                                                                                                                // Show Part A / Part B headings ONLY when both have experiments
+                                                                                                                                                                                                                                                                                                                  const showPartHeadings = hasPartA && hasPartB;
+
+                                                                                                                                                                                                                                                                                                                    experimentsHTML = `
+                                                                                                                                                                                                                                                                                                                        <div class="section">
+                                                                                                                                                                                                                                                                                                                              <div class="section-title">Practical Components</div>
+
+                                                                                                                                                                                                                                                                                                                                    <table class="experiments">
+                                                                                                                                                                                                                                                                                                                                            <thead>
+                                                                                                                                                                                                                                                                                                                                                      <tr>
+                                                                                                                                                                                                                                                                                                                                                                  <th class="expS1">Sl. No.</th>
+                                                                                                                                                                                                                                                                                                                                                                              <th class="expCont">List of Experiments</th>
+                                                                                                                                                                                                                                                                                                                                                                                        </tr>
+                                                                                                                                                                                                                                                                                                                                                                                                </thead>
+
+                                                                                                                                                                                                                                                                                                                                                                                                        <tbody>
+                                                                                                                                                                                                                                                                                                                                                                                                                  ${buildPartRows(
+                                                                                                                                                                                                                                                                                                                                                                                                                              "Part A",
+                                                                                                                                                                                                                                                                                                                                                                                                                                          effectivePartA,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                      showPartHeadings
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                )}
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ${buildPartRows(
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      "Part B",
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  partB,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              showPartHeadings
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        )}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </tbody>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      </table>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          </div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            `;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
   }
-
-  experimentsHTML = `
-    <div class="section">
-      <div class="section-title">Practical Components</div>
-      <table class="experiments">
-        <thead>
-          <tr>
-            <th class="expSl">Sl. No.</th>
-            <th class="expCont" >List of Experiments</th>
-          </tr>
-        </thead>
-        <tbody style="font-size:11px;">
-          ${buildPartRows("Part A", effectivePartA)}
-          ${buildPartRows("Part B", partB)}
-        </tbody>
-      </table>
-    </div>
-  `;
-
 } else {
   experimentsHTML = `
     <div class="section">
