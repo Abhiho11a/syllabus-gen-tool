@@ -1072,7 +1072,7 @@ if (hasAnyPart) {
                   return experiments.map((exp) => `
                         <tr>
                                 <td>
-                                          ${escapeHTML(exp.slNo || "")}
+                                          ${escapeHTML(exp.slno || "")}
                                                   </td>
 
                                                           <td style="text-align:left;">
