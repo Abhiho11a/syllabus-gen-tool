@@ -2115,7 +2115,7 @@ function ModuleTextbookForm({ onAdd }) {
               </div>
 
               {/* Teaching Hours */}
-                <div>
+                {is2025Scheme && <div>
                     <label className="text-sm font-semibold text-gray-700">
                           Teaching Hours
                               </label>
@@ -2131,7 +2131,7 @@ function ModuleTextbookForm({ onAdd }) {
                                                                                     placeholder="Enter hours"
                                                                                           className="w-full mt-1 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                                                                                               />
-                                                                                                </div>
+                                                                                                </div>}
             </div>
           </div>
         ))}
