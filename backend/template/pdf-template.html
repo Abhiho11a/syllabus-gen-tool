@@ -121,6 +121,59 @@ li {
   margin-bottom: 3px;
 }
 
+/* ===== 2025 TOOLS + PREREQUISITES ===== */
+
+.tools-prerequisites-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  table-layout: fixed;
+}
+
+.tools-prerequisites-table th {
+  border: 1px solid #000;
+  text-align: center;
+  vertical-align: middle;
+  font-weight: bold;
+  font-size: 11px;
+  padding: 6px 8px;
+  line-height: 1.25;
+}
+
+.tools-prerequisites-table td {
+  border: 1px solid #000;
+  vertical-align: top;
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.tools-prerequisites-table th:first-child,
+.tools-prerequisites-table td:first-child {
+  width: 65%;
+}
+
+.tools-prerequisites-table th:last-child,
+.tools-prerequisites-table td:last-child {
+  width: 35%;
+}
+
+.tools-prereq-cell {
+  text-align: left;
+}
+
+.tools-prereq-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 3px;
+}
+
+.tools-prereq-number {
+  min-width: 18px;
+  font-weight: normal;
+}
+
 /* ================= MODULE ================= */
 .module {
   border: 1px solid #999;
@@ -362,7 +415,7 @@ table.twsl-table .twslHours {
 <!-- END: TEACHING_LEARNING -->
 
   
-  <!-- ================= MODERN TOOLS ================= -->
+<!-- ================= MODERN TOOLS ================= -->
 <!-- SECTION: MODERN_TOOLS -->
 <div class="section">
   <div class="section-title">Modern Tools </div>
@@ -372,7 +425,14 @@ table.twsl-table .twslHours {
     {{/each}}
   </ul>
 </div>
+
 <!-- END: MODERN_TOOLS -->
+
+<!-- SECTION: 2025_TOOLS_PREREQUISITES -->
+<div id="2025_TOOLS_PREREQUISITES">
+  {{TOOLS_PREREQUISITES_SECTION}}
+</div>
+<!-- END: 2025_TOOLS_PREREQUISITES -->
 
 <!-- ================= MODULES ================= -->
 {{#each modules}}

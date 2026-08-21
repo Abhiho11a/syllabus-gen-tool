@@ -686,6 +686,97 @@ function generateSyllabusHTML(templateHTML, courseData) {
     );
   }
 
+  // ================= 2025 TOOLS + PREREQUISITES =================
+  if (is2025) {
+    const tools = Array.isArray(courseData.tools_ai_programming)
+      ? courseData.tools_ai_programming
+      : typeof courseData.tools_ai_programming === "string"
+        ? courseData.tools_ai_programming.split("\n")
+        : [];
+
+    const prerequisites = Array.isArray(courseData.prerequisites)
+      ? courseData.prerequisites
+      : typeof courseData.prerequisites === "string"
+        ? courseData.prerequisites.split("\n")
+        : [];
+
+    // Remove empty values and empty numbering
+    const cleanTools = tools
+      .map(item => String(item || "").trim())
+      .filter(item => item && !/^\d+\.?\s*$/.test(item));
+
+    const cleanPrerequisites = prerequisites
+      .map(item => String(item || "").trim())
+      .filter(item => item && !/^\d+\.?\s*$/.test(item));
+
+    // Build numbered list
+    const toolsHTML = cleanTools.length
+      ? cleanTools
+          .map((item, index) => `
+            <div class="tools-prereq-item">
+              <span class="tools-prereq-number">${index + 1}.</span>
+              <span>${boldToHTML(escapeHTML(item))}</span>
+            </div>
+          `)
+          .join("")
+      : "";
+
+    const prerequisitesHTML = cleanPrerequisites.length
+      ? cleanPrerequisites
+          .map((item, index) => `
+            <div class="tools-prereq-item">
+              <span class="tools-prereq-number">${index + 1}.</span>
+              <span>${boldToHTML(escapeHTML(item))}</span>
+            </div>
+          `)
+          .join("")
+      : "";
+
+    // Only display the section if at least one side has content
+    if (cleanTools.length > 0 || cleanPrerequisites.length > 0) {
+      const toolsPrerequisitesHTML = `
+        <div class="section">
+          <table class="tools-prerequisites-table">
+            <tr>
+              <th>
+                TOOLS / AI TOOLS / PROGRAMMING LANGUAGES
+              </th>
+              <th>
+                PREREQUISITES
+              </th>
+            </tr>
+
+            <tr>
+              <td class="tools-prereq-cell">
+                ${toolsHTML}
+              </td>
+
+              <td class="tools-prereq-cell">
+                ${prerequisitesHTML}
+              </td>
+            </tr>
+          </table>
+        </div>
+      `;
+
+      html = html.replace(
+        "{{TOOLS_PREREQUISITES_SECTION}}",
+        toolsPrerequisitesHTML
+      );
+    } else {
+      html = html.replace(
+        /<!-- SECTION: 2025_TOOLS_PREREQUISITES -->[\s\S]*?<!-- END: 2025_TOOLS_PREREQUISITES -->/,
+        ""
+      );
+    }
+  } else {
+    // Remove this entire section for non-2025 schemes
+    html = html.replace(
+      /<!-- SECTION: 2025_TOOLS_PREREQUISITES -->[\s\S]*?<!-- END: 2025_TOOLS_PREREQUISITES -->/,
+      ""
+    );
+  }
+
   // ================= COURSE OUTCOMES =================
   if (hasMeaningfulContent(courseData.course_outcomes)) {
     html = html.replace(
