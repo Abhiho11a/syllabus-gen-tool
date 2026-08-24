@@ -7,7 +7,7 @@ export default function NumberedTextarea({
   placeholder,
   prefix = "",
   inputRef,
-  autoNumber = true         
+  autoNumber = true,
 }) {
   const ref = useRef(null);
   const initializedRef = useRef(false);
@@ -17,25 +17,31 @@ export default function NumberedTextarea({
 3. 
 4. `;
 
-  // ✅ initialize ONLY once
+  // Initialize only once
   useEffect(() => {
     if (initializedRef.current) return;
 
     if (!value || value.trim() === "") {
-      const initialValue = prefix
-        ? prefix.trimEnd() + "\n" + DEFAULT_POINTS
-        : DEFAULT_POINTS;
+      // For fields where automatic numbering is disabled,
+      // start with an empty textarea.
+      if (!autoNumber) {
+        onChange(prefix ? prefix.trimEnd() + "\n" : "");
+      } else {
+        const initialValue = prefix
+          ? prefix.trimEnd() + "\n" + DEFAULT_POINTS
+          : DEFAULT_POINTS;
 
-      onChange(initialValue);
+        onChange(initialValue);
+      }
     }
 
     initializedRef.current = true;
-  }, []);
+  }, [value, prefix, autoNumber, onChange]);
 
   const handleChange = (e) => {
     const text = e.target.value;
 
-    // ✅ protect prefix without wiping content
+    // Protect prefix without wiping content
     if (prefix && !text.startsWith(prefix)) {
       return;
     }
@@ -46,47 +52,62 @@ export default function NumberedTextarea({
   const handleKeyDown = (e) => {
     if (e.key !== "Enter") return;
 
-      // Don't automatically add numbering
-      if (!autoNumber) return;
+    // If automatic numbering is disabled,
+    // allow normal Enter behavior.
+    if (!autoNumber) return;
 
-      e.preventDefault();
+    e.preventDefault();
 
-      const lines = value.split("\n");
+    const lines = value.split("\n");
 
-      let lastNumber = 0;
-      for (let i = lines.length - 1; i >= 0; i--) {
-        const match = lines[i].match(/^(\d+)\.\s*/);
-        if (match) {
-          lastNumber = parseInt(match[1], 10);
-          break;
-        }
+    let lastNumber = 0;
+
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const match = lines[i].match(/^(\d+)\.\s*/);
+
+      if (match) {
+        lastNumber = parseInt(match[1], 10);
+        break;
       }
-
-      const nextNumber = lastNumber + 1;
-      const newValue = value.trimEnd() + `\n${nextNumber}. `;
-
-      onChange(newValue);
-
-      setTimeout(() => {
-        if (ref.current) {
-          ref.current.selectionStart =
-            ref.current.selectionEnd = newValue.length;
-        }
-      }, 0);
     }
+
+    const nextNumber = lastNumber + 1;
+
+    const newValue =
+      value.trimEnd() + `\n${nextNumber}. `;
+
+    onChange(newValue);
+
+    setTimeout(() => {
+      const textarea = inputRef?.current || ref.current;
+
+      if (textarea) {
+        textarea.selectionStart = newValue.length;
+        textarea.selectionEnd = newValue.length;
+      }
+    }, 0);
   };
 
   return (
     <textarea
-        ref={inputRef}    // ✅ ADD THIS
-
+      ref={inputRef || ref}
       value={value}
       placeholder={placeholder}
-      readOnly={isGen}      // 👈 THIS IS THE REAL LOCK
-  onChange={(e) => isGen?alert("To edit Document please click Edit & Regenerate Button"):handleChange(e)}
-  onKeyDown={(e) => isGen?alert("To edit Document please click Edit & Regenerate Button"):handleKeyDown(e)}
-      // onChange={(e) => isGen?alert("To Edit Document Please click Edit & Regenerate Btn"):handleChange(e)}
-      // onKeyDown={handleKeyDown}
+      readOnly={isGen}
+      onChange={(e) =>
+        isGen
+          ? alert(
+              "To edit Document please click Edit & Regenerate Button"
+            )
+          : handleChange(e)
+      }
+      onKeyDown={(e) =>
+        isGen
+          ? alert(
+              "To edit Document please click Edit & Regenerate Button"
+            )
+          : handleKeyDown(e)
+      }
       rows={6}
       className="w-full mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg
                  resize-none focus:ring-2 focus:ring-slate-400 outline-none"
