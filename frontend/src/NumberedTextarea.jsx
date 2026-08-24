@@ -6,7 +6,8 @@ export default function NumberedTextarea({
   onChange,
   placeholder,
   prefix = "",
-  inputRef          
+  inputRef,
+  autoNumber = true         
 }) {
   const ref = useRef(null);
   const initializedRef = useRef(false);
@@ -43,7 +44,11 @@ export default function NumberedTextarea({
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
+    if (e.key !== "Enter") return;
+
+      // Don't automatically add numbering
+      if (!autoNumber) return;
+
       e.preventDefault();
 
       const lines = value.split("\n");

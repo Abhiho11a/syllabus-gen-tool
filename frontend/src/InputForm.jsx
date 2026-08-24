@@ -42,6 +42,8 @@ export default function InputForm(){
     modern_tools: useRef(null),
     course_outcomes: useRef(null),
     teaching_learning: useRef(null),
+    tools_ai_programming:useRef(null),
+    prerequisites:useRef(null)
 };
 
   // Check if we are in "Portal Submission Mode" by looking at the URL
@@ -766,7 +768,15 @@ function generateDocument() {
     { key: "course_objectives", msg: "Please fill Course Objectives" },
     { key: "course_outcomes", msg: "Please fill Course Outcomes" },
     { key: "teaching_learning", msg: "Please fill Teaching & Learning" },
-    { key: "modern_tools", msg: "Please fill details regarding modern AI tools" },
+    // Only required for 2024 scheme
+    ...(!is2025Scheme
+      ? [
+          {
+            key: "modern_tools",
+            msg: "Please fill details regarding modern AI tools",
+          },
+        ]
+      : []),
   ];
 
   for (const item of checks) {
@@ -1202,11 +1212,13 @@ useEffect(() => {
 
       const [showSections,setShowSections] = useState({
         objectives:false,
-        tl:false,
+        tl:false, 
         tools:false,
         outcomes:false,
         links:false,
-        activity:false
+        activity:false,
+        tools_ai_programming: false,
+        prerequisites: false
       })
 
   //        useEffect(() => {
@@ -1961,6 +1973,88 @@ function ModuleTextbookForm({ onAdd }) {
               }))
             }
             placeholder="Enter details regarding modern AI tools..."
+          />
+        )}
+      </div>
+    )}
+
+    {/* ======== 2025 SCHEME: TOOLS / AI TOOLS / PROGRAMMING LANGUAGES ======== */}
+    {is2025Scheme && (
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-semibold text-slate-600">
+            Tools / AI Tools / Programming Languages
+          </label>
+
+          <button
+            type="button"
+            onClick={() => toggleSection("tools_ai_programming")}
+            className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition-colors"
+          >
+            {showSections.tools_ai_programming ? "Hide" : "Show"}
+          </button>
+        </div>
+
+        {showSections.tools_ai_programming && (
+          <NumberedTextarea
+            isGen={docGen}
+            inputRef={refs.tools_ai_programming}
+            autoNumber={false}
+            value={
+              Array.isArray(formData.tools_ai_programming)
+                ? formData.tools_ai_programming.join("\n")
+                : formData.tools_ai_programming || ""
+            }
+            onChange={(val) =>
+              setFormData((prev) => ({
+                ...prev,
+                tools_ai_programming: val
+                  .split("\n")
+                  .filter(Boolean),
+              }))
+            }
+            placeholder="Enter Tools / AI Tools / Programming Languages..."
+          />
+        )}
+      </div>
+    )}
+
+    {/* ======== 2025 SCHEME: PREREQUISITES ======== */}
+    {is2025Scheme && (
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-semibold text-slate-600">
+            Prerequisites
+          </label>
+
+          <button
+            type="button"
+            onClick={() => toggleSection("prerequisites")}
+            className="text-xs px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 transition-colors"
+          >
+            {showSections.prerequisites ? "Hide" : "Show"}
+          </button>
+        </div>
+
+        {showSections.prerequisites && (
+          <NumberedTextarea
+            isGen={docGen}
+            inputRef={refs.prerequisites}
+            autoNumber={false}
+            value={
+              Array.isArray(formData.prerequisites)
+                ? formData.prerequisites.join("\n")
+                : formData.prerequisites || ""
+            }
+            onChange={(val) =>
+              setFormData((prev) => ({
+                ...prev,
+                prerequisites: val
+                  .split("\n")
+                  .filter(Boolean),
+              }))
+            }
+            placeholder="Enter prerequisites (one per line, without numbering)..."
           />
         )}
       </div>
