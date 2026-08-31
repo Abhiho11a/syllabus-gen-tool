@@ -920,6 +920,7 @@ if (!hasRealUserContent(formData.teaching_learning)) {
   else if (baseType === "IPCC") user_res = "T+L";
   else if (["OEC", "PEC", "PCC", "UHV","BSC","HSMC"].includes(baseType)) user_res = "T";
   else if (baseType === "PCCL") user_res = "L";
+  else if (baseType === "ASC") user_res = "T"
 
   if (!user_res) 
   {
@@ -927,7 +928,7 @@ if (!hasRealUserContent(formData.teaching_learning)) {
     return;
   }
 
-  console.log(user_res)
+  // console.log(user_res)
   const updatedType = user_res.course_type === "MC"?`MC`:`${baseType} (${user_res})`;
 
   setFormData({
