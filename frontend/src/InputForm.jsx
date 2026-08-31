@@ -1736,6 +1736,7 @@ function ModuleTextbookForm({ onAdd }) {
             <option value="MC_EXAM_1">MC with exam (1 credit)</option>
             <option value="MC_EXAM_2">MC with exam (2 credits)</option>
             <option value="MC_NO_EXAM">MC without exam</option>
+            <option value="ASC">ASC</option>
           </select>
         </div>
       </div>
