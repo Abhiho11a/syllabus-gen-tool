@@ -1417,15 +1417,11 @@ html = html.replace(
   // ================= GUIDELINES & RUBRICS =================
 
   html = html.replace(
-      "{{GUIDELINES_RUBRICS_SECTION}}",
-      ""
-    );
-  if(is2025){
-    html = html.replace(
-      "{{GUIDELINES_RUBRICS_SECTION}}",
-      buildGuidelinesRubricsHTML(courseData)
-    );
-  }
+    "{{GUIDELINES_RUBRICS_SECTION}}",
+    is2025
+      ? buildGuidelinesRubricsHTML(courseData)
+      : ""
+  );
 
   // ================= CO–PO–PSO =================
 let copoHTML = "";
