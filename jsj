@@ -11,7 +11,6 @@ import Popup from "./Popup";
 import ExperimentsSection from "./Experiments";
 import RubricsSection from "./components/RubricsSection"
 import GuidelinesSection from "./components/GUidelinesSection";
-import ModulesSection from "./components/ModulesSection";
 
 function getApiUrl() {
   const envUrl = String(import.meta.env.VITE_API_URL || "").trim();
@@ -338,6 +337,30 @@ function addCoRow() {
   }
   }));
 }
+
+const handleModuleChange = (idx, e) => {
+  const { name, value } = e.target;
+
+  setFormData(prev => {
+    const updated = [...prev.modules];
+    updated[idx] = { ...updated[idx], [name]: value };
+    return { ...prev, modules: updated };
+  });
+};
+
+const addModule = () => {
+  setFormData(prev => ({
+    ...prev,
+    modules: [...prev.modules, { ...emptyModule }]
+  }));
+};
+
+const removeModule = (index) => {
+  setFormData(prev => ({
+    ...prev,
+    modules: prev.modules.filter((_, i) => i !== index)
+  }));
+};
 
 const validateActivityRow = (item) => {
   const errors = {};
@@ -2043,11 +2066,174 @@ function ModuleTextbookForm({ onAdd }) {
 
     {/* ======== MODULES DETAILS ======== */}
     {formData.course_type !== "PCCL" && (
-      <ModulesSection
-        modules={formData.modules}
-        setFormData={setFormData}
-        is2025Scheme={is2025Scheme}
-    />
+      <div className="flex flex-col gap-10 mt-8">
+        <div className="flex justify-between items-center border-b pb-2">
+          <h2 className="text-lg font-semibold text-slate-700">
+            Modules Details
+          </h2>
+          <button
+            type="button"
+            onClick={addModule}
+            className="px-4 py-2 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-colors"
+          >
+            + Add Module
+          </button>
+        </div>
+
+        {formData.modules.map((mod, idx) => (
+          <div
+            key={idx}
+            className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm space-y-5 relative"
+          >
+            <h2 className="text-lg font-bold text-slate-700 border-b pb-2">
+              Module {idx + 1}
+            </h2>
+
+            {formData.modules.length > 1 && (
+              <button
+                type="button"
+                onClick={() => removeModule(idx)}
+                className="absolute top-5 right-5 text-sm font-semibold bg-red-50 text-red-600 hover:bg-red-500 hover:text-white transition-colors rounded-md py-1.5 px-3"
+              >
+                Remove
+              </button>
+            )}
+
+            {/* Content Textarea */}
+            <div>
+              <div className="flex justify-between items-end mb-1">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Topics Covered
+                </label>
+                <span className="text-red-500 text-xs font-medium">
+                  Wrap words inside ** ** for bold text in PDF
+                </span>
+              </div>
+              <textarea
+                name="content"
+                value={mod.content}
+                onChange={(e) => handleModuleChange(idx, e)}
+                rows={5}
+                className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg resize-y focus:ring-2 focus:ring-slate-400 outline-none"
+              />
+            </div>
+
+            {/* Textbook Details - Dynamic List */}
+            <div className="border border-gray-200 rounded-lg p-5 bg-slate-50">
+              <div className="flex items-center justify-between mb-4">
+                <label className="text-sm font-semibold text-gray-700">
+                  Textbooks
+                </label>
+                <span className="text-xs font-medium bg-slate-200 px-2 py-1 rounded text-slate-600">
+                  {(mod.textbooks || []).length} added
+                </span>
+              </div>
+
+              {(mod.textbooks || []).length > 0 && (
+                <div className="space-y-3 mb-5">
+                  {(mod.textbooks || []).map((tb, tbIdx) => (
+                    <div
+                      key={tbIdx}
+                      className="flex items-start justify-between gap-3 bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-800">
+                          TB-{tb.slNo}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1 truncate">
+                          {tb.author} &bull; {tb.publisher}
+                          {tb.year ? ` • ${tb.year}` : ""}
+                        </p>
+                        {tb.chapter && (
+                          <p className="text-xs text-indigo-500 font-medium mt-1">
+                            Chapter: {tb.chapter}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => {
+                            const updated = [...prev.modules];
+                            updated[idx] = {
+                              ...updated[idx],
+                              textbooks: updated[idx].textbooks.filter(
+                                (_, i) => i !== tbIdx
+                              ),
+                            };
+                            return { ...prev, modules: updated };
+                          });
+                        }}
+                        className="text-red-400 hover:text-red-600 flex-shrink-0 w-8 h-8 flex items-center justify-center bg-red-50 rounded-md hover:bg-red-100 transition-colors"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <ModuleTextbookForm
+                onAdd={(tb) => {
+                  setFormData((prev) => {
+                    const updated = [...prev.modules];
+                    updated[idx] = {
+                      ...updated[idx],
+                      textbooks: [...(updated[idx].textbooks || []), tb],
+                    };
+                    return { ...prev, modules: updated };
+                  });
+                }}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm font-semibold text-gray-700">
+                  RBT Level(s)
+                </label>
+                <input
+                  name="rbt"
+                  value={mod.rbt}
+                  onChange={(e) => handleModuleChange(idx, e)}
+                  className="w-full mt-1 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-700">
+                  WKT
+                </label>
+                <input
+                  name="wkt"
+                  value={mod.wkt}
+                  onChange={(e) => handleModuleChange(idx, e)}
+                  className="w-full mt-1 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none"
+                />
+              </div>
+
+              {/* Teaching Hours */}
+                {is2025Scheme && <div>
+                    <label className="text-sm font-semibold text-gray-700">
+                          Teaching Hours
+                              </label>
+
+                                  <input
+                                        type="number"
+                                              min="0"
+                                                    name="teachingHours"
+                                                          value={mod.teachingHours || ""}
+                                                                onChange={(e) =>
+                                                                        handleModuleChange(idx, e)
+                                                                              }
+                                                                                    placeholder="Enter hours"
+                                                                                          className="w-full mt-1 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                                                                              />
+                                                                                                </div>}
+            </div>
+          </div>
+        ))}
+      </div>
     )}
 
     {/* ======== EXPERIMENTS ======== */}

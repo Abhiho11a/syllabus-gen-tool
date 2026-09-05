@@ -202,23 +202,7 @@ function buildActivityTableHTML(title, items = []) {
 }
 
   
-                                      
-                                  
-                                                                  
-                                                      
-
-                                                                        // If there is no TW and no SL data, don't generate the table
-                                                                
-                                      
-                                    
-
-
-                                                                                  // =========================================================
-                                                                              
-                                                                                
-                                                                    
-                                                
-                                                                                            
+                                                                                                                                                                                        
 function buildTwSlTableHTML(termWork = [], selfLearning = []) {
 
     // Get only entries that contain at least activity OR hours
@@ -579,7 +563,98 @@ function splitExperimentContent(text, maxLines = 3) {
   return chunks;
 }
 
+// ================= GUIDELINES & RUBRICS =================
 
+function buildGuidelinesRubricsHTML(courseData) {
+  const guidelines = Array.isArray(courseData.guidelines)
+    ? courseData.guidelines
+    : [];
+
+  const rubrics = Array.isArray(courseData.rubrics)
+    ? courseData.rubrics
+    : [];
+
+  // Remove empty entries
+  const validGuidelines = guidelines.filter(
+    item => item && String(item.text || "").trim() !== ""
+  );
+
+  const validRubrics = rubrics.filter(
+    item => item && String(item.text || "").trim() !== ""
+  );
+
+  let html = "";
+
+  // ================= GUIDELINES =================
+
+  if (validGuidelines.length > 0) {
+    const guidelineRows = validGuidelines
+      .map((item, index) => `
+        <tr>
+          <td class="gr-label">
+            Guideline ${index + 1}
+          </td>
+
+          <td class="gr-content">
+            ${boldToHTML(
+              escapeHTML(item.text || "")
+            ).replace(/\n/g, "<br>")}
+          </td>
+        </tr>
+      `)
+      .join("");
+
+    html += `
+      <div class="section">
+        <div class="section-title">
+          Guidelines
+        </div>
+
+        <table class="guidelines-rubrics-table">
+          <tbody>
+            ${guidelineRows}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // ================= RUBRICS =================
+
+  if (validRubrics.length > 0) {
+    const rubricRows = validRubrics
+      .map((item, index) => `
+        <tr>
+          <td class="gr-label">
+            Rubric ${index + 1}
+          </td>
+
+          <td class="gr-content">
+            ${boldToHTML(
+              escapeHTML(item.text || "")
+            ).replace(/\n/g, "<br>")}
+          </td>
+        </tr>
+      `)
+      .join("");
+
+    html += `
+      <div class="section">
+        <div class="section-title">
+          Rubrics
+        </div>
+
+        <table class="guidelines-rubrics-table">
+          <tbody>
+            ${rubricRows}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  return html;
+}
 
 //Function to generate PDF
 function generateSyllabusHTML(templateHTML, courseData) {
@@ -1337,6 +1412,14 @@ html = html.replace(
   }
 
   html = html.replace("{{REFERENCES_SECTION}}", referencesHtml);
+
+
+  // ================= GUIDELINES & RUBRICS =================
+
+  html = html.replace(
+    "{{GUIDELINES_RUBRICS_SECTION}}",
+    buildGuidelinesRubricsHTML(courseData)
+  );
 
   // ================= CO–PO–PSO =================
 let copoHTML = "";

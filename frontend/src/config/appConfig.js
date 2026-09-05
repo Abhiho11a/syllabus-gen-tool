@@ -43,6 +43,9 @@ export const DataSchema = {
   skill_enhancement: "",
   industry_alignment: "",
 
+  rubrics:[],
+  guidelines:[],
+
   course_objectives: `**This course will enable the students to:**\n${DEFAULT_4_POINTS}`,
   course_outcomes: `**At the end of the course, the student will be able to:**\n${DEFAULT_4_POINTS}`,
   teaching_learning: `**In addition to the traditional chalk and talk method, ICT tools are adopted:**\n${DEFAULT_4_POINTS}`,

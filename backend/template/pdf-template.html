@@ -335,6 +335,37 @@ table.twsl-table .twslHours {
 .page-break {
   page-break-before: always;
 }
+
+
+
+
+
+/* ================= GUIDELINES & RUBRICS ================= */
+
+.guidelines-rubrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 4px;
+}
+
+.guidelines-rubrics-table td {
+  border: 1px solid #999;
+  padding: 5px 6px;
+  font-size: 9pt;
+  vertical-align: top;
+}
+
+.guidelines-rubrics-table .gr-label {
+  width: 18%;
+  font-weight: bold;
+  text-align: left;
+  background: #e6e6e6;
+}
+
+.guidelines-rubrics-table .gr-content {
+  width: 82%;
+  text-align: left;
+}
 </style>
 </head>
 
@@ -500,36 +531,10 @@ table.twsl-table .twslHours {
 {{TERM_WORK_SECTION}}
 {{SELF_LEARNING_SECTION}}
 
-<!-- ================= CO-PO TABLE ================= -->
-<!-- <div class="section">
-  <div class="section-title" style="text-align:center;">
-    CO–PO–PSO Mapping
-  </div>
+<!-- ================= GUIDELINES & RUBRICS ================= -->
 
-  <table class="copo">
-    <tr>
-      <th>CO</th>
-      {{#each copoMapping.headers}}
-        <th>{{this}}</th>
-      {{/each}}
-      {{#each copoMapping.rows.[0].pso}}
-        <th>PSO</th>
-      {{/each}}
-    </tr>
+{{GUIDELINES_RUBRICS_SECTION}}
 
-    {{#each copoMapping.rows}}
-    <tr>
-      <td>{{this.co}}</td>
-      {{#each this.vals}}
-        <td>{{this}}</td>
-      {{/each}}
-      {{#each this.pso}}
-        <td>{{this}}</td>
-      {{/each}}
-    </tr>
-    {{/each}}
-  </table>
-</div> -->
 {{COPO_TABLE}}
 
 
