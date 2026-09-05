@@ -1416,6 +1416,10 @@ html = html.replace(
 
   // ================= GUIDELINES & RUBRICS =================
 
+  html = html.replace(
+      "{{GUIDELINES_RUBRICS_SECTION}}",
+      ""
+    );
   if(is2025){
     html = html.replace(
       "{{GUIDELINES_RUBRICS_SECTION}}",
