@@ -2491,8 +2491,8 @@ function ModuleTextbookForm({ onAdd }) {
       </>
     )}
 
-    <RubricsSection rubrics={formData.rubrics} setFormData={setFormData}/>
-    <GuidelinesSection guidelines={formData.guidelines}setFormData={setFormData}/>
+    {is2025Scheme && <RubricsSection rubrics={formData.rubrics} setFormData={setFormData}/>}
+    {is2025Scheme && <GuidelinesSection guidelines={formData.guidelines}setFormData={setFormData}/>}
 
     {/* ======== CO-PO MAPPING TABLE ======== */}
     <div className="mt-12">

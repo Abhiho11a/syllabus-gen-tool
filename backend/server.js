@@ -1416,10 +1416,12 @@ html = html.replace(
 
   // ================= GUIDELINES & RUBRICS =================
 
-  html = html.replace(
-    "{{GUIDELINES_RUBRICS_SECTION}}",
-    buildGuidelinesRubricsHTML(courseData)
-  );
+  if(is2025){
+    html = html.replace(
+      "{{GUIDELINES_RUBRICS_SECTION}}",
+      buildGuidelinesRubricsHTML(courseData)
+    );
+  }
 
   // ================= CO–PO–PSO =================
 let copoHTML = "";
