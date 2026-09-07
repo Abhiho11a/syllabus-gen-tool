@@ -900,6 +900,7 @@ if (!hasRealUserContent(formData.teaching_learning)) {
   else if (["OEC", "PEC", "PCC", "UHV","BSC","HSMC"].includes(baseType)) user_res = "T";
   else if (baseType === "PCCL") user_res = "L";
   else if (baseType === "ASC") user_res = "T"
+  else if (baseType === "PI" || baseType === "PIH") user_res = "V"
 
   if (!user_res) 
   {
@@ -1717,6 +1718,7 @@ function ModuleTextbookForm({ onAdd }) {
             <option value="MC_EXAM_2">MC with exam (2 credits)</option>
             <option value="MC_NO_EXAM">MC without exam</option>
             <option value="ASC">ASC</option>
+            {is2025Scheme ? <option value="PIH">Project/Intern/Hackathon</option>:<option value="PI">Project/Intern</option>}
           </select>
         </div>
       </div>
@@ -2491,8 +2493,8 @@ function ModuleTextbookForm({ onAdd }) {
       </>
     )}
 
-    {is2025Scheme && <RubricsSection rubrics={formData.rubrics} setFormData={setFormData}/>}
-    {is2025Scheme && <GuidelinesSection guidelines={formData.guidelines}setFormData={setFormData}/>}
+     <RubricsSection rubrics={formData.rubrics} setFormData={setFormData}/>
+     <GuidelinesSection guidelines={formData.guidelines}setFormData={setFormData}/>
 
     {/* ======== CO-PO MAPPING TABLE ======== */}
     <div className="mt-12">
