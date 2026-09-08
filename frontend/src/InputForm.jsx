@@ -744,8 +744,8 @@ function generateDocument() {
     { key: "cie", msg: "Please enter CIE marks" },
     { key: "exam_hours", msg: "Please enter Exam duration" },
     { key: "see", msg: "Please enter SEE marks" },
-    { key: "course_objectives", msg: "Please fill Course Objectives" },
-    { key: "course_outcomes", msg: "Please fill Course Outcomes" },
+    // { key: "course_objectives", msg: "Please fill Course Objectives" },
+    // { key: "course_outcomes", msg: "Please fill Course Outcomes" },
     { key: "teaching_learning", msg: "Please fill Teaching & Learning" },
     // Only required for 2024 scheme
     ...(!is2025Scheme
@@ -777,28 +777,28 @@ function generateDocument() {
   }
 
 // ===== COURSE OBJECTIVES VALIDATION =====
-if (!hasRealUserContent(formData.course_objectives)) {
-  alert("Please add at least one meaningful Course Objective");
-  scrollTo(refs.course_objectives);
-  resetGenerateState();
-  return;
-}
+// if (!hasRealUserContent(formData.course_objectives)) {
+//   alert("Please add at least one meaningful Course Objective");
+//   scrollTo(refs.course_objectives);
+//   resetGenerateState();
+//   return;
+// }
 
 // ===== COURSE OUTCOMES =====
-if (!hasRealUserContent(formData.course_outcomes)) {
-  alert("Please add at least one meaningful Course Outcome");
-  scrollTo(refs.course_outcomes);
-  resetGenerateState();
-  return;
-}
+// if (!hasRealUserContent(formData.course_outcomes)) {
+//   alert("Please add at least one meaningful Course Outcome");
+//   scrollTo(refs.course_outcomes);
+//   resetGenerateState();
+//   return;
+// }
 
 // ===== TEACHING & LEARNING =====
-if (!hasRealUserContent(formData.teaching_learning)) {
-  alert("Please add at least one Teaching–Learning point");
-  scrollTo(refs.teaching_learning);
-  resetGenerateState();
-  return;
-}
+// if (!hasRealUserContent(formData.teaching_learning)) {
+//   alert("Please add at least one Teaching–Learning point");
+//   scrollTo(refs.teaching_learning);
+//   resetGenerateState();
+//   return;
+// }
 // ===== Modern AI tools =====
 // if (!hasRealUserContent(formData.modern_tools)) {
 //   alert("Please add at least one Modern AI Tool");
@@ -2044,7 +2044,7 @@ function ModuleTextbookForm({ onAdd }) {
     )}
 
     {/* ======== MODULES DETAILS ======== */}
-    {formData.course_type !== "PCCL" && (
+    {formData.course_type !== "PCCL" && formData.course_type !== "PI" && formData.course_type !== "PIH" && (
       <ModulesSection
         modules={formData.modules}
         setFormData={setFormData}
@@ -2056,8 +2056,8 @@ function ModuleTextbookForm({ onAdd }) {
     {(formData.course_type === "PCCL" ||
       formData.course_type === "IPCC" ||
       formData.course_type === "AEC" ||
-      formData.course_type === "ESC" ||
-      formData.experiments) && (
+      formData.course_type === "ESC" 
+      ) && (
       <ExperimentsSection
         formData={formData}
         setFormData={setFormData}
@@ -2081,7 +2081,7 @@ function ModuleTextbookForm({ onAdd }) {
     )}
 
     {/* ======== TEXTBOOK AUTHORS ======== */}
-    <div className="mt-12">
+    {(formData.course_type !== "PIH" && formData.course_type !== "PI") && (<div className="mt-12">
       <div className="flex justify-between items-center border-b pb-2 mb-6">
         <h3 className="text-lg font-semibold text-slate-700">Textbooks</h3>
         <button
@@ -2157,10 +2157,10 @@ function ModuleTextbookForm({ onAdd }) {
           </div>
         </div>
       ))}
-    </div>
+    </div>)}
 
     {/* ======== REFERENCES ======== */}
-    <div className="mt-12">
+    {(formData.course_type !== "PIH" && formData.course_type !== "PI") && <div className="mt-12">
       <div className="flex justify-between items-center border-b pb-2 mb-6">
         <h3 className="text-lg font-semibold text-slate-700">References</h3>
         <button
@@ -2236,7 +2236,7 @@ function ModuleTextbookForm({ onAdd }) {
           </div>
         </div>
       ))}
-    </div>
+    </div>}
 
     {/* ======== COURSE OUTCOMES ======== */}
     <div className="mt-8">
