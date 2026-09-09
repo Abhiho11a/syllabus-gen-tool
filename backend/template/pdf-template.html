@@ -366,6 +366,102 @@ table.twsl-table .twslHours {
   width: 82%;
   text-align: left;
 }
+
+/* =========================================
+   CO - WK MAPPING TABLE
+   ========================================= */
+
+.mapping-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin-top: 6px;
+}
+
+.mapping-table th,
+.mapping-table td {
+  border: 1px solid #777;
+  padding: 5px 4px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 9px;
+}
+
+.mapping-header {
+  font-weight: 700;
+  background: #f1f1f1;
+}
+
+.mapping-co {
+  width: 45px;
+  font-weight: 700;
+  background: #f5f5f5;
+}
+
+.mapping-value {
+  text-align: center;
+}
+
+
+/* =========================================
+   SDG TABLE
+   ========================================= */
+
+.sdg-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin-top: 6px;
+}
+
+.sdg-table th,
+.sdg-table td {
+  border: 1px solid #777;
+  padding: 6px;
+  font-size: 9px;
+  vertical-align: middle;
+}
+
+.sdg-table th {
+  background: #f1f1f1;
+  font-weight: 700;
+  text-align: center;
+}
+
+.sdg-goal-no {
+  width: 12%;
+  text-align: center;
+  font-weight: 700;
+}
+
+.sdg-goal-title {
+  width: 28%;
+  text-align: center;
+  font-weight: 600;
+}
+
+.sdg-description {
+  width: 60%;
+  text-align: center;
+}
+
+.cowk-section,
+.sdg-section {
+  margin-top: 12px;
+}
+
+.cowk-section {
+  page-break-inside: auto;
+}
+
+.sdg-section {
+  page-break-inside: auto;
+}
+
+.sdg-table tr,
+.mapping-table tr {
+  page-break-inside: avoid;
+}
 </style>
 </head>
 

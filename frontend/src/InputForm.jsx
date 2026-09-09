@@ -12,6 +12,8 @@ import ExperimentsSection from "./Experiments";
 import RubricsSection from "./components/RubricsSection"
 import GuidelinesSection from "./components/GUidelinesSection";
 import ModulesSection from "./components/ModulesSection";
+import CowkMappingTable from "./components/CoWkMappingTable";
+import SDGTable from "./components/SDGTable";
 
 function getApiUrl() {
   const envUrl = String(import.meta.env.VITE_API_URL || "").trim();
@@ -86,6 +88,8 @@ const [scheme, setScheme] = useState(() => {
 });
 const is2025Scheme = scheme === "2025";
 
+const [rubricFile, setRubricFile] = useState(null);
+
 const handleSchemeChange = (nextScheme) => {
   setScheme(nextScheme);
   setFormData((prev) => ({
@@ -154,6 +158,51 @@ function normalizeFormData(draft) {
       }
     : defaultCopoMapping;
 
+  const defaultCowkMapping = {
+    headers: [...DataSchema.cowkMapping.headers],
+
+    rows: DataSchema.cowkMapping.rows.map((row, index) => ({
+      co: row.co || `CO${index + 1}`,
+      vals: Array(DataSchema.cowkMapping.headers.length).fill(""),
+    })),
+  };
+
+
+  const normalizedCowkMapping = baseDraft.cowkMapping
+    ? {
+        headers:
+          Array.isArray(baseDraft.cowkMapping.headers) &&
+          baseDraft.cowkMapping.headers.length
+            ? baseDraft.cowkMapping.headers
+            : [...DataSchema.cowkMapping.headers],
+
+        rows:
+          Array.isArray(baseDraft.cowkMapping.rows) &&
+          baseDraft.cowkMapping.rows.length
+            ? baseDraft.cowkMapping.rows.map((row, index) => ({
+                co: row.co || `CO${index + 1}`,
+
+                vals:
+                  Array.isArray(row.vals)
+                    ? row.vals
+                    : Array(
+                        DataSchema.cowkMapping.headers.length
+                      ).fill(""),
+              }))
+            : defaultCowkMapping.rows,
+      }
+    : defaultCowkMapping;
+
+
+  const normalizedSDGs =
+    Array.isArray(baseDraft.sdgs)
+      ? baseDraft.sdgs.map((item) => ({
+          goalNo: item?.goalNo || "",
+          goalTitle: item?.goalTitle || "",
+          description: item?.description || "",
+        }))
+      : [];
+
   return {
     ...baseDraft,
     course_type: parseCourseType(baseDraft.course_type).base,
@@ -163,6 +212,8 @@ function normalizeFormData(draft) {
     termWorkActivities: Array.isArray(baseDraft.termWorkActivities) ? baseDraft.termWorkActivities : [],
     selfLearningActivities: Array.isArray(baseDraft.selfLearningActivities) ? baseDraft.selfLearningActivities : [],
     copoMapping: normalizedCopoMapping,
+    cowkMapping: normalizedCowkMapping,
+    sdgs: normalizedSDGs,
   };
 }
 
@@ -1037,14 +1088,27 @@ const triggerAllDownloads = async() => {
   {
     try {
       console.log(apiUrl)
-      const res = await fetch(
-      `${apiUrl}/generate-pdf`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+      const pdfFormData = new FormData();
+
+      pdfFormData.append(
+        "courseData",
+        JSON.stringify(formData)
+      );
+
+      if (rubricFile) {
+        pdfFormData.append(
+          "rubricDocument",
+          rubricFile
+        );
       }
-    );
+
+      const res = await fetch(
+        `${apiUrl}/generate-pdf`,
+        {
+          method: "POST",
+          body: pdfFormData
+        }
+      );
 
     console.log("PDF status:", res.status);
     console.log("Content-Type:", res.headers.get("content-type"));
@@ -1240,29 +1304,158 @@ const [showPreview, setShowPreview] = useState(false);
 const [previewBtnText,setpreviewBtnText] = useState("Preview PDF")
 
 
+// const previewPDF = async () => {
+//   try {
+
+//     setpreviewBtnText("Loading PDF..")
+//     const res = await fetch(
+//           `${apiUrl}/generate-pdf`,
+//        {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//       },
+//       body: JSON.stringify(formData),
+//     });
+
+//     if (!res.ok) throw new Error("PDF generation failed");
+
+//     const blob = await res.blob();
+//     const url = URL.createObjectURL(blob);
+
+//     setPdfPreviewUrl(url);
+//     setShowPreview(true);
+//   } catch (err) {
+//     console.error("Preview error:", err);
+//   }
+// };
+
 const previewPDF = async () => {
   try {
 
-    setpreviewBtnText("Loading PDF..")
+    setpreviewBtnText("Loading PDF..");
+
+    // =====================================================
+    // CREATE MULTIPART FORM DATA
+    // =====================================================
+
+    const pdfFormData = new FormData();
+
+    // Course data
+    pdfFormData.append(
+      "courseData",
+      JSON.stringify(formData)
+    );
+
+    // Optional rubric document
+    if (rubricFile) {
+      pdfFormData.append(
+        "rubricDocument",
+        rubricFile
+      );
+    }
+
+    // =====================================================
+    // SEND TO BACKEND
+    // =====================================================
+
     const res = await fetch(
-          `${apiUrl}/generate-pdf`,
-       {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(formData),
-    });
+      `${apiUrl}/generate-pdf`,
+      {
+        method: "POST",
+        body: pdfFormData
+      }
+    );
 
-    if (!res.ok) throw new Error("PDF generation failed");
+    console.log(
+      "Preview PDF status:",
+      res.status
+    );
 
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
+    console.log(
+      "Preview PDF Content-Type:",
+      res.headers.get("content-type")
+    );
+
+    // =====================================================
+    // HANDLE ERROR
+    // =====================================================
+
+    if (!res.ok) {
+
+      const errorText =
+        await res.text();
+
+      console.error(
+        "Preview PDF generation failed:",
+        errorText
+      );
+
+      throw new Error(
+        "PDF generation failed"
+      );
+    }
+
+    // =====================================================
+    // VERIFY PDF
+    // =====================================================
+
+    const contentType =
+      res.headers.get("content-type");
+
+    if (
+      !contentType ||
+      !contentType.includes("application/pdf")
+    ) {
+
+      const text =
+        await res.text();
+
+      console.error(
+        "Expected PDF but received:",
+        text
+      );
+
+      throw new Error(
+        "Server did not return a PDF"
+      );
+    }
+
+    // =====================================================
+    // CREATE PREVIEW URL
+    // =====================================================
+
+    const blob =
+      await res.blob();
+
+    const url =
+      URL.createObjectURL(blob);
+
+    // Revoke old preview URL if one exists
+    if (pdfPreviewUrl) {
+      URL.revokeObjectURL(
+        pdfPreviewUrl
+      );
+    }
 
     setPdfPreviewUrl(url);
     setShowPreview(true);
+
   } catch (err) {
-    console.error("Preview error:", err);
+
+    console.error(
+      "Preview error:",
+      err
+    );
+
+    alert(
+      "Could not generate PDF preview. Please check the backend."
+    );
+
+  } finally {
+
+    setpreviewBtnText("Preview PDF");
+
   }
 };
 
@@ -2493,7 +2686,7 @@ function ModuleTextbookForm({ onAdd }) {
       </>
     )}
 
-     <RubricsSection rubrics={formData.rubrics} setFormData={setFormData}/>
+     <RubricsSection rubrics={formData.rubrics} setFormData={setFormData} rubricFile={rubricFile} setRubricFile={setRubricFile}/>
      <GuidelinesSection guidelines={formData.guidelines}setFormData={setFormData}/>
 
     {/* ======== CO-PO MAPPING TABLE ======== */}
@@ -2608,6 +2801,21 @@ function ModuleTextbookForm({ onAdd }) {
         </table>
       </div>
     </div>
+
+    {/* ================= CO-WK ================= */ }
+
+    <CowkMappingTable
+      formData={formData}
+      setFormData={setFormData}
+    />
+
+
+    {/* ================= SDG ================= */}
+
+    <SDGTable
+      formData={formData}
+      setFormData={setFormData}
+    />
 
     {/* ======== ACTION SECTION ======== */}
     <div ref={bottomRef} className="mt-8 border-t border-slate-200 pt-3 pb-2">

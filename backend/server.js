@@ -4,12 +4,34 @@ const path = require("path")
 const cors = require("cors")
 require("dotenv").config();
 
-
 const puppeteer = require("puppeteer-core");
 const chromium = require("@sparticuz/chromium");
 const {generateSyllabusDocx} = require("./docx/generateSyllabusDocx");
 const connectDB = require("./db");
 const Stats = require("./models/Stats");
+
+const multer = require("multer");
+const { PDFDocument } = require("pdf-lib");
+const mammoth = require("mammoth");
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+  },
+  fileFilter: (req, file, cb) => {
+    const allowed = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only PDF and DOCX files are allowed."));
+    }
+  },
+});
 
 process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true";
 const isProduction = process.env.NODE_ENV === "production";
@@ -38,43 +60,58 @@ app.use((req, res, next) => {
 
 
 const DEFAULT_SECTION_LINES = [
-  "This course will enable the students to:",
-  "At the end of the course, the student will be able to:",
-  "In addition to the traditional chalk and talk method, ICT tools are adopted:",
-  "Modern AI tools used for this course:",
-  "Web Links:",
-  "Activity based learning points:"
+  "**This course will enable the students to:**",
+  "**At the end of the course, the student will be able to:**",
+  "**In addition to the traditional chalk and talk method, ICT tools are adopted:**",
+  "**Modern AI tools used for this course:**",
+  "**Web Links:**",
+  "**Activity based learning points:**"
 ];
 
 //Helper functions
 function hasMeaningfulContent(input) {
   let arr = [];
 
-  if (Array.isArray(input)) arr = input;
-  else if (typeof input === "string") arr = input.split("\n");
-  else return false;
+  if (Array.isArray(input)) {
+    arr = input;
+  } else if (typeof input === "string") {
+    arr = input.split(/\r?\n/);
+  } else {
+    return false;
+  }
 
-  return arr
-    .map(v => String(v || "").trim())
-    .filter(v => {
-      if (!v) return false;
+  return arr.some((value) => {
+    const line = String(value ?? "").trim();
 
-      // ignore empty numbering
-      if (/^\d+\.\s*$/.test(v)) return false;
+    // Ignore completely empty lines
+    if (!line) return false;
 
-      // 🚫 IGNORE DEFAULT LINES FOR CHECK ONLY
-      if (
-        DEFAULT_SECTION_LINES.some(
-          d => d.toLowerCase() === v.toLowerCase()
-        )
-      ) {
-        return false;
-      }
+    // Ignore default/helper text
+    if (
+      DEFAULT_SECTION_LINES.some(
+        (defaultLine) =>
+          defaultLine.trim().toLowerCase() === line.toLowerCase()
+      )
+    ) {
+      return false;
+    }
 
-      return true; // ✅ REAL USER CONTENT
-    }).length > 0;
+    // Ignore empty numbered points:
+    // "1.", "1. ", "2.", "10.    "
+    if (/^\d+\.\s*$/.test(line)) {
+      return false;
+    }
+
+    // Ignore other empty numbering formats if present:
+    // "1)", "1 -", "1:"
+    if (/^\d+\s*[\):\-]\s*$/.test(line)) {
+      return false;
+    }
+
+    // Anything else is actual user content
+    return true;
+  });
 }
-
 const DEFAULT_MODERN_TOOLS_LINES = [
   "**Modern AI tools used for this course:**"
 ];
@@ -563,23 +600,438 @@ function splitExperimentContent(text, maxLines = 3) {
   return chunks;
 }
 
+// =========================================================
+// RENDER HTML → PDF
+// =========================================================
+
+async function renderHTMLToPDF(html) {
+  const browser = await launchBrowser();
+  const page = await browser.newPage();
+
+  try {
+    await page.setContent(html, {
+      waitUntil: "networkidle0"
+    });
+
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "20mm",
+        bottom: "20mm",
+        left: "15mm",
+        right: "15mm"
+      }
+    });
+
+    return pdfBuffer;
+  } finally {
+    await page.close();
+  }
+}
+
+// =========================================================
+// SPLIT GENERATED SYLLABUS HTML
+// =========================================================
+//
+// The generated syllabus contains:
+//
+//   ... Rubrics table ...
+//
+//   <!-- RUBRIC_DOCUMENT_INSERT_POINT -->
+//
+//   ... CO-PO-PSO and remaining sections ...
+//
+// We split the document at that exact location.
+// =========================================================
+
+function splitHTMLAtRubricMarker(fullHTML) {
+  const marker = "<!-- RUBRIC_DOCUMENT_INSERT_POINT -->";
+
+  const markerIndex = fullHTML.indexOf(marker);
+
+  if (markerIndex === -1) {
+    throw new Error(
+      "Rubric document insertion marker was not found in generated HTML."
+    );
+  }
+
+  // -------------------------------------------------------
+  // Find <head>...</head>
+  // -------------------------------------------------------
+
+  const headMatch = fullHTML.match(
+    /<head[^>]*>([\s\S]*?)<\/head>/i
+  );
+
+  const headHTML = headMatch
+    ? headMatch[1]
+    : `
+      <meta charset="UTF-8">
+    `;
+
+  // -------------------------------------------------------
+  // Find <body>...</body>
+  // -------------------------------------------------------
+
+  const bodyOpenMatch = fullHTML.match(
+    /<body[^>]*>/i
+  );
+
+  const bodyCloseMatch = fullHTML.match(
+    /<\/body>/i
+  );
+
+  if (!bodyOpenMatch || !bodyCloseMatch) {
+    throw new Error(
+      "Could not find body tags in generated syllabus HTML."
+    );
+  }
+
+  const bodyStart = bodyOpenMatch.index +
+    bodyOpenMatch[0].length;
+
+  const bodyEnd = bodyCloseMatch.index;
+
+  const bodyHTML = fullHTML.substring(
+    bodyStart,
+    bodyEnd
+  );
+
+  // -------------------------------------------------------
+  // Find marker relative to body
+  // -------------------------------------------------------
+
+  const relativeMarkerIndex =
+    markerIndex - bodyStart;
+
+  if (
+    relativeMarkerIndex < 0 ||
+    relativeMarkerIndex > bodyHTML.length
+  ) {
+    throw new Error(
+      "Invalid rubric marker position."
+    );
+  }
+
+  let beforeBody =
+    bodyHTML.substring(
+      0,
+      relativeMarkerIndex
+    );
+
+  let afterBody =
+    bodyHTML.substring(
+      relativeMarkerIndex + marker.length
+    );
+
+  // -------------------------------------------------------
+  // Remove the outer wrapper generated by
+  // generateSyllabusHTML()
+  //
+  // Your current generator adds:
+  //
+  // <div style="padding-bottom: 120px;">
+  //    ...
+  // </div>
+  //
+  // We don't want to split that wrapper between PDFs.
+  // -------------------------------------------------------
+
+  // =========================================================
+  // RUBRIC DOCUMENT HEADING
+  // =========================================================
+
+  beforeBody += `
+    <div class="section rubric-document-section">
+      <div class="section-title">
+        Rubrics Document
+      </div>
+    </div>
+  `;
+
+  const wrapperStart =
+    '<div style="padding-bottom: 120px;">';
+
+  if (beforeBody.trim().startsWith(wrapperStart)) {
+    beforeBody =
+      beforeBody.trim().substring(
+        wrapperStart.length
+      );
+  }
+
+  const wrapperEnd =
+    "</div>";
+
+  if (afterBody.trim().endsWith(wrapperEnd)) {
+    afterBody =
+      afterBody.trim().substring(
+        0,
+        afterBody.trim().length -
+          wrapperEnd.length
+      );
+  }
+
+  // -------------------------------------------------------
+  // Shared PDF styling
+  // -------------------------------------------------------
+
+  const sharedStyle = `
+    <style>
+      body {
+        transform: scale(0.97);
+        transform-origin: top;
+      }
+
+      tr {
+        page-break-inside: avoid;
+      }
+    </style>
+  `;
+
+  // -------------------------------------------------------
+  // Build two COMPLETE HTML documents
+  // -------------------------------------------------------
+
+  const beforeHTML = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        ${headHTML}
+        ${sharedStyle}
+      </head>
+
+      <body>
+        <div style="padding-bottom: 120px;">
+          ${beforeBody}
+        </div>
+      </body>
+    </html>
+  `;
+
+  const afterHTML = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        ${headHTML}
+        ${sharedStyle}
+      </head>
+
+      <body>
+        <div style="padding-bottom: 120px;">
+          ${afterBody}
+        </div>
+      </body>
+    </html>
+  `;
+
+  return {
+    beforeHTML,
+    afterHTML
+  };
+}
+
+// =========================================================
+// CONVERT UPLOADED RUBRIC DOCUMENT → PDF
+// =========================================================
+
+async function convertRubricDocumentToPDF(rubricFile) {
+
+  // =======================================================
+  // PDF
+  // =======================================================
+
+  if (rubricFile.mimetype === "application/pdf") {
+
+    // Already PDF.
+    // Keep the original PDF exactly as uploaded.
+    return rubricFile.buffer;
+  }
+
+  // =======================================================
+  // DOCX
+  // =======================================================
+
+  if (
+    rubricFile.mimetype ===
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ) {
+
+    const result = await mammoth.convertToHtml({
+      buffer: rubricFile.buffer
+    });
+
+    const docxHTML = `
+      <!DOCTYPE html>
+
+      <html>
+
+        <head>
+
+          <meta charset="UTF-8">
+
+          <style>
+
+            @page {
+              size: A4;
+              margin: 20mm 15mm;
+            }
+
+            body {
+              font-family: Arial, sans-serif;
+              font-size: 12px;
+              line-height: 1.5;
+              color: #111;
+            }
+
+            img {
+              max-width: 100%;
+              height: auto;
+            }
+
+            table {
+              border-collapse: collapse;
+              width: 100%;
+            }
+
+            td,
+            th {
+              border: 1px solid #999;
+              padding: 5px;
+            }
+
+            h1 {
+              font-size: 20px;
+            }
+
+            h2 {
+              font-size: 17px;
+            }
+
+            h3 {
+              font-size: 15px;
+            }
+
+            p {
+              margin: 0 0 8px 0;
+            }
+
+            ul,
+            ol {
+              margin-top: 5px;
+              margin-bottom: 8px;
+            }
+
+          </style>
+
+        </head>
+
+        <body>
+
+          ${result.value}
+
+        </body>
+
+      </html>
+    `;
+
+    return await renderHTMLToPDF(docxHTML);
+  }
+
+  throw new Error(
+    "Unsupported rubric document type."
+  );
+}
+
+// =========================================================
+// MERGE:
+// SYLLABUS PART 1
+// +
+// RUBRIC DOCUMENT
+// +
+// SYLLABUS PART 2
+// =========================================================
+
+async function mergePDFBuffers(
+  beforePdfBuffer,
+  rubricPdfBuffer,
+  afterPdfBuffer
+) {
+  const finalPdf = await PDFDocument.create();
+
+  // =======================================================
+  // PART 1
+  // =======================================================
+
+  if (beforePdfBuffer) {
+
+    const beforePdf =
+      await PDFDocument.load(beforePdfBuffer);
+
+    const beforePages =
+      await finalPdf.copyPages(
+        beforePdf,
+        beforePdf.getPageIndices()
+      );
+
+    beforePages.forEach(page => {
+      finalPdf.addPage(page);
+    });
+  }
+
+  // =======================================================
+  // RUBRIC DOCUMENT
+  // =======================================================
+
+  if (rubricPdfBuffer) {
+
+    const rubricPdf =
+      await PDFDocument.load(rubricPdfBuffer);
+
+    const rubricPages =
+      await finalPdf.copyPages(
+        rubricPdf,
+        rubricPdf.getPageIndices()
+      );
+
+    rubricPages.forEach(page => {
+      finalPdf.addPage(page);
+    });
+  }
+
+  // =======================================================
+  // PART 2
+  // =======================================================
+
+  if (afterPdfBuffer) {
+
+    const afterPdf =
+      await PDFDocument.load(afterPdfBuffer);
+
+    const afterPages =
+      await finalPdf.copyPages(
+        afterPdf,
+        afterPdf.getPageIndices()
+      );
+
+    afterPages.forEach(page => {
+      finalPdf.addPage(page);
+    });
+  }
+
+  return Buffer.from(
+    await finalPdf.save()
+  );
+}
 // ================= GUIDELINES & RUBRICS =================
 
 function buildGuidelinesRubricsHTML(courseData) {
+
   const guidelines = Array.isArray(courseData.guidelines)
     ? courseData.guidelines
     : [];
 
-  const rubrics = Array.isArray(courseData.rubrics)
-    ? courseData.rubrics
-    : [];
-
-  // Remove empty entries
   const validGuidelines = guidelines.filter(
-    item => item && String(item.text || "").trim() !== ""
-  );
-
-  const validRubrics = rubrics.filter(
     item => item && String(item.text || "").trim() !== ""
   );
 
@@ -588,6 +1040,7 @@ function buildGuidelinesRubricsHTML(courseData) {
   // ================= GUIDELINES =================
 
   if (validGuidelines.length > 0) {
+
     const guidelineRows = validGuidelines
       .map((item, index) => `
         <tr>
@@ -613,40 +1066,6 @@ function buildGuidelinesRubricsHTML(courseData) {
         <table class="guidelines-rubrics-table">
           <tbody>
             ${guidelineRows}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
-
-  // ================= RUBRICS =================
-
-  if (validRubrics.length > 0) {
-    const rubricRows = validRubrics
-      .map((item, index) => `
-        <tr>
-          <td class="gr-label">
-            Rubric ${index + 1}
-          </td>
-
-          <td class="gr-content">
-            ${boldToHTML(
-              escapeHTML(item.text || "")
-            ).replace(/\n/g, "<br>")}
-          </td>
-        </tr>
-      `)
-      .join("");
-
-    html += `
-      <div class="section">
-        <div class="section-title">
-          Rubrics
-        </div>
-
-        <table class="guidelines-rubrics-table">
-          <tbody>
-            ${rubricRows}
           </tbody>
         </table>
       </div>
@@ -722,10 +1141,9 @@ function generateSyllabusHTML(templateHTML, courseData) {
       : escapeHTML(courseData.pedagogy || "-")
 );
 
-
-  // ================= COURSE OBJECTIVES =================
-  if (hasMeaningfulContent(courseData.course_objectives)) {
-    html = html.replace(
+// ================= COURSE OBJECTIVES =================
+if (hasMeaningfulContent(courseData.course_objectives)) {
+  html = html.replace(
       /{{#each course_objectives}}[\s\S]*?{{\/each}}/g,
       listToHTML(courseData.course_objectives)
     );
@@ -736,7 +1154,8 @@ function generateSyllabusHTML(templateHTML, courseData) {
       ""
     );
   }
-
+  
+  console.log("Ddd",courseData.teaching_learning)
   // ================= TEACHING-LEARNING =================
   if (hasMeaningfulContent(courseData.teaching_learning)) {
     html = html.replace(
@@ -1498,7 +1917,19 @@ const headerHTML = `
   }
 }
 
-html = html.replace("{{COPO_TABLE}}", copoHTML);
+// html = html.replace("{{COPO_TABLE}}", copoHTML);
+  html = html.replace(
+    "{{COPO_TABLE}}",
+    `
+      ${copoHTML}
+
+      ${buildCowkMappingHTML(courseData)}
+
+      ${buildSDGTableHTML(courseData)}
+
+      <!-- RUBRIC_DOCUMENT_INSERT_POINT -->
+    `
+  );
 html = `
 <style>
   body {
@@ -1519,6 +1950,174 @@ html = `
   return html;
 }
 
+
+async function mergeRubricDocument(
+  syllabusPdfBuffer,
+  rubricFile
+) {
+  // No uploaded file
+  if (!rubricFile) {
+    return syllabusPdfBuffer;
+  }
+
+  let rubricPdfBuffer;
+
+  // ============================================
+  // PDF
+  // ============================================
+
+  if (rubricFile.mimetype === "application/pdf") {
+    rubricPdfBuffer = rubricFile.buffer;
+  }
+
+  // ============================================
+  // DOCX
+  // ============================================
+
+  else if (
+    rubricFile.mimetype ===
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ) {
+
+    const result = await mammoth.convertToHtml({
+      buffer: rubricFile.buffer,
+    });
+
+    const browser = await launchBrowser();
+    const page = await browser.newPage();
+
+    const docxHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+
+        <style>
+
+          @page {
+            size: A4;
+            margin: 20mm 15mm;
+          }
+
+          body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #111;
+          }
+
+          img {
+            max-width: 100%;
+            height: auto;
+          }
+
+          table {
+            border-collapse: collapse;
+            width: 100%;
+          }
+
+          td,
+          th {
+            border: 1px solid #999;
+            padding: 5px;
+          }
+
+          h1 {
+            font-size: 20px;
+          }
+
+          h2 {
+            font-size: 17px;
+          }
+
+          h3 {
+            font-size: 15px;
+          }
+
+          p {
+            margin: 0 0 8px 0;
+          }
+
+        </style>
+
+      </head>
+
+      <body>
+        ${result.value}
+      </body>
+
+      </html>
+    `;
+
+    await page.setContent(
+      docxHTML,
+      {
+        waitUntil: "networkidle0",
+      }
+    );
+
+    rubricPdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "20mm",
+        bottom: "20mm",
+        left: "15mm",
+        right: "15mm",
+      },
+    });
+
+    await page.close();
+  }
+
+  else {
+    throw new Error(
+      "Unsupported rubric document type."
+    );
+  }
+
+  // ============================================
+  // Merge
+  // ============================================
+
+  const finalPdf =
+    await PDFDocument.load(syllabusPdfBuffer);
+
+  const rubricPdf =
+    await PDFDocument.load(rubricPdfBuffer);
+
+  const rubricPageIndices =
+    rubricPdf.getPageIndices();
+
+  const copiedPages =
+    await finalPdf.copyPages(
+      rubricPdf,
+      rubricPageIndices
+    );
+
+  /*
+    For the first version we insert the
+    uploaded pages immediately before
+    the CO–PO–PSO section.
+
+    We'll create a marker in the generated
+    syllabus to determine the exact position.
+  */
+
+  const insertIndex =
+    findRubricInsertPage(finalPdf);
+
+  copiedPages.forEach((page, index) => {
+    finalPdf.insertPage(
+      insertIndex + index,
+      page
+    );
+  });
+
+  return Buffer.from(
+    await finalPdf.save()
+  );
+}
 
 
 //Function to run CHROME Browser
@@ -1552,73 +2151,347 @@ app.get("/health", (_, res) => {
   res.status(200).send("OK");
 });
 
-app.post('/generate-pdf', async (req, res) => {
+// app.post('/generate-pdf', async (req, res) => {
 
-  try {
-    const courseData = req.body;
+//   try {
+//     const courseData = req.body;
 
-    // console.log("COURSE :",courseData) 
-    // console.log("Received course data:", JSON.stringify(courseData, null, 2));
+//     // console.log("COURSE :",courseData) 
+//     // console.log("Received course data:", JSON.stringify(courseData, null, 2));
     
-    // Read HTML template
-    const templatePath = path.join(__dirname, "template", "pdf-template.html");
+//     // Read HTML template
+//     const templatePath = path.join(__dirname, "template", "pdf-template.html");
     
-    if (!fs.existsSync(templatePath)) {
-      return res.status(500).send("Template file not found at: " + templatePath);
-    }
+//     if (!fs.existsSync(templatePath)) {
+//       return res.status(500).send("Template file not found at: " + templatePath);
+//     }
     
-    const templateHTML = fs.readFileSync(templatePath, 'utf8');
+//     const templateHTML = fs.readFileSync(templatePath, 'utf8');
     
-    // Replace placeholders
-    const finalHTML = generateSyllabusHTML(templateHTML, courseData);
+//     // Replace placeholders
+//     const finalHTML = generateSyllabusHTML(templateHTML, courseData);
     
-    // console.log("Generated HTML (first 500 chars):", finalHTML.substring(0, 500));
+//     // console.log("Generated HTML (first 500 chars):", finalHTML.substring(0, 500));
 
-    const browser = await launchBrowser();
-    const page = await browser.newPage();
-    await page.setContent(finalHTML, { waitUntil: "networkidle0" });
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: "20mm",
-        bottom: "20mm",
-        left: "15mm",
-        right: "15mm"
+//     const browser = await launchBrowser();
+//     const page = await browser.newPage();
+//     await page.setContent(finalHTML, { waitUntil: "networkidle0" });
+//     const pdfBuffer = await page.pdf({
+//       format: 'A4',
+//       printBackground: true,
+//       margin: {
+//         top: "20mm",
+//         bottom: "20mm",
+//         left: "15mm",
+//         right: "15mm"
+//       }
+//     });
+    
+//     // await browser.close();
+//     await page.close(); // ✅ keep browser alive
+
+//     // console.log("PDF generated successfully, size:", pdfBuffer.length, "bytes");
+    
+//     // ✅ Send PDF (Render-safe)
+//     res.setHeader("Content-Type", "application/pdf");
+//     res.setHeader(
+//     "Content-Disposition",
+//     "attachment; filename=syllabus.pdf"
+//     );
+//     res.setHeader("Content-Length", pdfBuffer.length);
+
+//     // Update Stats in DB
+//     await Stats.findOneAndUpdate(
+//       { type: "global" },
+//       { $inc: { totalGenerated: 1, pdfCount: 1 } },
+//       { new: true, upsert: true }
+//     );
+
+//     res.end(pdfBuffer, "binary");    
+// } catch (error) {
+//     console.error("Error generating PDF:", error);
+//     res.status(500).json({
+//       error: "Failed to generate PDF",
+//       message: error.message,
+//       stack: error.stack
+//     });
+//   }
+// });
+
+// =========================================================
+// GENERATE PDF
+// =========================================================
+
+app.post(
+  "/generate-pdf",
+  upload.single("rubricDocument"),
+  async (req, res) => {
+
+    try {
+
+      // =====================================================
+      // READ COURSE DATA
+      // =====================================================
+
+      let courseData = {};
+
+      try {
+
+        courseData = JSON.parse(
+          req.body.courseData || "{}"
+        );
+
+      } catch (parseError) {
+
+        return res.status(400).json({
+          error: "Invalid course data.",
+          message: parseError.message
+        });
+
       }
-    });
-    
-    // await browser.close();
-    await page.close(); // ✅ keep browser alive
 
-    // console.log("PDF generated successfully, size:", pdfBuffer.length, "bytes");
-    
-    // ✅ Send PDF (Render-safe)
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-    "Content-Disposition",
-    "attachment; filename=syllabus.pdf"
-    );
-    res.setHeader("Content-Length", pdfBuffer.length);
+      // =====================================================
+      // UPLOADED RUBRIC DOCUMENT
+      // =====================================================
 
-    // Update Stats in DB
-    await Stats.findOneAndUpdate(
-      { type: "global" },
-      { $inc: { totalGenerated: 1, pdfCount: 1 } },
-      { new: true, upsert: true }
-    );
+      const rubricFile =
+        req.file || null;
 
-    res.end(pdfBuffer, "binary");    
-} catch (error) {
-    console.error("Error generating PDF:", error);
-    res.status(500).json({
-      error: "Failed to generate PDF",
-      message: error.message,
-      stack: error.stack
-    });
+      console.log(
+        "Rubric document:",
+        rubricFile
+          ? {
+              originalname: rubricFile.originalname,
+              mimetype: rubricFile.mimetype,
+              size: rubricFile.size
+            }
+          : "No document uploaded"
+      );
+
+      // =====================================================
+      // READ TEMPLATE
+      // =====================================================
+
+      const templatePath = path.join(
+        __dirname,
+        "template",
+        "pdf-template.html"
+      );
+
+      if (!fs.existsSync(templatePath)) {
+
+        return res.status(500).send(
+          "Template file not found at: " +
+          templatePath
+        );
+      }
+
+      const templateHTML =
+        fs.readFileSync(
+          templatePath,
+          "utf8"
+        );
+
+      // =====================================================
+      // GENERATE NORMAL SYLLABUS HTML
+      // =====================================================
+
+      const finalHTML =
+        generateSyllabusHTML(
+          templateHTML,
+          courseData
+        );
+
+      // =====================================================
+      // CASE 1:
+      // NO RUBRIC DOCUMENT
+      //
+      // Keep your original one-pass PDF generation.
+      // =====================================================
+
+      if (!rubricFile) {
+
+        const pdfBuffer =
+          await renderHTMLToPDF(finalHTML);
+
+        await Stats.findOneAndUpdate(
+          { type: "global" },
+          {
+            $inc: {
+              totalGenerated: 1,
+              pdfCount: 1
+            }
+          },
+          {
+            new: true,
+            upsert: true
+          }
+        );
+
+        res.setHeader(
+          "Content-Type",
+          "application/pdf"
+        );
+
+        res.setHeader(
+          "Content-Disposition",
+          "attachment; filename=syllabus.pdf"
+        );
+
+        res.setHeader(
+          "Content-Length",
+          pdfBuffer.length
+        );
+
+        return res.end(
+          pdfBuffer,
+          "binary"
+        );
+      }
+
+      // =====================================================
+      // CASE 2:
+      // RUBRIC DOCUMENT EXISTS
+      // =====================================================
+
+      console.log(
+        "📎 Processing uploaded rubric document..."
+      );
+
+      // -----------------------------------------------------
+      // Split syllabus at:
+      //
+      // RUBRICS
+      //       ↓
+      // INSERT MARKER
+      //       ↓
+      // CO-PO-PSO
+      // -----------------------------------------------------
+
+      const {
+        beforeHTML,
+        afterHTML
+      } = splitHTMLAtRubricMarker(
+        finalHTML
+      );
+
+      // -----------------------------------------------------
+      // Render syllabus parts
+      // -----------------------------------------------------
+
+      console.log(
+        "📄 Rendering syllabus part 1..."
+      );
+
+      const beforePdfBuffer =
+        await renderHTMLToPDF(
+          beforeHTML
+        );
+
+      console.log(
+        "📄 Rendering syllabus part 2..."
+      );
+
+      const afterPdfBuffer =
+        await renderHTMLToPDF(
+          afterHTML
+        );
+
+      // -----------------------------------------------------
+      // Convert uploaded PDF/DOCX to PDF
+      // -----------------------------------------------------
+
+      console.log(
+        "📎 Converting rubric document..."
+      );
+
+      const rubricPdfBuffer =
+        await convertRubricDocumentToPDF(
+          rubricFile
+        );
+
+      // -----------------------------------------------------
+      // Merge
+      //
+      // BEFORE
+      // ↓
+      // RUBRIC DOCUMENT
+      // ↓
+      // AFTER
+      // -----------------------------------------------------
+
+      console.log(
+        "🔗 Merging syllabus and rubric document..."
+      );
+
+      const finalPdfBuffer =
+        await mergePDFBuffers(
+          beforePdfBuffer,
+          rubricPdfBuffer,
+          afterPdfBuffer
+        );
+
+      // =====================================================
+      // UPDATE STATS
+      // =====================================================
+
+      await Stats.findOneAndUpdate(
+        { type: "global" },
+        {
+          $inc: {
+            totalGenerated: 1,
+            pdfCount: 1
+          }
+        },
+        {
+          new: true,
+          upsert: true
+        }
+      );
+
+      // =====================================================
+      // SEND FINAL PDF
+      // =====================================================
+
+      res.setHeader(
+        "Content-Type",
+        "application/pdf"
+      );
+
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=syllabus.pdf"
+      );
+
+      res.setHeader(
+        "Content-Length",
+        finalPdfBuffer.length
+      );
+
+      console.log(
+        "✅ Final PDF generated successfully."
+      );
+
+      return res.end(
+        finalPdfBuffer,
+        "binary"
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Error generating PDF:",
+        error
+      );
+
+      return res.status(500).json({
+        error: "Failed to generate PDF",
+        message: error.message,
+        stack: error.stack
+      });
+    }
   }
-});
-
+);
 
 function buildCopoTableWord(courseData) {
   const copo = courseData.copoMapping;
@@ -1657,6 +2530,182 @@ function buildCopoTableWord(courseData) {
     </table>
   `;
 }
+function buildCowkMappingHTML(courseData) {
+  const mapping = courseData.cowkMapping || {};
+
+  const headers = Array.isArray(mapping.headers)
+    ? mapping.headers
+    : [];
+
+  const rows = Array.isArray(mapping.rows)
+    ? mapping.rows
+    : [];
+
+  if (headers.length === 0 || rows.length === 0) {
+    return "";
+  }
+
+  const validRows = rows.filter(
+    (row) => row && row.co
+  );
+
+  if (validRows.length === 0) {
+    return "";
+  }
+
+  const headerHTML = headers
+    .map(
+      (header) => `
+        <th class="mapping-header">
+          ${escapeHTML(header || "")}
+        </th>
+      `
+    )
+    .join("");
+
+  const rowsHTML = validRows
+    .map(
+      (row) => {
+        const values = Array.isArray(row.vals)
+          ? row.vals
+          : [];
+
+        return `
+          <tr>
+
+            <td class="mapping-co">
+              ${escapeHTML(row.co || "")}
+            </td>
+
+            ${headers
+              .map(
+                (_, index) => `
+                  <td class="mapping-value">
+                    ${escapeHTML(
+                      values[index] ?? ""
+                    )}
+                  </td>
+                `
+              )
+              .join("")}
+
+          </tr>
+        `;
+      }
+    )
+    .join("");
+
+  return `
+    <div class="section cowk-section">
+
+      <div class="section-title">
+        CO - WK Mapping
+      </div>
+
+      <table class="mapping-table cowk-table">
+
+        <thead>
+          <tr style="font-size:11px;">
+
+            <th class="mapping-header">
+              CO
+            </th>
+
+            ${headerHTML}
+
+          </tr>
+        </thead>
+
+        <tbody>
+          ${rowsHTML}
+        </tbody>
+
+      </table>
+
+    </div>
+  `;
+}
+
+function buildSDGTableHTML(courseData) {
+  const sdgs = Array.isArray(courseData.sdgs)
+    ? courseData.sdgs
+    : [];
+
+  const validSDGs = sdgs.filter(
+    (item) =>
+      item &&
+      (
+        String(item.goalNo || "").trim() !== "" ||
+        String(item.goalTitle || "").trim() !== "" ||
+        String(item.description || "").trim() !== ""
+      )
+  );
+
+  if (validSDGs.length === 0) {
+    return "";
+  }
+
+  const rowsHTML = validSDGs
+    .map(
+      (item) => `
+        <tr>
+
+          <td class="sdg-goal-no">
+            ${escapeHTML(item.goalNo || "")}
+          </td>
+
+          <td class="sdg-goal-title">
+            ${escapeHTML(item.goalTitle || "")}
+          </td>
+
+          <td class="sdg-description">
+            ${boldToHTML(
+              escapeHTML(item.description || "")
+            ).replace(/\n/g, "<br>")}
+          </td>
+
+        </tr>
+      `
+    )
+    .join("");
+
+  return `
+    <div class="section sdg-section">
+
+      <div class="section-title">
+        COURSE SUSTAINABLE DEVELOPMENT GOALS (SDGs)
+      </div>
+
+      <table class="sdg-table">
+
+        <thead>
+          <tr>
+
+            <th>
+              Goal No.
+            </th>
+
+            <th>
+              Goal Title
+            </th>
+
+            <th>
+              Description
+            </th>
+
+          </tr>
+        </thead>
+
+        <tbody>
+          ${rowsHTML}
+        </tbody>
+
+      </table>
+
+    </div>
+  `;
+}
+
 
 function generateSyllabusHTML_DOCX(templateHTML, courseData) {
   function getExamType({ course_type = "", ltps = "" } = {}) {
@@ -1742,7 +2791,18 @@ function generateSyllabusHTML_DOCX(templateHTML, courseData) {
   }
 
   // ---------- CO–PO TABLE ----------
-  html = html.replace("{{COPO_TABLE}}", buildCopoTableWord(courseData));
+  // html = html.replace("{{COPO_TABLE}}", buildCopoTableWord(courseData));
+
+  html = html.replace(
+  "{{COPO_TABLE}}",
+  `
+    ${buildCopoTableWord(courseData)}
+
+    ${buildCowkMappingHTML(courseData)}
+
+    ${buildSDGTableHTML(courseData)}
+  `
+);
 
   return html;
 }
