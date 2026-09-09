@@ -24,6 +24,11 @@ const { buildCopoTable } = require("./blocks/copo");
 const { buildCowkTable } = require("./blocks/cowk");
 const { buildSDGTable } = require("./blocks/sdg");
 
+const {
+  buildRubricsTable,
+  buildRubricDocument,
+} = require("./blocks/rubrics");
+
 const BORDER = {
   top: { style: BorderStyle.SINGLE, size: 6 },
   bottom: { style: BorderStyle.SINGLE, size: 6 },
@@ -304,7 +309,7 @@ function pushCleanSection(children, title, data) {
 }
 
 
-async function generateSyllabusDocx(courseData) {
+async function generateSyllabusDocx(courseData,rubricFile = null) {
   const children = [];
   const is2025 = is2025Scheme(courseData);
 
@@ -399,7 +404,7 @@ if (!is2025 && hasRealModernToolsContent(courseData.modern_tools)) {
   // 5️⃣ CO–PO–PSO
   // children.push(...buildCopoTable(courseData.copoMapping));
 
-  
+
   // =========================================================
   // 5️⃣ CO–PO–PSO MAPPING
   // =========================================================
@@ -431,6 +436,32 @@ if (!is2025 && hasRealModernToolsContent(courseData.modern_tools)) {
       courseData.sdgs
     )
   );
+
+
+  // =========================================================
+  // RUBRICS TABLE
+  // =========================================================
+
+  children.push(
+    ...buildRubricsTable(
+      courseData.rubrics
+    )
+  );
+
+
+  // =========================================================
+  // UPLOADED RUBRIC DOCUMENT
+  // =========================================================
+
+  if (rubricFile) {
+
+    children.push(
+      ...await buildRubricDocument(
+        rubricFile
+      )
+    );
+
+  }
 
   const doc = new Document({
     sections: [

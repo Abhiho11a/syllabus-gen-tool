@@ -1145,14 +1145,25 @@ const triggerAllDownloads = async() => {
   if (downloadOptions.docx) {
     const downloadDocx = async () => {
   try {
+    const docxFormData = new FormData();
+
+    docxFormData.append(
+      "courseData",
+      JSON.stringify(formData)
+    );
+
+    if (rubricFile) {
+      docxFormData.append(
+        "rubricDocument",
+        rubricFile
+      );
+    }
+    
     const res = await fetch(
       `${apiUrl}/generate-docx`,
        {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(formData)
+      body: docxFormData
     });
 
     if (!res.ok) throw new Error("DOCX generation failed");

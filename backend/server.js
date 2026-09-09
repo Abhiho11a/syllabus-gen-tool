@@ -2833,32 +2833,86 @@ function generateSyllabusHTML_DOCX(templateHTML, courseData) {
   return html;
 }
 
-app.post("/generate-docx", async (req, res) => {
-  try {
-    const buffer = await generateSyllabusDocx(req.body);
+app.post(
+  "/generate-docx",
+  upload.single("rubricDocument"),
+  async (req, res) => {
 
-    // Update Stats in DB
-    await Stats.findOneAndUpdate(
-      { type: "global" },
-      { $inc: { totalGenerated: 1, docxCount: 1 } },
-      { new: true, upsert: true }
-    );
+    try {
 
-    res.setHeader(
-      "Content-Disposition",
-      "attachment; filename=syllabus.docx"
-    );
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    );
+      let courseData;
 
-    res.send(buffer);
-  } catch (err) {
-    console.error("DOCX ERROR:", err);
-    res.status(500).json({ error: "DOCX generation failed" });
+      try {
+
+        courseData =
+          JSON.parse(
+            req.body.courseData || "{}"
+          );
+
+      } catch (error) {
+
+        return res.status(400).json({
+          error: "Invalid course data",
+        });
+
+      }
+
+
+      const rubricFile =
+        req.file || null;
+
+
+      const buffer =
+        await generateSyllabusDocx(
+          courseData,
+          rubricFile
+        );
+
+
+      await Stats.findOneAndUpdate(
+        { type: "global" },
+        {
+          $inc: {
+            totalGenerated: 1,
+            docxCount: 1,
+          },
+        },
+        {
+          new: true,
+          upsert: true,
+        }
+      );
+
+
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=syllabus.docx"
+      );
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      );
+
+      res.send(buffer);
+
+    } catch (err) {
+
+      console.error(
+        "DOCX ERROR:",
+        err
+      );
+
+      res.status(500).json({
+        error: "DOCX generation failed",
+        message: err.message,
+      });
+
+    }
+
   }
-});
+);
+
 app.post("/generate-json", async (req, res) => {
   try {
     const courseData = req.body;
