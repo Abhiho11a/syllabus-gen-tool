@@ -59,42 +59,183 @@ function getExamType(ct) {
   return "-";
 }
 
-function buildCourseInfoTable(data) {
+// function buildCourseInfoTable(data) {
 
   
-  data.exam_type = getExamType(data.course_type);
+//   data.exam_type = getExamType(data.course_type);
   
-  if (data.course_type === "MC (T)" || data.course_type === "MC (L)") {
-    data.credits = 0;
-    data.exam_type = "None";
-  }if(data.course_type === "HSMS (M)")
-  data.exam_type = "MCQ";
+//   if (data.course_type === "MC (T)" || data.course_type === "MC (L)") {
+//     data.credits = 0;
+//     data.exam_type = "None";
+//   }if(data.course_type === "HSMS (M)")
+//   data.exam_type = "MCQ";
+
+//   return new Table({
+//     width: { size: 100, type: WidthType.PERCENTAGE },
+//     rows: [
+//       new TableRow({
+//         children: [
+//           "Sem","Title","Code","Credits","Pedagogy",
+//           "L-T-P-S","Exam Hrs","CIE","SEE","Course Type","Exam Type"
+//         ].map(headerCell),
+//       }),
+//       new TableRow({
+//         children: [
+//           data.sem,
+//           data.course_title.toUpperCase(),
+//           data.course_code,
+//           data.credits,
+//           data.pedagogy,
+//           data.ltps,
+//           data.exam_hours,
+//           data.cie,
+//           data.see,
+//           data.course_type,
+//           data.exam_type
+//         ].map(valueCell),
+//       }),
+//     ],
+//   });
+// }
+
+
+function buildCourseInfoTable(data = {}) {
+
+  const courseType = String(
+    data.course_type ?? ""
+  ).trim();
+
+  const courseTitle = String(
+    data.course_title ?? ""
+  ).trim();
+
+  const courseCode = String(
+    data.course_code ?? ""
+  ).trim();
+
+  const sem = String(
+    data.sem ?? ""
+  ).trim();
+
+  const credits = String(
+    data.credits ?? ""
+  ).trim();
+
+  const pedagogy = String(
+    data.pedagogy ?? ""
+  ).trim();
+
+  const ltps = String(
+    data.ltps ?? ""
+  ).trim();
+
+  const examHours = String(
+    data.exam_hours ?? ""
+  ).trim();
+
+  const cie = String(
+    data.cie ?? ""
+  ).trim();
+
+  const see = String(
+    data.see ?? ""
+  ).trim();
+
+
+  // =========================================================
+  // EXAM TYPE
+  // =========================================================
+
+  let examType = getExamType(courseType);
+
+
+  // MC(T) / MC(L)
+  if (
+    courseType === "MC (T)" ||
+    courseType === "MC (L)"
+  ) {
+    examType = "None";
+  }
+
+
+  // HSMS (M)
+  if (
+    courseType === "HSMS (M)"
+  ) {
+    examType = "MCQ";
+  }
+
 
   return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+
+    width: {
+      size: 100,
+      type: WidthType.PERCENTAGE,
+    },
+
     rows: [
+
+      // =====================================================
+      // HEADER
+      // =====================================================
+
       new TableRow({
+
         children: [
-          "Sem","Title","Code","Credits","Pedagogy",
-          "L-T-P-S","Exam Hrs","CIE","SEE","Course Type","Exam Type"
+
+          "Sem",
+          "Title",
+          "Code",
+          "Credits",
+          "Pedagogy",
+          "L-T-P-S",
+          "Exam Hrs",
+          "CIE",
+          "SEE",
+          "Course Type",
+          "Exam Type",
+
         ].map(headerCell),
+
       }),
+
+
+      // =====================================================
+      // VALUES
+      // =====================================================
+
       new TableRow({
+
         children: [
-          data.sem,
-          data.course_title.toUpperCase(),
-          data.course_code,
-          data.credits,
-          data.pedagogy,
-          data.ltps,
-          data.exam_hours,
-          data.cie,
-          data.see,
-          data.course_type,
-          data.exam_type
+
+          sem,
+
+          courseTitle.toUpperCase(),
+
+          courseCode,
+
+          credits,
+
+          pedagogy,
+
+          ltps,
+
+          examHours,
+
+          cie,
+
+          see,
+
+          courseType,
+
+          examType,
+
         ].map(valueCell),
+
       }),
+
     ],
+
   });
 }
 
