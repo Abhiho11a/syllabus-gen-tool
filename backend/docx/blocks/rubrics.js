@@ -277,44 +277,33 @@ ${result.value}
 // =========================================================
 
 async function convertPdfToImages(pdfBuffer) {
+  const tempDir = path.join(os.tmpdir(), `rubric-images-${Date.now()}`);
 
-  const tempDir = fs.mkdtempSync(
-    path.join(
-      os.tmpdir(),
-      "rubric-pdf-"
-    )
-  );
+  fs.mkdirSync(tempDir, { recursive: true });
 
-  const pdfPath = path.join(
-    tempDir,
-    "rubric.pdf"
-  );
-
-  fs.writeFileSync(
-    pdfPath,
-    pdfBuffer
-  );
+  const pdfPath = path.join(tempDir, "rubric.pdf");
+  fs.writeFileSync(pdfPath, pdfBuffer);
 
   const images = [];
 
   try {
+    const { pdf } = await import("pdf-to-img");
 
+    // Higher resolution for clearer text
     const document = await pdf(pdfPath, {
-      scale: 1.5,
+      scale: 5,
+      format: "png",
     });
 
     let pageNumber = 1;
 
     for await (const image of document) {
-
       const imagePath = path.join(
         tempDir,
-        `page-${pageNumber}.png`
+        `rubric-page-${pageNumber}.png`
       );
 
-      await image.save(
-        imagePath
-      );
+      fs.writeFileSync(imagePath, Buffer.from(image));
 
       images.push(imagePath);
 
@@ -325,17 +314,8 @@ async function convertPdfToImages(pdfBuffer) {
       images,
       tempDir,
     };
-
   } catch (error) {
-
-    fs.rmSync(
-      tempDir,
-      {
-        recursive: true,
-        force: true,
-      }
-    );
-
+    console.error("PDF → image conversion error:", error);
     throw error;
   }
 }
@@ -412,7 +392,7 @@ async function buildRubricDocument(
 
   children.push(
     new Paragraph({
-      alignment: AlignmentType.CENTER,
+      alignment: AlignmentType.LEFT,
 
       spacing: {
         before: 300,
@@ -460,9 +440,9 @@ async function buildRubricDocument(
           new ImageRun({
             data: imageBuffer,
 
-            transformation: {
-              width: 550,
-              height: 778,
+            transformation: { 
+            width: 700, 
+            height: 849, 
             },
 
             type: "png",
