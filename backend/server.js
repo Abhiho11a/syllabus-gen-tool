@@ -211,7 +211,7 @@ function buildActivityTableHTML(title, items = []) {
     .map((item, index) => `
       <tr>
         <td class="expSl">${index + 1}</td>
-        <td style="text-align:left;">${escapeHTML(item?.activity || "-")}</td>
+        <td style="text-align:left;font-size:8px">${escapeHTML(item?.activity || "-")}</td>
         <td class="twslHours">${escapeHTML(item?.hours || "-")}</td>
       </tr>
     `)
