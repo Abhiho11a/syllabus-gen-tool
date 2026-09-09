@@ -2541,59 +2541,85 @@ function buildCowkMappingHTML(courseData) {
     ? mapping.rows
     : [];
 
-  if (headers.length === 0 || rows.length === 0) {
-    return "";
-  }
+  // =========================================================
+  // CHECK IF AT LEAST ONE WK VALUE EXISTS
+  // =========================================================
 
-  const validRows = rows.filter(
-    (row) => row && row.co
+  const hasAnyValue = rows.some(row =>
+    Array.isArray(row?.vals) &&
+    row.vals.some(value =>
+      String(value ?? "").trim() !== ""
+    )
   );
 
-  if (validRows.length === 0) {
+  // If there is no value in ANY WK input field,
+  // don't display the table at all.
+  if (!hasAnyValue) {
     return "";
   }
 
+  // =========================================================
+  // VALID ROWS
+  // =========================================================
+
+  const validRows = rows.filter(
+    row => row && row.co
+  );
+
+  if (headers.length === 0 || validRows.length === 0) {
+    return "";
+  }
+
+  // =========================================================
+  // HEADER
+  // =========================================================
+
   const headerHTML = headers
-    .map(
-      (header) => `
-        <th class="mapping-header">
-          ${escapeHTML(header || "")}
-        </th>
-      `
-    )
+    .map(header => `
+      <th class="mapping-header">
+        ${escapeHTML(header || "")}
+      </th>
+    `)
     .join("");
+
+  // =========================================================
+  // ROWS
+  // =========================================================
 
   const rowsHTML = validRows
-    .map(
-      (row) => {
-        const values = Array.isArray(row.vals)
-          ? row.vals
-          : [];
+    .map(row => {
 
-        return `
-          <tr>
+      const values = Array.isArray(row.vals)
+        ? row.vals
+        : [];
 
-            <td class="mapping-co">
-              ${escapeHTML(row.co || "")}
-            </td>
+      return `
+        <tr>
 
-            ${headers
-              .map(
-                (_, index) => `
-                  <td class="mapping-value">
-                    ${escapeHTML(
-                      values[index] ?? ""
-                    )}
-                  </td>
-                `
-              )
-              .join("")}
+          <td class="mapping-co">
+            ${escapeHTML(row.co || "")}
+          </td>
 
-          </tr>
-        `;
-      }
-    )
+          ${headers
+            .map(
+              (_, index) => `
+                <td class="mapping-value">
+                  ${escapeHTML(
+                    values[index] ?? ""
+                  )}
+                </td>
+              `
+            )
+            .join("")}
+
+        </tr>
+      `;
+    })
     .join("");
+
+  // =========================================================
+  // FINAL TABLE
+  // =========================================================
 
   return `
     <div class="section cowk-section">
