@@ -16,10 +16,13 @@ const {
   buildCourseInfoTable,
 } = require("./blocks/courseInfo");
 const { buildModules } = require("./blocks/module");
-const { buildCopoTable } = require("./blocks/copo");
 const { buildPracticalTable } = require("./blocks/practicals");
 const { buildTextbooksTable } = require("./blocks/textbooks");
 const { buildTwSlTable } = require("./blocks/twsl");
+
+const { buildCopoTable } = require("./blocks/copo");
+const { buildCowkTable } = require("./blocks/cowk");
+const { buildSDGTable } = require("./blocks/sdg");
 
 const BORDER = {
   top: { style: BorderStyle.SINGLE, size: 6 },
@@ -394,7 +397,40 @@ if (!is2025 && hasRealModernToolsContent(courseData.modern_tools)) {
 
 
   // 5️⃣ CO–PO–PSO
-  children.push(...buildCopoTable(courseData.copoMapping));
+  // children.push(...buildCopoTable(courseData.copoMapping));
+
+  
+  // =========================================================
+  // 5️⃣ CO–PO–PSO MAPPING
+  // =========================================================
+
+  children.push(
+    ...buildCopoTable(
+      courseData.copoMapping
+    )
+  );
+
+
+  // =========================================================
+  // 6️⃣ CO–WK MAPPING
+  // =========================================================
+
+  children.push(
+    ...buildCowkTable(
+      courseData.cowkMapping
+    )
+  );
+
+
+  // =========================================================
+  // 7️⃣ SDG TABLE
+  // =========================================================
+
+  children.push(
+    ...buildSDGTable(
+      courseData.sdgs
+    )
+  );
 
   const doc = new Document({
     sections: [
