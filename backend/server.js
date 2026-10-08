@@ -584,6 +584,52 @@ function removeFirstItem(arr = []) {
   return Array.isArray(arr) ? arr.slice(1) : [];
 }
 
+function normalizeCourseTypeAndExamType(courseData = {}) {
+  const data = {
+    ...courseData,
+  };
+
+  const isCustom =
+    String(data.course_type || "")
+      .trim()
+      .toUpperCase() === "CUSTOM";
+
+  if (isCustom) {
+    // Use custom course name if provided.
+    // Otherwise keep "Custom".
+    data.course_type =
+      String(data.custom_course_type || "").trim() || "Custom";
+
+    // IMPORTANT:
+    // For custom course, preserve exactly what the user selected.
+    data.exam_type =
+      String(data.exam_type || "").trim() || "";
+
+    return data;
+  }
+
+  // Existing automatic behavior for normal courses
+  if (data.course_type === "MC") {
+    data.exam_type = "-";
+  }
+  else if (data.course_type === "MC ([object Object])") {
+    data.course_type = "NCMC";
+    data.exam_type = "NO EXAM";
+    data.credits = "NO CREDITS";
+  }
+  else if (data.course_type === "IPCC (T+L)") {
+    data.exam_type = "Theory";
+  }
+  else {
+    data.exam_type = getExamType({
+      course_type: data.course_type,
+      ltps: data.ltps,
+    });
+  }
+
+  return data;
+}
+
 function splitExperimentContent(text, maxLines = 3) {
   if (!text) return [];
 
@@ -1077,6 +1123,8 @@ function buildGuidelinesRubricsHTML(courseData) {
 
 //Function to generate PDF
 function generateSyllabusHTML(templateHTML, courseData) {
+  courseData = normalizeCourseTypeAndExamType(courseData);
+
   let html = templateHTML;
   const is2025 = is2025Scheme(courseData);
   const ltpLabel = is2025 ? "L:T:P" : "L:T:P:S";
@@ -1090,22 +1138,22 @@ function generateSyllabusHTML(templateHTML, courseData) {
   ];
 
   // Set defaults if course_type is "MC"
-  if (courseData.course_type === "MC") {
-    // courseData.exam_type = courseData.exam_type;
-    courseData.exam_type = "-";
-    // courseData.credits = 0;
-  }
-  else if (courseData.course_type === "MC ([object Object])")
-  {
-    courseData.course_type = "NCMC";
-    courseData.exam_type = "NO EXAM";
-    courseData.credits = "NO CREDITS";
-  }
-  else if(courseData.course_type === "IPCC (T+L)") 
-  courseData.exam_type = "Theory";
-  else {
-    courseData.exam_type = getExamType(courseData.course_type);
-  }
+  // if (courseData.course_type === "MC") {
+  //   // courseData.exam_type = courseData.exam_type;
+  //   courseData.exam_type = "-";
+  //   // courseData.credits = 0;
+  // }
+  // else if (courseData.course_type === "MC ([object Object])")
+  // {
+  //   courseData.course_type = "NCMC";
+  //   courseData.exam_type = "NO EXAM";
+  //   courseData.credits = "NO CREDITS";
+  // }
+  // else if(courseData.course_type === "IPCC (T+L)") 
+  // courseData.exam_type = "Theory";
+  // else {
+  //   courseData.exam_type = getExamType(courseData.course_type);
+  // }
 
   simpleFields.forEach(key => {
     const value = courseData[key] ?? "-";
