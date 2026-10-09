@@ -568,63 +568,212 @@ function OutcomeslistToHTML(input) {
     .join("");
 }
 
- function getExamType(ct = "") {
-  if (!ct || typeof ct !== "string") return "-";
+function getExamType(courseType = "") {
+  const value = String(courseType ?? "").trim();
 
-  const upper = ct.toUpperCase();
+  if (!value) return "";
 
-  if (upper.includes("T+L")) return "Theory & Lab";
-  if (upper.includes("(T)") || upper.endsWith(" T")) return "Theory";
-  if (upper.includes("(L)") || upper.endsWith(" L")) return "Lab";
-  if (upper.includes("(M)") || upper.endsWith("M")) return "MCQ";
+  const upper = value.toUpperCase();
 
-  return "-";
+  // Explicit combinations
+  if (upper.includes("T+L")) {
+    return "Theory & Lab";
+  }
+
+  // Explicit theory
+  if (
+    upper.includes("(T)") ||
+    /\bT$/.test(upper)
+  ) {
+    return "Theory";
+  }
+
+  // Explicit lab
+  if (
+    upper.includes("(L)") ||
+    /\bL$/.test(upper)
+  ) {
+    return "Lab";
+  }
+
+  // Explicit MCQ / objectives
+  if (
+    upper.includes("(M)") ||
+    /\bM$/.test(upper)
+  ) {
+    return "MCQ";
+  }
+
+  // No exam
+  if (
+    upper === "NCMC" ||
+    upper === "MC" ||
+    upper.includes("NO EXAM")
+  ) {
+    return "None";
+  }
+
+  return "";
 }
+
 function removeFirstItem(arr = []) {
   return Array.isArray(arr) ? arr.slice(1) : [];
 }
 
 function normalizeCourseTypeAndExamType(courseData = {}) {
+
   const data = {
     ...courseData,
   };
 
-  const isCustom =
-    String(data.course_type || "")
-      .trim()
-      .toUpperCase() === "CUSTOM";
+  const courseType = String(data.course_type || "").trim();
 
-  if (isCustom) {
-    // Use custom course name if provided.
-    // Otherwise keep "Custom".
+  const explicitExamType =
+    String(data.exam_type || "").trim();
+
+  // =====================================================
+  // NORMALIZE EXPLICIT EXAM TYPE
+  // =====================================================
+
+  function normalizeExamType(value) {
+
+    const v = String(value || "")
+      .trim()
+      .toUpperCase();
+
+    if (!v) return "";
+
+    if (v === "T" || v === "THEORY")
+      return "Theory";
+
+    if (v === "L" || v === "LAB")
+      return "Lab";
+
+    if (
+      v === "T+L" ||
+      v === "THEORY + LAB" ||
+      v === "THEORY & LAB"
+    )
+      return "Theory & Lab";
+
+    if (
+      v === "M" ||
+      v === "MCQ"
+    )
+      return "MCQ";
+
+    if (
+      v === "V" ||
+      v === "VIVA"
+    )
+      return "Viva";
+
+    if (
+      v === "MC" ||
+      v === "NONE" ||
+      v === "NO EXAM"
+    )
+      return "None";
+
+    return String(value).trim();
+  }
+
+
+  // =====================================================
+  // CUSTOM COURSE
+  // =====================================================
+
+  if (courseType.toUpperCase() === "CUSTOM") {
+
     data.course_type =
       String(data.custom_course_type || "").trim() || "Custom";
 
-    // IMPORTANT:
-    // For custom course, preserve exactly what the user selected.
     data.exam_type =
-      String(data.exam_type || "").trim() || "";
+      normalizeExamType(explicitExamType);
 
     return data;
   }
 
-  // Existing automatic behavior for normal courses
-  if (data.course_type === "MC") {
-    data.exam_type = "-";
+
+  // =====================================================
+  // MC / NCMC
+  // =====================================================
+
+  if (
+    courseType.toUpperCase() === "MC" ||
+    courseType.toUpperCase() === "NCMC"
+  ) {
+
+    data.course_type =
+      courseType.toUpperCase() === "MC"
+        ? "MC"
+        : "NCMC";
+
+    data.exam_type = "None";
+
+    return data;
   }
-  else if (data.course_type === "MC ([object Object])") {
+
+
+  // =====================================================
+  // SPECIAL OLD DATA
+  // =====================================================
+
+  if (
+    courseType === "MC ([object Object])"
+  ) {
+
     data.course_type = "NCMC";
-    data.exam_type = "NO EXAM";
+    data.exam_type = "None";
     data.credits = "NO CREDITS";
+
+    return data;
   }
-  else if (data.course_type === "IPCC (T+L)") {
-    data.exam_type = "Theory";
+
+
+  // =====================================================
+  // IPCC
+  // =====================================================
+
+  if (
+    courseType.toUpperCase() === "IPCC(T+L)" ||
+    courseType.toUpperCase() === "IPCC (T+L)"
+  ) {
+    data.exam_type = "Theory & Lab";
+    return data;
   }
-  else {
-    data.exam_type = getExamType({
-      course_type: data.course_type,
-      ltps: data.ltps,
-    });
+
+
+  // =====================================================
+  // FIRST PRIORITY:
+  // EXPLICIT EXAM TYPE FROM FRONTEND
+  // =====================================================
+
+  if (explicitExamType) {
+
+    data.exam_type =
+      normalizeExamType(explicitExamType);
+
+    return data;
+  }
+
+
+  // =====================================================
+  // SECOND PRIORITY:
+  // DERIVE FROM COURSE TYPE
+  // =====================================================
+
+  data.exam_type =
+    getExamType(courseType);
+
+
+  // =====================================================
+  // FINAL FALLBACK
+  // =====================================================
+
+  if (!data.exam_type) {
+
+    data.exam_type = "-";
   }
 
   return data;
