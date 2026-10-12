@@ -739,7 +739,7 @@ function normalizeCourseTypeAndExamType(courseData = {}) {
     courseType.toUpperCase() === "IPCC(T+L)" ||
     courseType.toUpperCase() === "IPCC (T+L)"
   ) {
-    data.exam_type = "Theory & Lab";
+    data.exam_type = "Theory";
     return data;
   }
 
