@@ -14,6 +14,7 @@ import GuidelinesSection from "./components/GUidelinesSection";
 import ModulesSection from "./components/ModulesSection";
 import CowkMappingTable from "./components/CoWkMappingTable";
 import SDGTable from "./components/SDGTable";
+import SyllabusPreview from "./components/SyllabusPreview";
 
 function getApiUrl() {
   const envUrl = String(import.meta.env.VITE_API_URL || "").trim();
@@ -73,20 +74,27 @@ const autosaveTimer = useRef(null);
 const lastSavedDataRef = useRef(null);
 const lastSavedTimeRef = useRef(0);
 const [popupPosition, setPopupPosition] = useState("top");
-const [scheme, setScheme] = useState(() => {
-  if (typeof window === "undefined") return "2024";
+const [scheme, setScheme] = useState("2024");
+const [schemes, setSchemes] = useState(() => {
+  const savedSchemes = localStorage.getItem("academicSchemes");
 
-  try {
-    const savedDraft = localStorage.getItem(DRAFT_KEY);
-    if (!savedDraft) return "2024";
-
-    const parsedDraft = JSON.parse(savedDraft);
-    return parsedDraft.scheme_year === "2025" ? "2025" : "2024";
-  } catch {
-    return "2024";
+  if (savedSchemes) {
+    return JSON.parse(savedSchemes);
   }
+
+  return ["2024", "2025"];
 });
+const [showAddScheme, setShowAddScheme] = useState(false);
+const [newScheme, setNewScheme] = useState("");
+
 const is2025Scheme = scheme === "2025";
+
+useEffect(() => {
+  localStorage.setItem(
+    "academicSchemes",
+    JSON.stringify(schemes)
+  );
+}, [schemes]);
 
 const [rubricFile, setRubricFile] = useState(null);
 
@@ -682,28 +690,44 @@ function handleRemoveFile() {
     fileInputRef.current.value = "";
   }
 }
-
-function askCourseNature(question, theory, lab, theoryLab, mc) {
+function askCourseNature(
+  question,
+  theory = false,
+  lab = false,
+  theoryLab = false,
+  mc = false
+) {
   let type = window.prompt(question);
+
   if (type === null) return null;
 
   type = type.trim().toLowerCase();
 
-  // 👉 MC logic
-  if (mc) {
-    if (type === "1") return "MCQ";
-    else if (type === "2")
-      return "NONE";
+  if (theory && type === "t") {
+    return "T";
   }
 
-  // 👉 Normal course types
-  if (theory && type === "t") return "T";
-  if (lab && type === "l") return "L";
-  if (theoryLab && type === "tl") return "T+L";
-  if (type === "m") return "M";
+  if (lab && type === "l") {
+    return "L";
+  }
 
-  alert("Invalid input. Please enter valid option.");
-  return askCourseNature(question, theory, lab, theoryLab, mc); // ✅ fixed
+  if (theoryLab && (type === "tl" || type === "t+l")) {
+    return "T+L";
+  }
+
+  if (mc && type === "m") {
+    return "M";
+  }
+
+  alert("Invalid input. Please enter a valid option.");
+
+  return askCourseNature(
+    question,
+    theory,
+    lab,
+    theoryLab,
+    mc
+  );
 }
 
 function askExamType() {
@@ -775,6 +799,187 @@ function resetGenerateState() {
   setGenenerateBtnText("Generate Course Document");
 }
 
+function getFinalCourseData(formData) {
+  const isCustom =
+    String(formData.course_type || "").trim().toUpperCase() === "CUSTOM";
+
+  if (isCustom) {
+    return {
+      ...formData,
+
+      // If custom course name exists → use it.
+      // Otherwise → keep "Custom".
+      course_type:
+        String(formData.custom_course_type || "").trim() || "Custom",
+
+      // For custom course type, use exactly what user selected.
+      exam_type:
+        String(formData.exam_type || "").trim() || "",
+    };
+  }
+
+  return {
+    ...formData,
+  };
+}
+
+function resolveFinalCourseData(data) {
+  const baseType = String(data.course_type || "").trim();
+
+  let finalCourseType = baseType;
+  let finalExamType = String(data.exam_type || "").trim();
+  let finalCredits = data.credits;
+
+  if (baseType.toUpperCase() === "CUSTOM") {
+    finalCourseType =
+      String(data.custom_course_type || "").trim() || "Custom";
+
+    finalExamType =
+      String(data.exam_type || "").trim();
+  }
+
+  else if (baseType === "IPCC") {
+    finalCourseType = "IPCC(T+L)";
+    finalExamType = "Theory";
+  }
+
+  else if (baseType === "PCC") {
+    finalCourseType = "PCC(T)";
+    finalExamType = "Theory";
+  }
+
+  else if (baseType === "OEC") {
+    finalCourseType = "OEC(T)";
+    finalExamType = "Theory";
+  }
+
+  else if (baseType === "PEC") {
+    finalCourseType = "PEC(T)";
+    finalExamType = "Theory";
+  }
+
+  else if (baseType === "UHV") {
+    finalCourseType = "UHV(T)";
+    finalExamType = "Theory";
+  }
+
+  else if (baseType === "BSC") {
+    finalCourseType = "BSC(T)";
+    finalExamType = "Theory";
+  }
+
+  else if (baseType === "HSMC") {
+    finalCourseType = "HSMC(T)";
+    finalExamType = "Theory";
+  }
+
+  else if (baseType === "ASC") {
+    finalCourseType = "ASC(T)";
+    finalExamType = "Theory";
+  }
+
+  else if (baseType === "PCCL") {
+    finalCourseType = "PCCL(L)";
+    finalExamType = "Lab";
+  }
+
+  else if (baseType === "PI" || baseType === "PIH") {
+    finalCourseType = `${baseType}(V)`;
+    finalExamType = "Viva";
+  }
+
+  else if (baseType === "MC") {
+    finalCourseType = "NCMC";
+    finalExamType = "None";
+  }
+
+  else if (baseType === "MC_EXAM_1") {
+    finalCourseType = "MC(M)";
+    finalExamType = "MCQ";
+    finalCredits = 1;
+  }
+
+  else if (baseType === "MC_EXAM_2") {
+    finalCourseType = "MC(M)";
+    finalExamType = "MCQ";
+    finalCredits = 2;
+  }
+
+  else if (baseType === "MC_NO_EXAM") {
+    finalCourseType = "NCMC";
+    finalExamType = "None";
+    finalCredits = 0;
+  }
+
+  return {
+    ...data,
+    course_type: finalCourseType,
+    exam_type: finalExamType,
+    credits: finalCredits,
+  };
+}
+const handleCourseTypeChange = (e) => {
+  const courseType = e.target.value;
+
+  let examType = "";
+
+  switch (courseType) {
+    case "IPCC":
+      examType = "Theory";
+      break;
+
+    case "PCC":
+    case "OEC":
+    case "PEC":
+    case "UHV":
+    case "BSC":
+    case "HSMC":
+    case "ASC":
+      examType = "Theory";
+      break;
+
+    case "PCCL":
+      examType = "Lab";
+      break;
+
+    case "PI":
+    case "PIH":
+      examType = "Viva";
+      break;
+
+    case "MC":
+    case "MC_NO_EXAM":
+      examType = "None";
+      break;
+
+    case "MC_EXAM_1":
+    case "MC_EXAM_2":
+      examType = "MCQ";
+      break;
+
+    case "CUSTOM":
+      // Keep the user's custom selection
+      examType = formData.exam_type || "";
+      break;
+
+    case "AEC":
+    case "ESC":
+    case "HSMS":
+      // These are selected later during generation
+      examType = "";
+      break;
+
+    default:
+      examType = "";
+  }
+
+  setFormData((prev) => ({
+    ...prev,
+    course_type: courseType,
+    exam_type: examType,
+  }));
+};
+
 
 
 function generateDocument() {
@@ -827,165 +1032,253 @@ function generateDocument() {
     }
   }
 
-// ===== COURSE OBJECTIVES VALIDATION =====
-// if (!hasRealUserContent(formData.course_objectives)) {
-//   alert("Please add at least one meaningful Course Objective");
-//   scrollTo(refs.course_objectives);
-//   resetGenerateState();
-//   return;
-// }
+  const baseType = String(formData.course_type || "").trim();
 
-// ===== COURSE OUTCOMES =====
-// if (!hasRealUserContent(formData.course_outcomes)) {
-//   alert("Please add at least one meaningful Course Outcome");
-//   scrollTo(refs.course_outcomes);
-//   resetGenerateState();
-//   return;
-// }
+  let finalCourseType = "";
+  let finalExamType = "";
 
-// ===== TEACHING & LEARNING =====
-// if (!hasRealUserContent(formData.teaching_learning)) {
-//   alert("Please add at least one Teaching–Learning point");
-//   scrollTo(refs.teaching_learning);
-//   resetGenerateState();
-//   return;
-// }
-// ===== Modern AI tools =====
-// if (!hasRealUserContent(formData.modern_tools)) {
-//   alert("Please add at least one Modern AI Tool");
-//   scrollTo(refs.modern_tools);
-//   resetGenerateState();
-//   return;
-// }
+  /* =========================================================
+    CUSTOM
+  ========================================================= */
 
+  if (baseType.toUpperCase() === "CUSTOM") {
 
-  
-  // if (
-  //     !formData.course_title ||
-  //     !formData.course_code ||
-  //     !formData.credits ||
-  //     !formData.course_type ||
-  //     !formData.ltps ||
-  //     !formData.see ||
-  //     !formData.cie ||
-  //     !formData.sem ||
-  //   !formData.exam_hours
-  // ) {
-  //   setTimeout(()=>{
-  //         setIsGen(false)
-  //               setGenenerateBtnText("Generate Course Document")
-  //   },1400)
-  //   setTimeout(()=>{
-  //            alert("Please fill all fields");
-  //          },1500)
-  //   return;
-  //   }
-    
-  const baseType = formData.course_type;
-  let user_res = null;
+    const customCourseType =
+      String(formData.custom_course_type || "").trim();
 
-  if (baseType === "AEC") {
-    user_res = askCourseNature(
-      "Enter course type:\nT → Theory\nL → Lab\n",
-      true, true, false, false
+    finalCourseType = customCourseType || "Custom";
+
+    finalExamType =
+      String(formData.exam_type || "").trim();
+
+  }
+
+  /* =========================================================
+    AEC
+  ========================================================= */
+
+  else if (baseType === "AEC") {
+
+    const result = askCourseNature(
+      "Enter course type:\nT → Theory\nL → Lab",
+      true,
+      true,
+      false,
+      false
     );
-  }
-  else if(baseType === "MC"){
-    formData.course_type = "NCMC";
-    // formData.credits = 0;
-    formData.exam_type = "-";
 
-    let credits = 0;
-    let exam_type = "-" 
+    if (!result) {
+      resetGenerateState();
+      return;
+    }
 
-    user_res = {
-    course_type: "NCMC",
-    credits,
-    exam_type
-  }
-  }
-  else if (baseType.startsWith("MC_")) {
-  const value = formData.course_type;
+    finalCourseType = `AEC(${result})`;
 
-  let credits = 0;
-  let exam_type = "";
-
-  if (value === "MC_EXAM_1") {
-    credits = 1;
-    exam_type = "MCQ";
-  } 
-  else if (value === "MC_EXAM_2") {
-    credits = 2;
-    exam_type = "MCQ";
-  } 
-  else if (value === "MC_NO_EXAM") {
-    credits = 0;
-    exam_type = "NONE";
+    finalExamType =
+      result === "T"
+        ? "Theory"
+        : result === "L"
+          ? "Lab"
+          : "-";
   }
 
-  // ✅ update formData
-  formData.course_type = "MC";
-  formData.credits = credits;
-  formData.exam_type = exam_type;
+  /* =========================================================
+    ESC
+  ========================================================= */
 
-  user_res = {
-    course_type: "MC",
-    credits,
-    exam_type
-  };
-
-}
   else if (baseType === "ESC") {
-    user_res = askCourseNature(
-      "Enter course type:\nT → Theory\nTL → Theory + Lab",
-      true, false, true,false
-    );
-  } 
-  else if (baseType === "HSMS") {
-    user_res = askCourseNature(
-      "Enter course type:\nT → Theory\nM → Objectives(MCQ)",
-      true, false, true, false
-    );
-  } 
-  else if (baseType === "IPCC") user_res = "T+L";
-  else if (["OEC", "PEC", "PCC", "UHV","BSC","HSMC"].includes(baseType)) user_res = "T";
-  else if (baseType === "PCCL") user_res = "L";
-  else if (baseType === "ASC") user_res = "T"
-  else if (baseType === "PI" || baseType === "PIH") user_res = "V"
 
-  if (!user_res) 
-  {
-    setDocGen(false)
-    return;
+    const result = askCourseNature(
+      "Enter course type:\nT → Theory\nTL → Theory + Lab",
+      true,
+      false,
+      true,
+      false
+    );
+
+    if (!result) {
+      resetGenerateState();
+      return;
+    }
+
+    finalCourseType = `ESC(${result})`;
+
+    finalExamType =
+      result === "T"
+        ? "Theory"
+        : result === "T+L"
+          ? "Theory & Lab"
+          : "-";
   }
 
-  // console.log(user_res)
-  const updatedType = user_res.course_type === "MC"?`MC`:`${baseType} (${user_res})`;
+  /* =========================================================
+    HSMS
+  ========================================================= */
 
-  setFormData({
-    ...formData,
-    course_type: updatedType,
-    
-  });
+  else if (baseType === "HSMS") {
 
-   setTimeout(()=>{
-      setGenenerateBtnText("Structuring syllabus data…")
-    },3000)
+    const result = askCourseNature(
+      "Enter course type:\nT → Theory\nM → Objectives (MCQ)",
+      true,
+      false,
+      false,
+      true
+    );
 
-  // alert(updatedType);
-  setTimeout(()=>{
-    setGenenerateBtnText("Finalizing documents…")
-  },4000)
+    if (!result) {
+      resetGenerateState();
+      return;
+    }
 
-  setTimeout(()=>{
-    setGenenerateBtnText("Done!!...")
-    setIsGen(false)
-  },6000)
-  
-  setTimeout(()=>{
-    setShowDownloads(true)  
-    setDocGen(true)
-},7500)
+    finalCourseType = `HSMS(${result})`;
+
+    finalExamType =
+      result === "T"
+        ? "Theory"
+        : result === "M"
+          ? "MCQ"
+          : "-";
+  }
+
+  /* =========================================================
+    IPCC
+  ========================================================= */
+
+  else if (baseType === "IPCC") {
+
+    finalCourseType = "IPCC(T+L)";
+    finalExamType = "Theory";
+  }
+
+  /* =========================================================
+    THEORY COURSES
+  ========================================================= */
+
+  else if (
+    ["OEC", "PEC", "PCC", "UHV", "BSC", "HSMC", "ASC"]
+      .includes(baseType)
+  ) {
+
+    finalCourseType = `${baseType}(T)`;
+    finalExamType = "Theory";
+  }
+
+  /* =========================================================
+    LAB COURSE
+  ========================================================= */
+
+  else if (baseType === "PCCL") {
+
+    finalCourseType = "PCCL(L)";
+    finalExamType = "Lab";
+  }
+
+  /* =========================================================
+    PROJECT / INTERNSHIP
+  ========================================================= */
+
+  else if (baseType === "PI" || baseType === "PIH") {
+
+    finalCourseType = `${baseType}(V)`;
+    finalExamType = "Viva";
+  }
+
+  /* =========================================================
+    MC WITH EXAM / NO EXAM
+  ========================================================= */
+
+  else if (baseType.startsWith("MC_")) {
+
+    if (baseType === "MC_EXAM_1") {
+
+      finalCourseType = "MC(M)";
+      finalExamType = "MCQ";
+
+      setFormData(prev => ({
+        ...prev,
+        credits: 1
+      }));
+
+    }
+
+    else if (baseType === "MC_EXAM_2") {
+
+      finalCourseType = "MC(M)";
+      finalExamType = "MCQ";
+
+      setFormData(prev => ({
+        ...prev,
+        credits: 2
+      }));
+
+    }
+
+    else if (baseType === "MC_NO_EXAM") {
+
+      finalCourseType = "NCMC";
+      finalExamType = "None";
+
+      setFormData(prev => ({
+        ...prev,
+        credits: 0
+      }));
+    }
+  }
+
+  /* =========================================================
+    NCMC
+  ========================================================= */
+
+  else if (baseType === "MC") {
+
+    finalCourseType = "NCMC";
+    finalExamType = "None";
+  }
+
+  /* =========================================================
+    UNKNOWN
+  ========================================================= */
+
+  else {
+
+    finalCourseType = baseType;
+    finalExamType = "";
+  }
+
+
+  /* =========================================================
+    FINAL STATE
+  ========================================================= */
+
+  console.log("=================================");
+  console.log("FINAL COURSE TYPE:", finalCourseType);
+  console.log("FINAL EXAM TYPE:", finalExamType);
+  console.log("=================================");
+
+  setFormData(prev => ({
+    ...prev,
+    course_type: finalCourseType,
+    exam_type: finalExamType,
+  }));
+
+
+  setTimeout(() => {
+    setGenenerateBtnText("Structuring syllabus data…");
+  }, 3000);
+
+  setTimeout(() => {
+    setGenenerateBtnText("Finalizing documents…");
+  }, 4000);
+
+  setTimeout(() => {
+    setGenenerateBtnText("Done!!...");
+    setIsGen(false);
+  }, 6000);
+
+  setTimeout(() => {
+    setShowDownloads(true);
+    setDocGen(true);
+  }, 7500);
 
 }
 
@@ -1680,20 +1973,53 @@ function ModuleTextbookForm({ onAdd }) {
   }
 
     return (
-  <div
-    ref={topRef}
-    className="max-w-4xl mx-auto bg-white shadow-md rounded-xl p-8 border border-gray-200 mt-10"
-  >
-    {/* ======== POPUP NOTIFICATION ======== */}
-    {showPopup && (
-      <Popup
-        position={popupPosition}
-        message={showPopup}
-        duration={3000}
-        onClose={() => setShowPopup(null)}
-      />
-    )}
+      <div
+        ref={topRef}
+        className="h-screen w-full overflow-hidden bg-slate-100"
+      >
 
+        {/* Popup */}
+        {showPopup && (
+          <Popup
+            position={popupPosition}
+            message={showPopup}
+            duration={3000}
+            onClose={() => setShowPopup(null)}
+          />
+        )}
+
+        <div className="h-full w-full flex gap-4 bg-slate-50 p-3">
+
+          {/* =====================================================
+              LEFT SIDE — FORM
+          ===================================================== */}
+
+          <div
+            className="
+              h-full
+              flex-1
+              min-w-0
+
+              rounded-2xl
+              border
+              border-slate-200
+
+              bg-white
+
+              shadow-sm
+
+              overflow-hidden
+            "
+          >
+
+            <div
+            className="
+              h-full
+              overflow-y-auto
+              px-6
+              py-5
+            "
+          >
     {/* ======== HEADER ======== */}
     <div className="flex flex-col gap-3 mb-6">
       <div className="-mb-1">
@@ -1706,29 +2032,100 @@ function ModuleTextbookForm({ onAdd }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        {/* Existing Schemes */}
+        {schemes.map((year) => (
+          <button
+            key={year}
+            type="button"
+            onClick={() => {
+              handleSchemeChange(year);
+              setShowPopup(`Switched to ${year} Scheme`);
+            }}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              scheme === year
+                ? "bg-slate-700 text-white"
+                : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-100"
+            }`}
+          >
+            {year}
+          </button>
+        ))}
+
+        {/* Add Scheme */}
         <button
           type="button"
-          onClick={() => {handleSchemeChange("2024");setShowPopup("Switched to 2024 Scheme")}}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            scheme === "2024"
-              ? "bg-slate-700 text-white"
-              : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-100"
-          }`}
+          onClick={() => {
+            setShowAddScheme(true);
+            setNewScheme("");
+          }}
+          className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 bg-white text-xl font-medium text-slate-600 transition-colors hover:bg-slate-100"
+          title="Add Scheme"
         >
-          2024
+          +
         </button>
-        <button
-          type="button"
-          onClick={() => {handleSchemeChange("2025");setShowPopup("Switched to 2025 Scheme")}}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            scheme === "2025"
-              ? "bg-indigo-600 text-white"
-              : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-100"
-          }`}
-        >
-          2025
-        </button>
+
       </div>
+
+      {showAddScheme && (
+      <div className="mt-3 flex items-center gap-2">
+
+        <input
+          type="text"
+          value={newScheme}
+          onChange={(e) => setNewScheme(e.target.value)}
+          placeholder="Enter year"
+          maxLength={4}
+          className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-300"
+          autoFocus
+        />
+
+        <button
+          type="button"
+          onClick={() => {
+            const year = newScheme.trim();
+
+            // Validate year
+            if (!/^\d{4}$/.test(year)) {
+              setShowPopup("Enter a valid 4-digit year");
+              return;
+            }
+
+            // Prevent duplicate
+            if (schemes.includes(year)) {
+              setShowPopup(`${year} Scheme already exists`);
+              return;
+            }
+
+            // Add new scheme
+            setSchemes((prev) => [...prev, year]);
+
+            // Select newly added scheme
+            handleSchemeChange(year);
+
+            setShowPopup(`Added ${year} Scheme`);
+
+            // Reset input
+            setNewScheme("");
+            setShowAddScheme(false);
+          }}
+          className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+        >
+          Add
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setNewScheme("");
+            setShowAddScheme(false);
+          }}
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+        >
+          Cancel
+        </button>
+
+      </div>
+    )}
       <h2 className="text-2xl font-semibold text-slate-700 mt-4 -mb-3">
         Add / Edit Course Details
       </h2>
@@ -1819,25 +2216,115 @@ function ModuleTextbookForm({ onAdd }) {
 
     {/* ======== DEPARTMENT & SEMESTER ======== */}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-5">
+      {/* ==================== DEPARTMENT ==================== */}
       <div>
-        <label className="text-sm font-semibold text-slate-600">Department</label>
-        <select
-          ref={refs.department}
-          value={formData.department}
-          onChange={(e) =>
-            setFormData({ ...formData, department: e.target.value })
-          }
-          className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
-        >
-          <option value="" disabled hidden>
-            Select
-          </option>
-          {programStructure["BE/BTECH"].departments.map((dept, index) => (
-            <option key={index} value={dept}>
-              {dept}
+        <label className="block text-sm font-semibold text-slate-700 mb-2">
+          Department
+        </label>
+
+        <div className="relative">
+          <select
+            ref={refs.department}
+            value={formData.department || ""}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                department: e.target.value,
+              })
+            }
+            className="
+              w-full
+              h-12
+              appearance-none
+              rounded-xl
+              border border-slate-300
+              bg-white
+              px-4 pr-11
+              text-sm
+              font-medium
+              text-slate-700
+              shadow-sm
+              outline-none
+              transition-all
+              duration-200
+              hover:border-slate-400
+              focus:border-slate-500
+              focus:ring-4
+              focus:ring-slate-100
+            "
+          >
+            <option value="" disabled>
+              Select department
             </option>
-          ))}
-        </select>
+
+            {/* BE / BTECH */}
+            <optgroup label="BE / BTECH">
+              {programStructure["BE/BTECH"]?.departments?.map((dept) => (
+                <option key={dept.value} value={dept.label}>
+                  {dept.label}
+                </option>
+              ))}
+            </optgroup>
+
+            {/* MCA */}
+            <optgroup label="MCA">
+              {programStructure["MCA"]?.departments?.map((dept) => (
+              <option key={dept.value} value={dept.label}>
+                {dept.label}
+              </option>
+            ))}
+          </optgroup>
+
+            {/* MBA */}
+            <optgroup label="MBA">
+              {programStructure["MBA"]?.departments?.map((dept) => (
+                <option key={dept.value} value={dept.label}>
+                  {dept.label}
+                </option>
+              ))}
+            </optgroup>
+
+            {/* MTECH */}
+            <optgroup label="M.Tech">
+              {programStructure["MTECH"]?.departments?.map((dept) => (
+                <option key={dept.value} value={dept.label}>
+                  {dept.label}
+                </option>
+              ))}
+            </optgroup>
+          </select>
+
+          {/* Custom arrow */}
+          <div className="
+            pointer-events-none
+            absolute
+            inset-y-0
+            right-0
+            flex
+            items-center
+            pr-4
+            text-slate-500
+          ">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="m19 9-7 7-7-7"
+              />
+            </svg>
+          </div>
+        </div>
+
+        <p className="mt-2 text-xs text-slate-500">
+          Select the department associated with the chosen program.
+        </p>
       </div>
       
       <div>
@@ -1900,9 +2387,10 @@ function ModuleTextbookForm({ onAdd }) {
           <select
             ref={refs.course_type}
             value={formData.course_type}
-            onChange={(e) =>
-              setFormData({ ...formData, course_type: e.target.value })
-            }
+            // onChange={(e) =>
+            //   setFormData({ ...formData, course_type: e.target.value })
+            // }
+            onChange={handleCourseTypeChange}
             className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none w-full"
           >
             <option value="" hidden>Select</option>
@@ -1923,7 +2411,56 @@ function ModuleTextbookForm({ onAdd }) {
             <option value="MC_NO_EXAM">MC without exam</option>
             <option value="ASC">ASC</option>
             {is2025Scheme ? <option value="PIH">Project/Intern/Hackathon</option>:<option value="PI">Project/Intern</option>}
+            <option value="CUSTOM">Custom</option>
           </select>
+          <div className="flex gap-8 items-start w-full">
+            {formData.course_type === "CUSTOM" && (
+              <div className="mt-3 flex-1 min-w-0">
+                <label className="block text-sm font-semibold text-slate-600">
+                  Custom Course Type
+                </label>
+
+                <input
+                  type="text"
+                  value={formData.custom_course_type || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      custom_course_type: e.target.value,
+                    })
+                  }
+                  placeholder="e.g. Professional Elective"
+                  className="mt-2 p-3 bg-gray-50 border border-gray-300 rounded-lg outline-none w-full"
+                />
+              </div>
+            )}
+
+            {formData.course_type === "CUSTOM" && (
+              <div className="mt-3 flex-1 min-w-0 relative z-10">
+                <label className="block text-sm font-semibold text-slate-600">
+                  Exam Type
+                </label>
+
+                <select
+                  value={formData.exam_type || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      exam_type: e.target.value,
+                    })
+                  }
+                  className="mt-7 p-3 bg-gray-50 border border-gray-300 rounded-lg outline-none w-70 cursor-pointer"
+                >
+                  <option value="">Select Exam Type</option>
+                  <option value="Theory">Theory</option>
+                  <option value="Lab">Lab</option>
+                  <option value="Theory & Lab">Theory & Lab</option>
+                  <option value="MCQ">MCQ</option>
+                  <option value="No Exam">No Exam</option>
+                </select>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -2828,6 +3365,9 @@ function ModuleTextbookForm({ onAdd }) {
       setFormData={setFormData}
     />
 
+  
+    {/* Existing bottom FAB etc. */}
+    
     {/* ======== ACTION SECTION ======== */}
     <div ref={bottomRef} className="mt-8 border-t border-slate-200 pt-3 pb-2">
       {/* 1. INITIAL GENERATE BUTTON */}
@@ -2846,7 +3386,7 @@ function ModuleTextbookForm({ onAdd }) {
           <span>{generateBtnText}</span>
         </button>
       )}
-
+    
       {/* 2. DOWNLOAD, PREVIEW & SUBMIT OPTIONS */}
       {showDownloads && (
         <div className="flex flex-col items-center w-full animate-in fade-in zoom-in duration-300">
@@ -2866,7 +3406,7 @@ function ModuleTextbookForm({ onAdd }) {
                 PDF
               </span>
             </label>
-
+    
             <label className="flex items-center gap-2 cursor-pointer group border-l pl-4 border-slate-300 text-sm">
               <input
                 type="checkbox"
@@ -2880,7 +3420,7 @@ function ModuleTextbookForm({ onAdd }) {
                 DOCX
               </span>
             </label>
-
+    
             <label className="flex items-center gap-2 cursor-pointer group border-l pl-4 border-slate-300 text-sm">
               <input
                 type="checkbox"
@@ -2895,7 +3435,7 @@ function ModuleTextbookForm({ onAdd }) {
               </span>
             </label>
           </div>
-
+    
           {/* Action Buttons Row */}
           <div className="flex flex-wrap items-center justify-center gap-3 mb-4">
             <button
@@ -2911,7 +3451,7 @@ function ModuleTextbookForm({ onAdd }) {
             >
               <Edit2 size={14} /> Edit & Regenerate
             </button>
-
+    
             <button
               disabled={downloadBtnText === "Downloading..."}
               onClick={triggerAllDownloads}
@@ -2925,7 +3465,7 @@ function ModuleTextbookForm({ onAdd }) {
               <ArrowDown size={16} />
               {downloadBtnText === "Download All" ? "Download Selected" : downloadBtnText}
             </button>
-
+    
             <button
               onClick={previewPDF}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors
@@ -2937,7 +3477,7 @@ function ModuleTextbookForm({ onAdd }) {
             >
               {previewBtnText}
             </button>
-
+    
             <button
               onClick={() => {
                 setDocGen(false);
@@ -2957,7 +3497,7 @@ function ModuleTextbookForm({ onAdd }) {
               <Plus size={14} /> Generate New
             </button>
           </div>
-
+    
           {/* PORTAL SUBMISSION BUTTON */}
           {isFromPortal && (
             <div className="w-full max-w-lg mt-2 pt-4 border-t border-slate-200 flex flex-col items-center">
@@ -2973,6 +3513,43 @@ function ModuleTextbookForm({ onAdd }) {
         </div>
       )}
     </div>
+            </div>
+
+
+
+      </div>
+
+
+      {/* =====================================================
+          RIGHT SIDE — LIVE PREVIEW
+      ===================================================== */}
+
+      <div
+        className="
+          hidden
+          xl:flex
+          w-[48%]
+          2xl:w-[46%]
+          h-full
+          border-l
+          border-slate-300
+          bg-slate-100
+          overflow-hidden
+          flex-shrink-0
+        "
+      >
+
+        <SyllabusPreview
+          formData={formData}
+          scheme={scheme}
+          onPreviewPDF={previewPDF}
+          previewBtnText={previewBtnText}
+        />
+
+      </div>
+
+    </div>
+
 
     {/* ======== PDF PREVIEW MODAL ======== */}
     {showPreview && pdfPreviewUrl && (
@@ -3004,7 +3581,10 @@ function ModuleTextbookForm({ onAdd }) {
           {/* Footer */}
           <div className="p-4 border-t bg-slate-50 flex justify-end gap-3">
             <button
-              onClick={downloadPdf}
+              onClick={() => {
+                downloadOptions.pdf = true;
+                triggerAllDownloads();
+              }}
               className="px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-lg shadow-sm cursor-pointer hover:bg-indigo-700 transition-colors"
             >
               Download PDF

@@ -1,33 +1,109 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PDFDocument, rgb } from "pdf-lib";
 import { renderAsync } from "docx-preview";
 import * as htmlToImage from "html-to-image";
 import jsPDF from "jspdf";
 import JSZip from "jszip";
 import { DOMParser, XMLSerializer } from "xmldom";
-import { X, Upload, Trash2, Merge, Loader2, AlertCircle } from "lucide-react";
+import { X, Upload, Trash2, Merge, Loader2, AlertCircle, FileText } from "lucide-react";
 import headerFull from "./assets/images/header_img.png";
-import logo from "./assets/images/logo.png";
+import logo from "./assets/images/logo.jpg";
+
+const DEPARTMENTS = [
+  {
+    group: "UG / Engineering",
+    options: [
+      "Civil Engineering",
+      "Mechanical Engineering",
+      "Electrical and Electronics Engineering",
+      "Electronics and Communication Engineering",
+      "Computer Science and Engineering",
+      "Electronics and Instrumentation Engineering",
+      "Electronics and Telecommunication Engineering",
+      "Information Science and Engineering",
+      "Artificial Intelligence and Machine Learning",
+      "Computer Science and Engineering (Internet of Things & Cyber Security including Blockchain Technology)",
+      "Computer Science and Engineering (Data Science)",
+      "Robotics & Artificial Intelligence",
+      "Electronics Engineering (VLSI Design & Technology)",
+    ],
+  },
+
+  {
+    group: "M.Tech Programmes",
+    options: [
+      "Structural Engineering",
+      "Computer Science & Engineering",
+      "VLSI Design & Embedded System",
+    ],
+  },
+
+  {
+    group: "Postgraduate Programmes",
+    options: [
+      "Master in Computer Applications (MCA)",
+      "Master in Business Administration (MBA)",
+    ],
+  },
+];
 
 export default function MergeFilesModal({onClose}) {
-  const [files,            setFiles]           = useState([]);
+  const [files, setFiles] = useState([]);
   const [mergeWithPageNos, setMergeWithPageNos] = useState(false);
-  const [merging,          setMerging]          = useState(false);
-  const [progress,         setProgress]         = useState("");
-  const [mergeWithHeaderFooter,setMergeWithHeaderFooter] = useState(false)
+  const [merging, setMerging] = useState(false);
+  const [progress, setProgress] = useState("");
+  const [addGeneratedOn, setAddGeneratedOn] = useState(false);
+  const [operation, setOperation] = useState("merge");
+  const [selectedDepartment, setSelectedDepartment] = useState(
+  "Computer Science and Engineering"
+);
+  const [departments, setDepartments] = useState([]);
+
+  useEffect(() => {
+  setDepartments(DEPARTMENTS);
+}, []);
 
 
-  function handleFileSelect(e) {
-    setFiles(prev => [...prev, ...Array.from(e.target.files)]);
-  }
+function handleFileSelect(e) {
+
+  const selectedFiles =
+    Array.from(e.target.files || []);
+
+    if (operation === "headerFooter") {
+
+      // Only one PDF is allowed
+      if (files.length >= 1) {
+        return;
+      }
+
+      const pdf = selectedFiles.find(file =>
+        file.name.toLowerCase().endsWith(".pdf")
+      );
+
+      if (!pdf) {
+        alert("Please select a PDF file.");
+        return;
+      }
+
+      setFiles([pdf]);
+
+      return;
+    }
+
+  // Merge mode
+  setFiles(prev => [
+    ...prev,
+    ...selectedFiles
+  ]);
+}
 
   function removeFile(index) {
     setFiles(files.filter((_, i) => i !== index));
   }
 
   function getFileIcon(name) {
-    if (name.endsWith(".pdf"))  return "📄";
-    if (name.endsWith(".docx")) return "📝";
+    if (/\.pdf$/i.test(name)) return "📄";
+    if (/\.docx$/i.test(name)) return "📝";
     return "📁";
   }
 
@@ -53,396 +129,855 @@ async function loadImageAsBase64(src) {
   }
 }
 
-// ── HELPER: generate header PNG bytes ────────────────────────────────────
-async function generateHeaderImage(pageWidthPt) {
-  const now = new Date();
-  const formatted = now.toLocaleString("en-IN", {
-    day: "2-digit", month: "short", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
+async function generateHeaderImage(pageWidthPt, department) {
+  const headerBase64 =
+    await loadImageAsBase64(headerFull);
 
-  const PX = Math.round(pageWidthPt * 1.333);
-  const headerBase64 = await loadImageAsBase64(headerFull);
-  const logoBase64 = await loadImageAsBase64(logo);
+  const logoBase64 =
+    await loadImageAsBase64(logo);
 
-  const wrapper = document.createElement("div");
+  const PX =
+    Math.round(pageWidthPt * 1.333);
+
+  const wrapper =
+    document.createElement("div");
+
   Object.assign(wrapper.style, {
-    position:      "fixed",
-    top:           "-99999px",
-    left:          "-99999px",
-    width:         `${PX}px`,
-    height:        "200px",
-    overflow:      "hidden",
+    position: "fixed",
+    top: "-9999px",
+    left: "0",
+
+    width: `${PX}px`,
+
+    background: "#ffffff",
+
+    overflow: "hidden",
+
     pointerEvents: "none",
   });
 
-  const div = document.createElement("div");
+  const div =
+    document.createElement("div");
+
   Object.assign(div.style, {
-    width:      `${PX}px`,
+    width: `${PX}px`,
+
     background: "#ffffff",
-    padding:    "8px 28px 6px 28px",   // tighter padding
-    boxSizing:  "border-box",
-    fontFamily: "Arial, sans-serif",
-    opacity:    "1",
+
+    boxSizing: "border-box",
+
+    margin: "0",
+
+    padding: "8px 0 0 0",
+
+    fontFamily: "Times New Roman, serif",
+
+    overflow: "hidden",
   });
 
   div.innerHTML = `
-  <div style="
-    position:relative;
-    width:100%;
-    margin-top:-10px;
-  ">
+  <div
+    style="
+      width:100%;
+      box-sizing:border-box;
+      font-family:'Times New Roman', serif;
+    "
+  >
 
-    <!-- HEADER ROW -->
-    <div style="
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:${PX * 0.02}px;
-    ">
+    <!-- ================= HEADER FLEX ROW ================= -->
+    <div
+      style="
+        width:81.5%;
+        margin:0 auto;
+        display:flex;
+        align-items:center;
+        box-sizing:border-box;
+        min-height:90px;
+      "
+    >
 
-      <!-- LOGO -->
-      <img src="${logoBase64}" 
-           style="
-             width:${PX * 0.20}px;
-             height:auto;
-             margin-top:-2px;
-             margin-left:-180px;
-             padding:15px
-           " />
+      <!-- BIT LOGO -->
+      <div
+        style="
+          width:100px;
+          flex:0 0 100px;
+          height:65px;
+          display:flex;
+          align-items:center;
+          justify-content:flex-start;
+          box-sizing:border-box;
+        "
+      >
+        <img
+          src="${logoBase64}"
+          style="
+            width:100px;
+            height:100px;
+            display:block;
+            object-fit:contain;
+          "
+        />
+      </div>
 
-      <!-- TEXT BLOCK -->
-      <div style="
-        text-align:center;
-        margin-left:80px;
-        margin-top:-10px;
-        line-height:1.2;
-      ">
-        
-        <div style="
-          color:#d10000;
-          font-weight:900;
-          font-size:${PX * 0.02}px;
-          font-family:'Times New Roman', serif;
-        ">
-          ಬೆಂಗಳೂರು ತಾಂತ್ರಿಕ ಮಹಾವಿದ್ಯಾಲಯ
-        </div>
 
-        <div style="
-          color:#1a5fd0;
-          font-weight:900;
-          font-size:${PX * 0.017}px;
-          margin-top:2px;
-          font-family:'Georgia','Times New Roman',serif;
-          letter-spacing:1px;
-          text-shadow:0.4px 0 0 #1a5fd0;
-        ">
+      <!-- COLLEGE + DEPARTMENT DETAILS -->
+      <div
+        style="
+          flex:1;
+          min-width:0;
+          text-align:center;
+          box-sizing:border-box;
+          padding:0 5px;
+        "
+      >
+
+        <!-- COLLEGE NAME -->
+        <div
+          style="
+            width:100%;
+            font-size:21px;
+            font-weight:800;
+            color:#8b0000;
+            line-height:1.15;
+            margin:0;
+            padding:0;
+            text-align:center;
+            white-space:nowrap;
+          "
+        >
           BANGALORE INSTITUTE OF TECHNOLOGY
         </div>
 
+
+        <!-- AUTONOMOUS DESCRIPTION -->
+        <div
+          style="
+            width:100%;
+            font-size:13.5px;
+            color:#333;
+            line-height:1.3;
+            margin-top:3px;
+            padding:0;
+            text-align:center;
+            white-space:nowrap;
+          "
+        >
+          An Autonomous Institution under-VTU, K R Road, V. V. Puram,
+          Bengaluru – 560004
+        </div>
+
+
+        <!-- DEPARTMENT -->
+        <div
+          style="
+            width:100%;
+            font-size:18px;
+            font-weight:800;
+            color:#17365d;
+            line-height:1.25;
+            margin-top:2px;
+            text-align:center;
+            white-space:normal;
+            overflow-wrap:break-word;
+            word-break:normal;
+            padding:0;
+          "
+        >
+          Department of ${department}
+        </div>
+
       </div>
 
     </div>
 
-    <!-- DATE (absolute, outside flow) -->
-    <div style="
-      position:absolute;
-      right:10px;
-      top:2px;
-      font-size:${PX * 0.015}px;
-      font-family:'Times New Roman', serif;
-    ">
-      Generated on: ${formatted}
-    </div>
 
-    <!-- SUBTEXT (aligned with SAME CENTER BLOCK) -->
-    <div style="
-      display:flex;
-      justify-content:center;
-      margin-left:42px;
-      margin-top:-13px;
-              margin-bottom:-7px;
-    ">
-      <div style="
-        margin-left:42px;
-        margin-top:-50px;
-        margin-bottom:-7px;
-        font-size:${PX * 0.013}px;
-        color:#0066c8;
-        font-weight:600;
-        letter-spacing:0.1px;
-        font-family:'Times New Roman', serif;
-      ">
-        An Autonomous Institution Under VTU, Belagavi
-      </div>
-    </div>
-
-    <!-- RED LINE -->
-    <div style="
-      border-top:2.5px solid #cc0000;
-      margin-top:5px;
-    "></div>
+    <!-- ================= HORIZONTAL LINE ================= -->
+    <div
+      style="
+        width:81%;
+        height:2px;
+        background:#17365d;
+        margin-left:76px;
+        margin-top:5px;
+        box-sizing:border-box;
+      "
+    ></div>
 
   </div>
 `;
 
   wrapper.appendChild(div);
+
   document.body.appendChild(wrapper);
 
-  // await new Promise((resolve) => {
-  //   const img = div.querySelector("#hdrImg");
-  //   if (img.complete && img.naturalWidth > 0) { resolve(); return; }
-  //   img.onload  = resolve;
-  //   img.onerror = resolve;
-  // });
 
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  // =========================================================
+  // WAIT FOR DOM + IMAGE RENDERING
+  // =========================================================
 
-  const W = div.scrollWidth  || PX;
-  const H = div.scrollHeight || 120;
+  await new Promise(resolve =>
+    requestAnimationFrame(() =>
+      requestAnimationFrame(resolve)
+    )
+  );
 
-  const dataUrl = await htmlToImage.toPng(div, {
-    backgroundColor: "#ffffff",
-    pixelRatio: 2,
-    width: W,
-    height: H,
-  });
+
+  // =========================================================
+  // ACTUAL DIMENSIONS
+  // =========================================================
+
+  const W =
+    div.scrollWidth || PX;
+
+  const H =
+    div.scrollHeight || 100;
+
+
+  // =========================================================
+  // GENERATE PNG
+  // =========================================================
+
+  const dataUrl =
+    await htmlToImage.toPng(
+      div,
+      {
+        backgroundColor: "#ffffff",
+
+        pixelRatio: 2,
+
+        width: W,
+
+        height: H,
+      }
+    );
+
 
   document.body.removeChild(wrapper);
-  const base64 = dataUrl.split(",")[1];
-  return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+
+
+  // =========================================================
+  // CONVERT BASE64 → BYTES
+  // =========================================================
+
+  const base64 =
+    dataUrl.split(",")[1];
+
+
+  return {
+    bytes: Uint8Array.from(
+      atob(base64),
+      c => c.charCodeAt(0)
+    ),
+
+    width: W,
+
+    height: H,
+  };
 }
 
-// ── HELPER: generate footer PNG bytes ────────────────────────────────────
-async function generateFooterImage(pageWidthPt, pageNum) {
-  const PX = Math.round(pageWidthPt * 1.333);
+async function generateFooterImage(pageWidthPt) {
+  const PX =
+    Math.round(pageWidthPt * 1.333);
 
-  const wrapper = document.createElement("div");
+  const wrapper =
+    document.createElement("div");
+
   Object.assign(wrapper.style, {
-    position:      "fixed",
-    top:           "-99999px",
-    left:          "-99999px",
-    width:         `${PX}px`,
-    height:        "200px",
-    overflow:      "hidden",
+    position: "fixed",
+    top: "-99999px",
+    left: "-99999px",
+
+    width: `${PX}px`,
+
+    background: "#ffffff",
+
+    overflow: "hidden",
+
     pointerEvents: "none",
   });
 
-  const div = document.createElement("div");
+  const div =
+    document.createElement("div");
+
   Object.assign(div.style, {
-    width:      `${PX}px`,
+    width: `${PX}px`,
+
     background: "#ffffff",
-    padding:    "8px 28px 10px 28px",
-    boxSizing:  "border-box",
-    fontFamily: "Arial, sans-serif",
-    opacity:    "1",           // ✅ fully visible to canvas renderer
+
+    boxSizing: "border-box",
+
+    padding: "0 28px 0 28px",
+
+    margin: "0",
+
+    fontFamily:
+      "Times New Roman, serif",
   });
 
   div.innerHTML = `
-    <div style="border-top:2.5px solid #cc0000;;margin-bottom:5px;"></div>
-    <div style="text-align:center;font-size:9px;font-weight:bold;
-                color:#000;">
-      K.R. Road, V. V. Pura, Bengaluru – 560 004
+    <div
+      style="
+        width:88%;
+        border-top:1px solid #17365d;
+        margin:0 0 5px 0;
+        padding:0;
+        margin-left:46px;
+      "
+    ></div>
+
+    <div
+      style="
+        text-align:center;
+        font-size:12px;
+        color:#000;
+        line-height:1.25;
+        margin:0;
+        padding:0;
+      "
+    >
+      K R Road, V. V. Puram, Bengaluru–560004
     </div>
-    <div style="text-align:center;font-size:9px;color:#000;">
-      Phone: +91(080) 26613237, 26615865 | Website: www.bit-bangalore.edu.in
+
+    <div
+      style="
+        text-align:center;
+        font-size:11px;
+        color:#000;
+        line-height:1.25;
+        margin:0;
+        padding:0;
+      "
+    >
+      Website: <a href = "https://www.bit-bangalore.edu.in" > www.bit-bangalore.edu.in </a>
     </div>
-    <div style="text-align:center;font-size:9px;font-weight:bold;
-                color:#0000b4;">
-      E-mail : principalbit4@gmail.com, principal@bit-bangalore.edu.in
-    </div>
-    <div style="text-align:center;font-size:9px;color:#000;margin-bottom:10px;">
-      Accredited by NBA: 8 UG Programs, NAAC A+ and QS-I Gauge (Gold Rating)
-    </div>
-    <div style="text-align:right;font-size:13px;color:#000;margin-top:-16px">${mergeWithPageNos?pageNum:""}</div>
   `;
 
   wrapper.appendChild(div);
+
   document.body.appendChild(wrapper);
 
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  await new Promise(resolve =>
+    requestAnimationFrame(() =>
+      requestAnimationFrame(resolve)
+    )
+  );
 
-  const W = div.scrollWidth  || PX;
-  const H = div.scrollHeight || 100;
+  const W =
+    div.scrollWidth || PX;
 
-  const dataUrl = await htmlToImage.toPng(div, {
-    backgroundColor: "#ffffff",
-    pixelRatio: 2,
-    width:  W,
-    height: H,
-  });
+  const H =
+    div.scrollHeight || 40;
+
+  const dataUrl =
+    await htmlToImage.toPng(
+      div,
+      {
+        backgroundColor: "#ffffff",
+
+        pixelRatio: 2,
+
+        width: W,
+        height: H,
+      }
+    );
 
   document.body.removeChild(wrapper);
 
-  const base64 = dataUrl.split(",")[1];
-  return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  const base64 =
+    dataUrl.split(",")[1];
+
+  return {
+    bytes: Uint8Array.from(
+      atob(base64),
+      c => c.charCodeAt(0)
+    ),
+
+    width: W,
+    height: H,
+  };
 }
 
-  // ── PDF MERGE - updated with page content shift ───────────────────────────
+
+async function addHeaderFooterToPages(pdf) {
+  const pages = pdf.getPages();
+
+  if (!pages.length) {
+    throw new Error("PDF contains no pages.");
+  }
+
+  /*
+   * Layout:
+   *
+   * ┌──────────────────────────────┐
+   * │          FULL HEADER         │
+   * ├──────────────────────────────┤
+   * │                              │
+   * │     ORIGINAL PDF CONTENT     │
+   * │     ORIGINAL SIZE            │
+   * │                              │
+   * ├──────────────────────────────┤
+   * │          FULL FOOTER         │
+   * └──────────────────────────────┘
+   *
+   * IMPORTANT:
+   * - Original PDF width stays unchanged.
+   * - Original PDF content is NOT scaled.
+   * - Header height is calculated from actual image ratio.
+   * - Footer height is calculated from actual footer content.
+   */
+
+  const headerCache = new Map();
+  const footerCache = new Map();
+
+  for (let i = 0; i < pages.length; i++) {
+    const page = pages[i];
+
+    const {
+      width: originalWidth,
+      height: originalHeight,
+    } = page.getSize();
+
+    const cacheKey =
+      `${Math.round(originalWidth)}x${Math.round(originalHeight)}`;
+
+    // =========================================================
+    // HEADER
+    // =========================================================
+
+    setProgress(
+      `Preparing header (${i + 1}/${pages.length})...`
+    );
+
+    let headerData =
+      headerCache.get(cacheKey);
+
+    if (!headerData) {
+      const generatedHeader =
+        await generateHeaderImage(originalWidth,selectedDepartment);
+
+      /*
+       * generateHeaderImage() returns:
+       *
+       * {
+       *   bytes,
+       *   width,
+       *   height
+       * }
+       *
+       * IMPORTANT:
+       * Pass ONLY generatedHeader.bytes to embedPng().
+       */
+
+      const headerImage =
+        await pdf.embedPng(
+          generatedHeader.bytes
+        );
+
+      /*
+       * Preserve the actual aspect ratio.
+       */
+      // const headerHeight =
+      //   originalWidth *
+      //   (
+      //     generatedHeader.height /
+      //     generatedHeader.width
+      //   );
+
+      // headerData = {
+      //   image: headerImage,
+      //   height: headerHeight,
+      // };
+
+      // =========================================================
+      // HEADER DISPLAY SIZE
+      // =========================================================
+
+      const headerDrawWidth = originalWidth;
+
+      const headerDrawHeight =
+        headerDrawWidth *
+        (
+          generatedHeader.height /
+          generatedHeader.width
+        );
+
+      headerData = {
+        image: headerImage,
+        width: headerDrawWidth,
+        height: headerDrawHeight,
+        horizontalPadding: 0,
+      };
+
+      headerCache.set(
+        cacheKey,
+        headerData
+      );
+    }
+
+    // =========================================================
+    // FOOTER
+    // =========================================================
+
+    setProgress(
+      `Preparing footer (${i + 1}/${pages.length})...`
+    );
+
+    let footerData =
+      footerCache.get(cacheKey);
+
+    if (!footerData) {
+      const generatedFooter =
+        await generateFooterImage(originalWidth);
+
+      /*
+       * Same structure:
+       *
+       * {
+       *   bytes,
+       *   width,
+       *   height
+       * }
+       */
+
+      const footerImage =
+        await pdf.embedPng(
+          generatedFooter.bytes
+        );
+
+      /*
+       * Calculate actual footer height.
+       * This prevents the large empty area.
+       */
+      const footerHeight =
+        originalWidth *
+        (
+          generatedFooter.height /
+          generatedFooter.width
+        );
+
+      footerData = {
+        image: footerImage,
+        height: footerHeight,
+      };
+
+      footerCache.set(
+        cacheKey,
+        footerData
+      );
+    }
+
+    // =========================================================
+  // ACTUAL DIMENSIONS
+  // =========================================================
+
+  const headerHeight =
+    headerData.height;
+
+  const footerHeight =
+    footerData.height;
+
+  // =========================================================
+  // PAGE SPACING
+  // =========================================================
+
+  // Space above the header.
+  // Prevents the header from touching the page boundary.
+  const headerTopGap = 13;
+
+  // Small gap between header and original PDF content.
+  const headerContentGap = -10;
+
+  // Almost no empty space below footer.
+  const footerGap = 0;
+
+  // const topReserved =
+  //   headerHeight +
+  //   headerTopGap - 5;
+  const topReserved =
+  headerData.height +
+  headerTopGap;
+
+  const bottomReserved =
+    footerHeight +
+    footerGap - 10;
+
+  // =========================================================
+  // EXPAND PAGE
+  // =========================================================
+
+  const newPageHeight =
+    originalHeight +
+    topReserved +
+    bottomReserved;
+
+  /*
+  * IMPORTANT:
+  * Width remains EXACTLY unchanged.
+  */
+  page.setSize(
+    originalWidth,
+    newPageHeight
+  );
+
+  // =========================================================
+  // MOVE ORIGINAL CONTENT
+  // =========================================================
+
+  page.translateContent(
+    0,
+    bottomReserved
+  );
+
+  // =========================================================
+  // DRAW HEADER
+  // =========================================================
+
+  setProgress(
+    `Adding header (${i + 1}/${pages.length})...`
+  );
+
+  page.drawImage(
+    headerData.image,
+    {
+      x: headerData.horizontalPadding,
+
+      y:
+        bottomReserved +
+        originalHeight +
+        headerContentGap,
+
+      width:
+        headerData.width,
+
+      height:
+        headerData.height,
+    }
+  );
+
+    // =========================================================
+    // GENERATED ON
+    // =========================================================
+
+    if (addGeneratedOn) {
+      const now = new Date();
+
+      const formatted =
+        now.toLocaleString(
+          "en-IN",
+          {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          }
+        );
+
+      page.drawText(
+        `Generated on: ${formatted}`,
+        {
+          x:
+            originalWidth - 150,
+
+          y:
+            newPageHeight - 22,
+
+          size: 7,
+
+          color:
+            rgb(0, 0, 0),
+        }
+      );
+    }
+
+    // =========================================================
+    // DRAW FOOTER
+    // =========================================================
+
+    setProgress(
+      `Adding footer (${i + 1}/${pages.length})...`
+    );
+
+    page.drawImage(
+      footerData.image,
+      {
+        x: 0,
+
+        y: footerGap,
+
+        width:
+          originalWidth,
+
+        height:
+          footerHeight,
+      }
+    );
+
+    // =========================================================
+    // PAGE NUMBER
+    // =========================================================
+
+    if (mergeWithPageNos) {
+      page.drawText(
+        `Page ${i + 1} of ${pages.length}`,
+        {
+          x:
+            originalWidth - 95,
+
+          y: 15,
+
+          size: 8,
+
+          color:
+            rgb(0, 0, 0),
+        }
+      );
+    }
+  }
+}
+
+// ── PDF MERGE ────────────────────────────────────────────────
 async function mergePDFs(pdfFiles) {
+
   const mergedPdf = await PDFDocument.create();
 
   for (const file of pdfFiles) {
+
     const bytes = await file.arrayBuffer();
-    const pdf   = await PDFDocument.load(bytes, { ignoreEncryption: true });
-    const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-    pages.forEach(p => mergedPdf.addPage(p));
-  }
 
-  const now = new Date();
-  const formatted = now.toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  
-
-  const allPages  = mergedPdf.getPages();
-  const firstPage = allPages[0];
-  const lastPage  = allPages[allPages.length - 1];
-  const { width: pageW, height: pageH } = firstPage.getSize();
-  
-
-  const headerHeightPt = 95;
-  const shiftDown      = headerHeightPt + 10;
-
-  
-  const firstFileBytes  = await pdfFiles[0].arrayBuffer();
-  const firstFilePdf    = await PDFDocument.load(firstFileBytes, { ignoreEncryption: true });
-
-  const [embeddedPage]  = await mergedPdf.embedPdf(firstFilePdf, [0]);
-
-  
-  const availableHeight = pageH - shiftDown;  // space below header
-  const scaleY          = availableHeight / pageH;  // scale content to fit
-  
-  // ── HEADER on first page (drawn last so it's on top) ─────────────────────
-  if(mergeWithHeaderFooter)
-  {
-  firstPage.drawRectangle({
-    x: 0, y: 0, width: pageW, height: pageH,
-    color: rgb(1, 1, 1),
-  });
-  
-  firstPage.drawPage(embeddedPage, {
-    x:      0,
-    y:      0,                    // anchor to bottom of page
-    width:  pageW,
-    height: availableHeight+20,      // only fill the non-header area
-  });
-  
-    setProgress("Generating header…");
-    const headerBytes = await generateHeaderImage(pageW);
-    const headerImg   = await mergedPdf.embedPng(headerBytes);
-    firstPage.drawImage(headerImg, {
-      x:      0,
-      y:      pageH - headerHeightPt,
-      width:  pageW,
-      height: headerHeightPt,
+    const pdf = await PDFDocument.load(bytes, {
+      ignoreEncryption: true,
     });
 
-    // ── FOOTER on last page ───────────────────────────────────────────────────
-    setProgress("Generating footer…");
-    const footerHeightPt = 90;
-    const footerBytes    = await generateFooterImage(pageW, allPages.length);
-    const footerImg      = await mergedPdf.embedPng(footerBytes);
-    lastPage.drawImage(footerImg, {
-      x:      0,
-      y:      0,
-      width:  pageW,
-      height: footerHeightPt,
+    const pages = await mergedPdf.copyPages(
+      pdf,
+      pdf.getPageIndices()
+    );
+
+    pages.forEach(page => {
+      mergedPdf.addPage(page);
     });
   }
 
-  if (mergeWithPageNos) {
-  const pages = mergedPdf.getPages();
-
   const now = new Date();
-  const formatted = now.toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 
-  pages.forEach((page, i) => {
-    const { width } = page.getSize();
+  const date = now
+    .toLocaleDateString("en-GB")
+    .replace(/\//g, "-");
 
-    // white background strip
-    page.drawRectangle({
-      x: 0,
-      y: 0,
-      width: width,
-      height: 25,
-      color: rgb(1, 1, 1)
-    });
+  const time = now
+    .toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    })
+    .replace(/:/g, "-");
 
-    // LEFT → Generated date
-    page.drawText(`Generated on:${formatted}`, {
-      x: 20,
-      y: 8,
-      size: 9,
-      color: rgb(0, 0, 0),
-    });
+  const blob = new Blob(
+    [await mergedPdf.save()],
+    {
+      type: "application/pdf",
+    }
+  );
 
-    // RIGHT → Page number
-    page.drawText(`${i + 1} / ${pages.length}`, {
-      x: width - 50,
-      y: 8,
-      size: 10,
-      color: rgb(0, 0, 0),
-    });
-  });
-}
+  const url = URL.createObjectURL(blob);
 
+  const a = document.createElement("a");
 
-  const date = now.toLocaleDateString("en-GB").replace(/\//g, "-"); 
-  const time = now.toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false
-  }).replace(/:/g, "-");
-
-
-  const blob = new Blob([await mergedPdf.save()], { type: "application/pdf" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
+  a.href = url;
   a.download = `merged_${date}_${time}.pdf`;
+
+  document.body.appendChild(a);
+
   a.click();
+
+  a.remove();
+
   URL.revokeObjectURL(url);
 }
-  // ── DOCX → PDF ───────────────────────────────────────────────────────────
-  async function convertDOCXtoPDF(docxFile) {
-    return new Promise(async (resolve) => {
-      const buf     = await docxFile.arrayBuffer();
-      const wrapper = document.createElement("div");
-      Object.assign(wrapper.style, {
-        position:"fixed", top:"-99999px", left:"-99999px",
-        width:"900px", background:"#ffffff",
-      });
-      wrapper.className = "docx-wrapper";
-      document.body.appendChild(wrapper);
-      await renderAsync(buf, wrapper);
+async function convertDOCXtoPDF(docxFile) {
+  const buf = await docxFile.arrayBuffer();
 
-      const pdf  = new jsPDF("p", "pt", "a4");
-      const pdfW = pdf.internal.pageSize.getWidth();
-      const pages = wrapper.querySelectorAll("section.docx");
+  const wrapper = document.createElement("div");
 
-      for (let i = 0; i < pages.length; i++) {
-        const img = await htmlToImage.toPng(pages[i], { backgroundColor:"#ffffff", pixelRatio:2 });
-        const p   = await pdf.getImageProperties(img);
-        if (i !== 0) pdf.addPage();
-        pdf.addImage(img, "PNG", 0, 0, pdfW, (p.height * pdfW) / p.width);
+  Object.assign(wrapper.style, {
+    position: "fixed",
+    top: "-99999px",
+    left: "-99999px",
+    width: "900px",
+    background: "#ffffff",
+  });
+
+  wrapper.className = "docx-wrapper";
+
+  document.body.appendChild(wrapper);
+
+  try {
+    await renderAsync(buf, wrapper);
+
+    const pdf = new jsPDF("p", "pt", "a4");
+
+    const pdfW =
+      pdf.internal.pageSize.getWidth();
+
+    const pages =
+      wrapper.querySelectorAll("section.docx");
+
+    if (!pages.length) {
+      throw new Error(
+        `Could not render ${docxFile.name} into pages.`
+      );
+    }
+
+    for (let i = 0; i < pages.length; i++) {
+
+      const img = await htmlToImage.toPng(
+        pages[i],
+        {
+          backgroundColor: "#ffffff",
+          pixelRatio: 2,
+        }
+      );
+
+      const imageProps =
+        await pdf.getImageProperties(img);
+
+      if (i !== 0) {
+        pdf.addPage();
       }
-      document.body.removeChild(wrapper);
-      resolve(new File([pdf.output("blob")], docxFile.name.replace(".docx", ".pdf"), { type:"application/pdf" }));
-    });
+
+      const imageHeight =
+        (imageProps.height * pdfW) /
+        imageProps.width;
+
+      pdf.addImage(
+        img,
+        "PNG",
+        0,
+        0,
+        pdfW,
+        imageHeight
+      );
+    }
+
+    return new File(
+      [
+        pdf.output("blob")
+      ],
+      docxFile.name.replace(
+        /\.docx$/i,
+        ".pdf"
+      ),
+      {
+        type: "application/pdf",
+      }
+    );
+
+  } finally {
+    wrapper.remove();
   }
+}
 
   // ── DOCX MERGE ───────────────────────────────────────────────────────────
   async function mergeDOCX(docxFiles) {
@@ -499,56 +1034,195 @@ async function mergePDFs(pdfFiles) {
   });
 }
 
-  // ── MAIN HANDLER ─────────────────────────────────────────────────────────
-  async function handleMerge() {
-    const pdfFiles  = files.filter(f => f.name.endsWith(".pdf"));
-    const docxFiles = files.filter(f => f.name.endsWith(".docx"));
+// ── ADD HEADER & FOOTER TO SINGLE PDF ─────────────────────────────
+async function handleHeaderFooter() {
 
-    if (pdfFiles.length === 0) {
-  setMerging(true);
-
-  const converted = [];
-
-  for (let i = 0; i < docxFiles.length; i++) {
-    setProgress(`Converting ${docxFiles[i].name}...`);
-    converted.push(await convertDOCXtoPDF(docxFiles[i]));
+  if (files.length !== 1) {
+    alert("Please select exactly one PDF file.");
+    return;
   }
 
-  setProgress("Merging PDFs...");
-  await mergePDFs(converted);  // 🔥 IMPORTANT
+  const file = files[0];
 
-  setMerging(false);
-  onClose();
-  return;
-}
+  if (!file.name.toLowerCase().endsWith(".pdf")) {
+    alert("Please select a PDF file.");
+    return;
+  }
 
-    if (files.length < 2) { alert("Add at least 2 files to merge!"); return; }
+  try {
 
     setMerging(true);
-    const converted = [];
-    for (let i = 0; i < docxFiles.length; i++) {
-      setProgress(`Converting ${docxFiles[i].name} (${i+1}/${docxFiles.length})…`);
-      converted.push(await convertDOCXtoPDF(docxFiles[i]));
-    }
-    setProgress("Merging PDFs…");
-    await mergePDFs([...pdfFiles, ...converted]);
+    setProgress("Loading PDF...");
+
+    const bytes = await file.arrayBuffer();
+
+    const pdf = await PDFDocument.load(bytes, {
+      ignoreEncryption: true,
+    });
+
+    setProgress("Adding header and footer...");
+
+    await addHeaderFooterToPages(pdf);
+
+    setProgress("Generating final PDF...");
+
+    const outputBytes = await pdf.save();
+
+    const blob = new Blob(
+      [outputBytes],
+      { type: "application/pdf" }
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+
+    a.href = url;
+
+    const baseName = file.name
+      .replace(/\.pdf$/i, "");
+
+    a.download = `${baseName}_header_footer.pdf`;
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    a.remove();
+
+    URL.revokeObjectURL(url);
+
+    setProgress("Completed");
+
+  } catch (error) {
+
+    console.error(
+      "Header/Footer processing failed:",
+      error
+    );
+
+    alert(
+      "Failed to add header and footer to the PDF."
+    );
+
+  } finally {
+
     setMerging(false);
-    onClose();
+
+  }
+}
+
+
+async function handleMerge() {
+  const pdfFiles = files.filter(
+    file => /\.pdf$/i.test(file.name)
+  );
+
+  const docxFiles = files.filter(
+    file => /\.docx$/i.test(file.name)
+  );
+
+  if (files.length < 2) {
+    alert("Add at least 2 files to merge.");
+    return;
   }
 
-  const pdfCount  = files.filter(f => f.name.endsWith(".pdf")).length;
-  const docxCount = files.filter(f => f.name.endsWith(".docx")).length;
+  try {
+    setMerging(true);
+
+    const converted = [];
+
+    for (let i = 0; i < docxFiles.length; i++) {
+      setProgress(
+        `Converting ${docxFiles[i].name} (${i + 1}/${docxFiles.length})...`
+      );
+
+      const convertedFile =
+        await convertDOCXtoPDF(docxFiles[i]);
+
+      converted.push(convertedFile);
+    }
+
+    const filesToMerge = [
+      ...pdfFiles,
+      ...converted,
+    ];
+
+    if (filesToMerge.length < 2) {
+      throw new Error("Not enough valid files to merge.");
+    }
+
+    setProgress("Merging files...");
+
+    await mergePDFs(filesToMerge);
+
+    setProgress("Completed");
+
+    onClose();
+
+  } catch (error) {
+
+    console.error("Merge failed:", error);
+
+    alert(
+      error?.message ||
+      "Failed to merge the selected files."
+    );
+
+  } finally {
+
+    setMerging(false);
+  }
+}
+
+  const pdfCount =
+    files.filter(f => /\.pdf$/i.test(f.name)).length;
+
+  const docxCount =
+    files.filter(f => /\.docx$/i.test(f.name)).length;
+
+  function resetTool() {
+    setFiles([]);
+    setMergeWithPageNos(false);
+    setAddGeneratedOn(false);
+    setSelectedDepartment("Computer Science and Engineering");
+    // setCustomDepartment("");
+    setMerging(false);
+    setProgress("");
+    setOperation("merge");
+  }
+
+  function switchOperation(nextOperation) {
+    setOperation(nextOperation);
+    setFiles([]);
+    setMergeWithPageNos(false);
+    setAddGeneratedOn(false);
+    setSelectedDepartment("Computer Science and Engineering");
+    // setCustomDepartment("");
+    setProgress("");
+  }
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4"
          style={{ background:"rgba(0,0,0,0.5)", backdropFilter:"blur(6px)", animation:"fadeIn .15s ease" }}>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden max-h-[640px]"
-           style={{ animation:"slideUp .2s ease" }}>
+      <div
+        className="
+          bg-white
+          w-full max-w-xl
+          rounded-[28px]
+          shadow-[0_24px_80px_rgba(15,39,68,0.22)]
+          border border-slate-200/70
+          overflow-hidden
+          max-h-[90vh]
+          flex flex-col
+        "
+        style={{ animation: "slideUp .2s ease" }}
+      >
 
         {/* ── HEADER ── */}
-        <div className="px-6 pt-6 pb-5 border-b border-slate-100 relative"
+        <div className="px-6 pt-6 pb-2 border-b border-slate-100 relative"
              style={{ background:"linear-gradient(135deg,#f8fafc,white)" }}>
-          <button onClick={() => { setMergeWithPageNos(false); onClose(); }}
+          <button onClick={() => { resetTool(); onClose(); }}
                   className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100
                              flex items-center justify-center hover:bg-slate-200 cursor-pointer
                              transition-colors">
@@ -558,8 +1232,105 @@ async function mergePDFs(pdfFiles) {
                           flex items-center justify-center mb-3">
             <Merge size={22} className="text-slate-600" />
           </div>
-          <h2 className="text-xl font-extrabold text-slate-800">Merge Files</h2>
-          <p className="text-sm text-slate-400 mt-0.5">Combine PDF and DOCX files into one document</p>
+          <h2 className="text-xl font-extrabold text-slate-800">
+            PDF Tools
+          </h2>
+
+          <p className="text-sm text-slate-400 mt-0.5">
+            Choose an operation for your document
+          </p>
+
+          <div className="grid grid-cols-2 gap-2 mt-2">
+
+            {/* MERGE */}
+            <button
+              type="button"
+              onClick={() => {
+                switchOperation("merge");
+              }}
+              className={`
+                text-left rounded-xl border p-3 transition-all
+                ${
+                  operation === "merge"
+                    ? "border-[#0f2744] bg-slate-50 ring-1 ring-[#0f2744]"
+                    : "border-slate-200 bg-white hover:bg-slate-50"
+                }
+              `}
+            >
+              <div className="flex items-center gap-2">
+
+                <div
+                  className={`
+                    w-7 h-7 rounded-lg flex items-center justify-center
+                    ${
+                      operation === "merge"
+                        ? "bg-[#0f2744] text-white"
+                        : "bg-slate-100 text-slate-500"
+                    }
+                  `}
+                >
+                  <Merge size={14} />
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold text-slate-700">
+                    Merge Files
+                  </p>
+
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    2+ documents
+                  </p>
+                </div>
+
+              </div>
+            </button>
+
+
+            {/* HEADER / FOOTER */}
+            <button
+              type="button"
+              onClick={() => {
+                switchOperation("headerFooter");
+              }}
+              className={`
+                text-left rounded-xl border p-3 transition-all
+                ${
+                  operation === "headerFooter"
+                    ? "border-[#0f2744] bg-slate-50 ring-1 ring-[#0f2744]"
+                    : "border-slate-200 bg-white hover:bg-slate-50"
+                }
+              `}
+            >
+              <div className="flex items-center gap-2">
+
+                <div
+                  className={`
+                    w-7 h-7 rounded-lg flex items-center justify-center
+                    ${
+                      operation === "headerFooter"
+                        ? "bg-[#0f2744] text-white"
+                        : "bg-slate-100 text-slate-500"
+                    }
+                  `}
+                >
+                  <FileText size={14} />
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold text-slate-700">
+                    Header & Footer
+                  </p>
+
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    1 PDF
+                  </p>
+                </div>
+
+              </div>
+            </button>
+
+          </div>
+
           {files.length > 0 && (
             <div className="flex gap-2 mt-1 -mb-3">
               {pdfCount  > 0 && (
@@ -579,52 +1350,254 @@ async function mergePDFs(pdfFiles) {
         </div>
 
         {/* ── BODY ── */}
-        <div className="px-6 py-2 flex flex-col gap-2 ">
+        <div className="px-7 py-5 flex flex-col gap-4 overflow-y-auto">
 
-          {/* Page numbers toggle */}
-          <div className="flex items-center justify-between bg-slate-50 border border-slate-200
-                          rounded-xl px-4 py-3">
-            <div>
-              <p className="text-sm font-bold text-slate-700">Add Page Numbers</p>
-              <p className="text-xs text-slate-400">Print page numbers at the bottom of each page</p>
+          {operation === "headerFooter" && (
+            <>
+            {/* DEPARTMENT */}
+
+            <div
+              className="
+                bg-slate-50
+                border border-slate-200
+                rounded-xl
+                px-4 py-3
+              "
+            >
+              <div className="flex items-center justify-between gap-4">
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-800 mb-1.5">
+                    Department
+                  </label>
+
+                  <p className="text-xs text-slate-500 mb-2.5">
+                    This department name will appear in the PDF header.
+                  </p>
+
+                  <select
+                    value={selectedDepartment}
+                    onChange={(e) => setSelectedDepartment(e.target.value)}
+                    className="
+                      w-full
+                      h-11
+                      px-3.5
+                      rounded-xl
+                      border border-slate-200
+                      bg-white
+                      text-sm font-medium text-slate-700
+                      outline-none
+                      transition-all
+                      hover:border-slate-300
+                      focus:border-[#0f2744]
+                      focus:ring-4
+                      focus:ring-[#0f2744]/10
+                    "
+                  >
+                    {departments.map((group) => (
+                      <optgroup key={group.group} label={group.group}>
+                        {group.options.map((department) => (
+                          <option key={department} value={department}>
+                            {department}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+
+              </div>
             </div>
-            <button type="button" onClick={() => setMergeWithPageNos(p => !p)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full
-                               transition-colors duration-300 cursor-pointer flex-shrink-0
-                               ${mergeWithPageNos ? "bg-[#0f2744]" : "bg-slate-300"}`}>
-              <span className={`inline-block h-4 w-4 rounded-full bg-white shadow
-                               transition-transform duration-300
-                               ${mergeWithPageNos ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
-          </div>
-          <div className="flex items-center justify-between bg-slate-50 border border-slate-200
-                          rounded-xl px-4 py-3">
-            <div>
-              <p className="text-sm font-bold text-slate-700">Add Header and Footer</p>
-              <p className="text-xs text-slate-400">Add Header and Footer for the first and last page after merging</p>
-            </div>
-            <button type="button" onClick={() => setMergeWithHeaderFooter (p => !p)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full
-                               transition-colors duration-300 cursor-pointer flex-shrink-0
-                               ${mergeWithHeaderFooter ? "bg-[#0f2744]" : "bg-slate-300"}`}>
-              <span className={`inline-block h-4 w-4 rounded-full bg-white shadow
-                               transition-transform duration-300
-                               ${mergeWithHeaderFooter ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
-          </div>
+
+              {/* PAGE NUMBERS */}
+              <div
+                className="
+                  flex items-center justify-between
+                  bg-slate-50
+                  border border-slate-200
+                  rounded-xl
+                  px-4 py-1
+                "
+              >
+                <div>
+                  <p className="text-sm font-bold text-slate-700">
+                    Add Page Numbers
+                  </p>
+
+                  <p className="text-xs text-slate-400">
+                    Show page number at the bottom
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMergeWithPageNos(p => !p)
+                  }
+                  className={`
+                    relative inline-flex h-6 w-11
+                    items-center rounded-full
+                    transition-colors duration-300
+                    cursor-pointer
+                    ${
+                      mergeWithPageNos
+                        ? "bg-[#0f2744]"
+                        : "bg-slate-300"
+                    }
+                  `}
+                >
+                  <span
+                    className={`
+                      inline-block h-4 w-4
+                      rounded-full bg-white shadow
+                      transition-transform
+                      ${
+                        mergeWithPageNos
+                          ? "translate-x-6"
+                          : "translate-x-1"
+                      }
+                    `}
+                  />
+                </button>
+              </div>
+
+
+              {/* GENERATED ON */}
+              <div
+                className="
+                  flex items-center justify-between
+                  bg-slate-50
+                  border border-slate-200
+                  rounded-xl
+                  px-4 py-1
+                "
+              >
+                <div>
+                  <p className="text-sm font-bold text-slate-700">
+                    Add Generated On
+                  </p>
+
+                  <p className="text-xs text-slate-400">
+                    Show generation date and time in the header
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setAddGeneratedOn(p => !p)
+                  }
+                  className={`
+                    relative inline-flex h-6 w-11
+                    items-center rounded-full
+                    transition-colors duration-300
+                    cursor-pointer
+                    ${
+                      addGeneratedOn
+                        ? "bg-[#0f2744]"
+                        : "bg-slate-300"
+                    }
+                  `}
+                >
+                  <span
+                    className={`
+                      inline-block h-4 w-4
+                      rounded-full bg-white shadow
+                      transition-transform
+                      ${
+                        addGeneratedOn
+                          ? "translate-x-6"
+                          : "translate-x-1"
+                      }
+                    `}
+                  />
+                </button>
+              </div>
+            </>
+          )}
 
           {/* Upload drop zone */}
-          <div className="border-2 border-dashed border-slate-200 rounded-2xl p-2 text-center
-                          hover:border-slate-300 hover:bg-slate-50 transition-colors">
-            <input type="file" id="mergeFileInput" className="hidden"
-                   multiple accept=".pdf,.docx" onChange={handleFileSelect} />
-            <label htmlFor="mergeFileInput" className="cursor-pointer block">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200
-                              mx-auto flex items-center justify-center mb-3">
-                <Upload size={20} className="text-slate-500" />
+          <div
+            className={`
+              border-2 border-dashed rounded-2xl
+              px-6 py-6
+              text-center
+              transition-all
+              ${
+                operation === "headerFooter" && files.length >= 1
+                  ? "border-slate-200 bg-slate-100/70 cursor-not-allowed opacity-70"
+                  : "border-slate-200 bg-slate-50/40 hover:bg-slate-50 hover:border-[#0f2744]/30 cursor-pointer"
+              }
+            `}
+          >
+            <input
+              type="file"
+              id="pdfToolFileInput"
+              className="hidden"
+              multiple={operation === "merge"}
+              accept={
+                operation === "merge"
+                  ? ".pdf,.docx"
+                  : ".pdf"
+              }
+              disabled={operation === "headerFooter" && files.length >= 1}
+              onChange={handleFileSelect}
+            />
+
+            <label
+              htmlFor="pdfToolFileInput"
+              className={`
+                block
+                ${
+                  operation === "headerFooter" && files.length >= 1
+                    ? "cursor-not-allowed"
+                    : "cursor-pointer"
+                }
+              `}
+            >
+              <div
+                className={`
+                  w-12 h-11 rounded-xl
+                  border
+                  mx-auto flex items-center justify-center mb-1
+                  ${
+                    operation === "headerFooter" && files.length >= 1
+                      ? "bg-slate-200 border-slate-300"
+                      : "bg-slate-100 border-slate-200"
+                  }
+                `}
+              >
+                {operation === "headerFooter" && files.length >= 1 ? (
+                  <FileText size={18} className="text-slate-400" />
+                ) : (
+                  <Upload size={18} className="text-slate-500" />
+                )}
               </div>
-              <p className="text-sm font-bold text-slate-700">Click to upload files</p>
-              <p className="text-xs text-slate-400 mt-1">Supports .pdf and .docx</p>
+
+              <p
+                className={`
+                text-sm font-semibold
+                ${
+                  operation === "headerFooter" && files.length >= 1
+                    ? "text-slate-500"
+                    : "text-slate-800"
+                }
+              `}
+            >
+              {operation === "merge"
+                ? "Choose files to upload"
+                : files.length >= 1
+                  ? "PDF already selected"
+                  : "Choose a PDF to upload"}
+            </p>
+
+            <p className="text-xs text-slate-500 mt-1">
+              {operation === "merge"
+                ? "PDF or DOCX • Minimum 2 files"
+                : files.length >= 1
+                  ? "Only one PDF is allowed"
+                  : "PDF • One file"}
+            </p>
             </label>
           </div>
 
@@ -632,21 +1605,47 @@ async function mergePDFs(pdfFiles) {
           {files.length > 0 && (
             <div className="max-h-25 overflow-y-auto space-y-2 pr-1">
               {files.map((file, i) => (
-                <div key={i}
-                     className="flex items-center gap-3 bg-slate-50 border border-slate-200
-                                rounded-xl px-4 py-2.5">
-                  <span className="text-base flex-shrink-0">{getFileIcon(file.name)}</span>
-                  <span className="text-sm text-slate-700 font-semibold flex-1 truncate">
-                    {file.name}
-                  </span>
-                  <span className="text-[10px] text-slate-400 flex-shrink-0">
-                    {(file.size / 1024).toFixed(0)} KB
-                  </span>
-                  <button onClick={() => removeFile(i)}
-                          className="w-6 h-6 rounded-lg bg-red-50 border border-red-100
-                                     flex items-center justify-center text-red-400
-                                     hover:bg-red-100 transition-colors cursor-pointer flex-shrink-0">
-                    <Trash2 size={11} />
+                <div
+                  key={i}
+                  className="
+                    group
+                    flex items-center gap-3
+                    border border-slate-200
+                    bg-white
+                    rounded-xl
+                    px-3.5 py-3
+                    hover:border-slate-300
+                    hover:shadow-sm
+                    transition-all
+                  "
+                >
+                  <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center">
+                    <FileText size={16} className="text-slate-500" />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-700 truncate">
+                      {file.name}
+                    </p>
+
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {(file.size / 1024).toFixed(0)} KB
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => removeFile(i)}
+                    className="
+                      w-8 h-8
+                      rounded-lg
+                      flex items-center justify-center
+                      text-slate-400
+                      hover:text-red-500
+                      hover:bg-red-50
+                      transition-colors
+                    "
+                  >
+                    <Trash2 size={14} />
                   </button>
                 </div>
               ))}
@@ -675,22 +1674,66 @@ async function mergePDFs(pdfFiles) {
 
           {/* Action buttons */}
           <div className="flex gap-3 pt-1">
-            <button onClick={onClose} disabled={merging}
-                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-bold
-                               text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer
-                               disabled:opacity-50 disabled:cursor-not-allowed">
+
+            <button
+              onClick={onClose}
+              disabled={merging}
+              className="flex-1 py-2.5 rounded-xl border border-slate-200
+                        text-sm font-bold text-slate-500
+                        hover:bg-slate-50 transition-colors
+                        cursor-pointer
+                        disabled:opacity-50
+                        disabled:cursor-not-allowed"
+            >
               Cancel
             </button>
-            <button onClick={handleMerge} disabled={merging || files.length < 2}
-                    className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white
-                               flex items-center justify-center gap-2 transition-all cursor-pointer
-                               bg-[#0f2744] hover:bg-[#1e3a5f]
-                               disabled:opacity-50 disabled:cursor-not-allowed">
-              {merging
-                ? <><Loader2 size={14} className="animate-spin" />Processing…</>
-                : <><Merge size={14} />Merge Files</>
+
+            <button
+              onClick={
+                operation === "merge"
+                  ? handleMerge
+                  : handleHeaderFooter
               }
+              disabled={
+                merging ||
+                (
+                  operation === "merge"
+                    ? files.length < 2
+                    : files.length !== 1
+                )
+              }
+              className="flex-1 py-2.5 rounded-xl
+                        text-sm font-bold text-white
+                        flex items-center justify-center gap-2
+                        transition-all cursor-pointer
+                        bg-[#0f2744]
+                        hover:bg-[#1e3a5f]
+                        disabled:opacity-50
+                        disabled:cursor-not-allowed"
+            >
+
+              {merging ? (
+                <>
+                  <Loader2
+                    size={14}
+                    className="animate-spin"
+                  />
+                  Processing...
+                </>
+              ) : operation === "merge" ? (
+                <>
+                  <Merge size={14} />
+                  Merge Files
+                </>
+              ) : (
+                <>
+                  <FileText size={14} />
+                  Add Header & Footer
+                </>
+              )}
+
             </button>
+
           </div>
         </div>
       </div>
@@ -701,4 +1744,4 @@ async function mergePDFs(pdfFiles) {
       `}</style>
     </div>
   );
-}
+} 

@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { X } from "lucide-react";
-
+import { X, Pencil, Check, XCircle } from "lucide-react";
 const emptyModule = {
   title: "",
   content: "",
@@ -20,6 +19,7 @@ export default function ModulesSection({
   // =========================================================
   // MODULE OPERATIONS
   // =========================================================
+  const [editingTextbook, setEditingTextbook] = useState(null);
 
   const addModule = () => {
     setFormData((prev) => ({
@@ -103,6 +103,40 @@ export default function ModulesSection({
         modules: updatedModules,
       };
     });
+  };
+
+  const updateModuleTextbook = (
+    moduleIndex,
+    textbookIndex,
+    field,
+    value
+  ) => {
+    setFormData((prev) => {
+      const modules = [...(prev.modules || [])];
+
+      const textbooks = [
+        ...(modules[moduleIndex]?.textbooks || [])
+      ];
+
+      textbooks[textbookIndex] = {
+        ...textbooks[textbookIndex],
+        [field]: value,
+      };
+
+      modules[moduleIndex] = {
+        ...modules[moduleIndex],
+        textbooks,
+      };
+
+      return {
+        ...prev,
+        modules,
+      };
+    });
+  };
+
+  const saveModuleTextbook = () => {
+    setEditingTextbook(null);
   };
 
 
@@ -221,33 +255,106 @@ export default function ModulesSection({
 
             {/* EXISTING TEXTBOOKS */}
 
-            {(mod.textbooks || []).length > 0 && (
+            {(mod.textbooks || []).map((tb, tbIdx) => {
 
-              <div className="space-y-3 mb-5">
+              const isEditing =
+                editingTextbook?.moduleIndex === idx &&
+                editingTextbook?.textbookIndex === tbIdx;
 
-                {(mod.textbooks || []).map(
-                  (tb, tbIdx) => (
+              return (
+                <div
+                  key={tbIdx}
+                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm"
+                >
 
-                    <div
-                      key={tbIdx}
-                      className="flex items-start justify-between gap-3 bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm"
-                    >
+                  {isEditing ? (
+                    /* =====================================================
+                      EDIT MODE
+                    ====================================================== */
+                    <div className="space-y-4">
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                        {/* TB NUMBER */}
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">
+                            TB No
+                          </label>
+
+                          <input
+                            type="text"
+                            value={tb.slNo || ""}
+                            onChange={(e) =>
+                              updateModuleTextbook(
+                                idx,
+                                tbIdx,
+                                "slNo",
+                                e.target.value
+                              )
+                            }
+                            className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-400"
+                          />
+                        </div>
+
+                        {/* CHAPTER */}
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">
+                            Chapter / Article
+                          </label>
+
+                          <input
+                            type="text"
+                            value={tb.chapter || ""}
+                            onChange={(e) =>
+                              updateModuleTextbook(
+                                idx,
+                                tbIdx,
+                                "chapter",
+                                e.target.value
+                              )
+                            }
+                            className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-400"
+                          />
+                        </div>
+
+                      </div>
+
+                      {/* SAVE / CANCEL */}
+                      <div className="flex justify-end gap-2">
+
+                        <button
+                          type="button"
+                          onClick={() => setEditingTextbook(null)}
+                          className="px-3 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center gap-1"
+                        >
+                          <XCircle size={15} />
+                          Cancel
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setEditingTextbook(null)}
+                          className="px-3 py-2 text-sm font-semibold text-white bg-slate-700 hover:bg-slate-800 rounded-md flex items-center gap-1"
+                        >
+                          <Check size={15} />
+                          Save
+                        </button>
+
+                      </div>
+
+                    </div>
+
+                  ) : (
+                    /* =====================================================
+                      NORMAL MODE
+                    ====================================================== */
+                    <div className="flex items-start justify-between gap-3">
 
                       <div className="flex-1 min-w-0">
 
                         <p className="text-sm font-bold text-slate-800">
                           TB-{tb.slNo}
                         </p>
-
-                        {/* <p className="text-xs text-slate-500 mt-1 truncate">
-                          {tb.author || "Author not specified"}
-                          {" • "}
-                          {tb.publisher || "Publisher not specified"}
-
-                          {tb.year
-                            ? ` • ${tb.year}`
-                            : ""}
-                        </p> */}
 
                         {tb.chapter && (
                           <p className="text-xs text-indigo-500 font-medium mt-1">
@@ -257,31 +364,47 @@ export default function ModulesSection({
 
                       </div>
 
+                      {/* EDIT + REMOVE */}
+                      <div className="flex items-center gap-2">
 
-                      {/* REMOVE TEXTBOOK */}
+                        {/* EDIT */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditingTextbook({
+                              moduleIndex: idx,
+                              textbookIndex: tbIdx,
+                            })
+                          }
+                          className="text-slate-500 hover:text-slate-700 flex-shrink-0 w-8 h-8 flex items-center justify-center bg-slate-50 rounded-md hover:bg-slate-100 transition-colors"
+                          title="Edit textbook"
+                        >
+                          <Pencil size={15} />
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          removeTextbook(
-                            idx,
-                            tbIdx
-                          )
-                        }
-                        className="text-red-400 hover:text-red-600 flex-shrink-0 w-8 h-8 flex items-center justify-center bg-red-50 rounded-md hover:bg-red-100 transition-colors"
-                        title="Remove textbook"
-                      >
-                        <X size={16} />
-                      </button>
+                        {/* REMOVE */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeTextbook(
+                              idx,
+                              tbIdx
+                            )
+                          }
+                          className="text-red-400 hover:text-red-600 flex-shrink-0 w-8 h-8 flex items-center justify-center bg-red-50 rounded-md hover:bg-red-100 transition-colors"
+                          title="Remove textbook"
+                        >
+                          <X size={16} />
+                        </button>
+
+                      </div>
 
                     </div>
+                  )}
 
-                  )
-                )}
-
-              </div>
-
-            )}
+                </div>
+              );
+            })}
 
 
             {/* ADD TEXTBOOK FORM */}

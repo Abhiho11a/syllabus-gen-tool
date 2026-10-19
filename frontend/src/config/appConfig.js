@@ -1,23 +1,105 @@
 export const programStructure = {
-    "BE/BTECH": {
-      icon: "",
-      departments: ["AIML", "CSE", "CSE(IOT)", "CS(DS)", "ISE", "ECE", "EEE", "EIE", "ETE", "VLSI", "ME", "CIVIL", "RAI"]
-    },
-    "MCA": {
-      icon: "",
-      departments: ["MCA"]
-    },
-    "MBA": {
-      icon: "",
-      departments: ["MBA"]
-    },
-    "MTECH": {
-      icon: "",
-      departments: ["CSE", "VLSI", "STRUCTURAL"]
-    }
-}
+  "BE/BTECH": {
+    icon: "",
+    departments: [
+      {
+        value: "AIML",
+        label: "Artificial Intelligence and Machine Learning",
+      },
+      {
+        value: "CSE",
+        label: "Computer Science and Engineering",
+      },
+      {
+        value: "CSE(IOT)",
+        label:
+          "Computer Science and Engineering (Internet of Things & Cyber Security including Blockchain Technology)",
+      },
+      {
+        value: "CS(DS)",
+        label: "Computer Science and Engineering (Data Science)",
+      },
+      {
+        value: "ISE",
+        label: "Information Science and Engineering",
+      },
+      {
+        value: "ECE",
+        label: "Electronics and Communication Engineering",
+      },
+      {
+        value: "EEE",
+        label: "Electrical and Electronics Engineering",
+      },
+      {
+        value: "EIE",
+        label: "Electronics and Instrumentation Engineering",
+      },
+      {
+        value: "ETE",
+        label: "Electronics and Telecommunication Engineering",
+      },
+      {
+        value: "VLSI",
+        label: "Electronics Engineering (VLSI Design & Technology)",
+      },
+      {
+        value: "ME",
+        label: "Mechanical Engineering",
+      },
+      {
+        value: "CIVIL",
+        label: "Civil Engineering",
+      },
+      {
+        value: "RAI",
+        label: "Robotics & Artificial Intelligence",
+      },
+    ],
+  },
 
+  MCA: {
+    icon: "",
+    departments: [
+      {
+        value: "MCA",
+        label: "Master in Computer Applications (MCA)",
+      },
+    ],
+  },
 
+  MBA: {
+    icon: "",
+    departments: [
+      {
+        value: "MBA",
+        label: "Master in Business Administration (MBA)",
+      },
+    ],
+  },
+
+  MTECH: {
+    icon: "",
+    departments: [
+      {
+        value: "CSE",
+        label: "Computer Science & Engineering",
+      },
+      {
+        value: "VLSI",
+        label: "VLSI Design & Embedded System",
+      },
+      {
+        value: "SE",
+        label: "Software Engineering",
+      },
+      {
+        value: "STRUCTURAL",
+        label: "Structural Engineering",
+      },
+    ],
+  },
+};
 
 const DEFAULT_4_POINTS = `1. 
 2. 
