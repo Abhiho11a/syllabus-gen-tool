@@ -21,6 +21,36 @@ const GRAY_BORDER = "A0A0A0";
 const LIGHT_GRAY_HEADER = "E6E6E6";
 
 export default function DocxRender({ courseData,strtDownload }) {
+  function hasValue(value) {
+    return (
+      value !== undefined &&
+      value !== null &&
+      String(value).trim() !== ""
+    );
+  }
+
+  function getModuleTextbookDetails(module) {
+    if (!Array.isArray(module?.textbooks)) {
+      if (!hasValue(module?.textbook) && !hasValue(module?.chapter)) {
+        return [];
+      }
+
+      return [[
+        hasValue(module.textbook) ? String(module.textbook).trim() : "",
+        hasValue(module.chapter)
+          ? `Ch-${String(module.chapter).trim()}`
+          : "",
+      ].filter(Boolean).join(":")];
+    }
+
+    return module.textbooks
+      .filter(tb => tb && hasValue(tb.slNo) && hasValue(tb.chapter))
+      .map(tb => [
+        hasValue(tb.slNo) ? `TB${String(tb.slNo).trim()}` : "",
+        hasValue(tb.chapter) ? `Ch-${String(tb.chapter).trim()}` : "",
+      ].filter(Boolean).join(":"));
+  }
+
   // Normalize weird math alphabets
 
   const now = new Date();
@@ -749,32 +779,49 @@ new Paragraph({
     }),
 
 
-    new Paragraph({
-  children: [
-    // LEFT → Textbook + Chapter (can wrap)
-    new TextRun({
-      text: `Textbook ${meta.textbook || ""}: ${meta.chapter || ""}`,
-      bold: true,
-    }),
+    ...(getModuleTextbookDetails(meta).length > 0 ||
+      hasValue(meta.rbt) ||
+      hasValue(meta.wkt)
+      ? [new Paragraph({
+  children: (() => {
+    const children = [
+      ...(getModuleTextbookDetails(meta).length > 0
+        ? [new TextRun({
+            text: getModuleTextbookDetails(meta).join(" , "),
+            bold: true,
+          })]
+        : []),
+    ];
 
-    // TAB → jump to RBT column
-    new TextRun({ text: "\t" }),
+    const hasTextbooks = getModuleTextbookDetails(meta).length > 0;
+    const hasRBT = hasValue(meta.rbt);
+    const hasWK = hasValue(meta.wkt);
 
-    // CENTER → RBT
-    new TextRun({
-      text: `RBT: ${meta.rbt || ""}`,
-      bold: true,
-    }),
+    if (hasTextbooks && (hasRBT || hasWK)) {
+      children.push(new TextRun({ text: "\t" }));
+    }
+    if (hasRBT) {
+      children.push(
+        new TextRun({
+          text: `RBT: ${String(meta.rbt).trim()}`,
+          bold: true,
+        })
+      );
+    }
+    if (hasWK) {
+      children.push(
+        new TextRun({
+          text: hasRBT ? "\t" : "\t\t",
+        }),
+        new TextRun({
+          text: `WK: ${String(meta.wkt).trim()}`,
+          bold: true,
+        })
+      );
+    }
 
-    // TAB → jump to WK column
-    new TextRun({ text: "\t" }),
-
-    // RIGHT → WK
-    new TextRun({
-      text: `WK: ${meta.wkt || ""}`,
-      bold: true,
-    }),
-  ],
+    return children;
+  })(),
 
   tabStops: [
     {
@@ -795,7 +842,7 @@ new Paragraph({
     before: 0,
     after: 0,   // 👈 reduced spacing (you asked earlier)
   },
-})
+})] : []),
 
   ];
 }

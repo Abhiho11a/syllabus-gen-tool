@@ -1550,6 +1550,11 @@ html = html.replace("{{SELF_LEARNING_SECTION}}", "");
   const validModules = (courseData.modules || []).filter(mod =>
     mod && String(mod.content || "").trim() !== ""
   );
+
+  const hasModuleValue = value =>
+    value !== undefined &&
+    value !== null &&
+    String(value).trim() !== "";
   
   let modulesHTML = "";
 
@@ -1560,14 +1565,38 @@ html = html.replace("{{SELF_LEARNING_SECTION}}", "");
 
       // Generate textbook string
       const textbookDetails = (mod.textbooks || [])
+        .filter(tb =>
+          tb &&
+          hasModuleValue(tb.slNo) &&
+          hasModuleValue(tb.chapter)
+        )
         .map(tb => {
+          const slNo = hasModuleValue(tb.slNo)
+            ? `TB${escapeHTML(String(tb.slNo).trim())}`
+            : "";
+          const chapter = hasModuleValue(tb.chapter)
+            ? `Ch-${escapeHTML(String(tb.chapter).trim())}`
+            : "";
 
-          const slNo = escapeHTML(tb.slNo || "-");
-          const chapter = escapeHTML(tb.chapter || "-");
-
-          return `TB${slNo}:Ch-${chapter}`;
+          return [slNo, chapter].filter(Boolean).join(":");
         })
         .join(" , ");
+
+      const rbt = hasModuleValue(mod.rbt) ? String(mod.rbt).trim() : "";
+      const wkValue = hasModuleValue(mod.wk)
+        ? mod.wk
+        : mod.wkt;
+      const wk = hasModuleValue(wkValue) ? String(wkValue).trim() : "";
+      const moduleMeta = [
+        textbookDetails
+          ? `<span><b>${textbookDetails}</b></span>`
+          : "",
+        rbt ? `<span>RBT: ${escapeHTML(rbt)}</span>` : "",
+        wk ? `<span>WK: ${escapeHTML(wk)}</span>` : "",
+        is2025 && hasModuleValue(mod.teachingHours)
+          ? `<span>${escapeHTML(String(mod.teachingHours).trim())} hours</span>`
+          : "",
+      ].join("");
 
       return `
         <div class="module">
@@ -1582,24 +1611,7 @@ html = html.replace("{{SELF_LEARNING_SECTION}}", "");
             ).replace(/\n/g, "<br>")}
           </div>
 
-          <div class="module-meta">
-
-            <span>
-              <b>${textbookDetails}</b>
-            </span>
-
-            <span>
-              RBT: ${escapeHTML(mod.rbt || "-")}
-            </span>
-
-            <span>
-              WK: ${escapeHTML(mod.wk || mod.wkt || "-")}
-            </span>
-
-            ${is2025 ? `<span>
-               ${escapeHTML(mod.teachingHours || "-")} hours
-            </span>`:""}
-          </div>
+          ${moduleMeta ? `<div class="module-meta">${moduleMeta}</div>` : ""}
 
         </div>
       `;
@@ -1607,10 +1619,7 @@ html = html.replace("{{SELF_LEARNING_SECTION}}", "");
     .join("");
 }
 
-  html = html.replace(
-    /{{#each modules}}[\s\S]*?{{\/each}}/g,
-    modulesHTML
-  );
+  html = html.replace("{{MODULES_SECTION}}", modulesHTML);
 
 // ================= EXPERIMENTS =================
 let experimentsHTML = "";

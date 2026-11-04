@@ -209,7 +209,7 @@ function getModuleTextbooks(module) {
   if (Array.isArray(module.textbooks)) {
     return module.textbooks.filter(
       (item) =>
-        clean(item?.slNo) ||
+        clean(item?.slNo) &&
         clean(item?.chapter)
     );
   }
@@ -1635,7 +1635,7 @@ const displayExamType =
             {scheme} Scheme
             </div>
 
-            <button
+            {/* <button
             type="button"
             className="preview-print-button"
             onClick={handlePrint}
@@ -1648,7 +1648,7 @@ const displayExamType =
                 ? "Loading PDF..."
                 : "PDF"}
             </span>
-            </button>
+            </button> */}
 
         </div>
 

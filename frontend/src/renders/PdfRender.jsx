@@ -8,6 +8,36 @@ import headerFull from "../assets/images/header_img.png";
 
 export default function PdfRender({ courseData ,strtDownload}) {
 
+  function hasValue(value) {
+    return (
+      value !== undefined &&
+      value !== null &&
+      String(value).trim() !== ""
+    );
+  }
+
+  function getModuleTextbookDetails(module) {
+    if (!Array.isArray(module?.textbooks)) {
+      if (!hasValue(module?.textbook) && !hasValue(module?.chapter)) {
+        return [];
+      }
+
+      return [[
+        hasValue(module.textbook) ? String(module.textbook).trim() : "",
+        hasValue(module.chapter)
+          ? `Ch-${String(module.chapter).trim()}`
+          : "",
+      ].filter(Boolean).join(":")];
+    }
+
+    return module.textbooks
+      .filter(tb => tb && hasValue(tb.slNo) && hasValue(tb.chapter))
+      .map(tb => [
+        hasValue(tb.slNo) ? `TB${String(tb.slNo).trim()}` : "",
+        hasValue(tb.chapter) ? `Ch-${String(tb.chapter).trim()}` : "",
+      ].filter(Boolean).join(":"));
+  }
+
   // Convert unicode math alphabets to ASCII (robust approach)
   function normalizeMathText(str) {
     if (!str) return "";
@@ -1331,46 +1361,53 @@ y += 8;
     y += lineHeight;   // ✅ move DOWN (this was missing earlier)
   });
 
-  // -------- SEPARATOR --------
-  doc.line(left, y-5, left + width, y-5);
-  y += 10;
+  const textbookDetails = getModuleTextbookDetails(meta);
+  const hasReferenceMeta =
+    textbookDetails.length > 0 ||
+    hasValue(meta.rbt) ||
+    hasValue(meta.wkt);
 
-  // -------- TEXTBOOK LINE --------
-  doc.setFont("Calibri", "bold");
-  const textbookText = `Textbook ${meta.textbook || ""}: ${meta.chapter || ""}`;
+  if (hasReferenceMeta) {
+    // -------- SEPARATOR --------
+    doc.line(left, y-5, left + width, y-5);
+    y += 10;
 
-// 👇 limit textbook to LEFT HALF only
-const maxLeftWidth = width / 2 - 20;
+    // -------- TEXTBOOK LINE --------
+    doc.setFont("Calibri", "bold");
+    const textbookText = textbookDetails.join(" , ");
+    const maxLeftWidth = width / 2 - 20;
+    const textbookLines = doc.splitTextToSize(textbookText, maxLeftWidth);
 
-// split into multiple lines if needed
-const textbookLines = doc.splitTextToSize(textbookText, maxLeftWidth);
+    if (textbookDetails.length > 0) {
+      doc.text(
+        textbookLines,
+        left + pad,
+        y - 5,
+        { align: "left" }
+      );
+    }
 
-// LEFT → Textbook (can be multi-line)
-doc.text(
-  textbookLines,
-  left + pad,
-  y - 5,
-  { align: "left" }
-);
+    if (hasValue(meta.rbt)) {
+      doc.text(
+        `RBT: ${String(meta.rbt).trim()}`,
+        left + width / 2,
+        y - 5,
+        { align: "center" }
+      );
+    }
 
-// CENTER → RBT (always single line)
-doc.text(
-  `RBT: ${meta.rbt || ""}`,
-  left + width / 2,
-  y - 5,
-  { align: "center" }
-);
+    if (hasValue(meta.wkt)) {
+      doc.text(
+        `WK: ${String(meta.wkt).trim()}`,
+        left + width - pad,
+        y - 5,
+        { align: "right" }
+      );
+    }
 
-// RIGHT → WK (always single line)
-doc.text(
-  `WK: ${meta.wkt || ""}`,
-  left + width - pad,
-  y - 5,
-  { align: "right" }
-);
-
-// 🧠 IMPORTANT: adjust Y if textbook wrapped
-y += (textbookLines.length - 1) * 10;
+    // Adjust Y if textbook wrapped.
+    y += (textbookLines.length - 1) * 10;
+  }
 
   
 

@@ -26,6 +26,7 @@ const DEPARTMENTS = [
       "Computer Science and Engineering (Data Science)",
       "Robotics & Artificial Intelligence",
       "Electronics Engineering (VLSI Design & Technology)",
+      "Physical Education And Sports"
     ],
   },
 

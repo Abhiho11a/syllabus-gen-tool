@@ -564,20 +564,7 @@ table.twsl-table .twslHours {
 <!-- END: 2025_TOOLS_PREREQUISITES -->
 
 <!-- ================= MODULES ================= -->
-{{#each modules}}
-<div class="module">
-  <div class="module-title">Module {{@index}}</div>
-  <div class="module-content">
-    {{{this.content}}}
-  </div>
-  <div class="module-meta">
-    <span>Textbook {{this.textbook}}</span>
-    <span>RBT: {{this.rbt}}</span>
-    <span>WK: {{this.wkt}}</span>
-    <span>Hours: {{this.teachingHours}}</span>
-  </div>
-</div>
-{{/each}}
+{{MODULES_SECTION}}
 
 <!-- ================= EXPERIMENTS ================= -->
 {{#each experiments}}
