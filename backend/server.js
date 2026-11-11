@@ -1276,6 +1276,7 @@ function generateSyllabusHTML(templateHTML, courseData) {
 
   let html = templateHTML;
   const is2025 = is2025Scheme(courseData);
+  const is2024 = String(courseData?.scheme_year || "2024").trim() === "2024";
   const ltpLabel = is2025 ? "L:T:P" : "L:T:P:S";
   const totalHours = getTotalHours(courseData.pedagogy);
 
@@ -1593,9 +1594,9 @@ html = html.replace("{{SELF_LEARNING_SECTION}}", "");
           : "",
         rbt ? `<span>RBT: ${escapeHTML(rbt)}</span>` : "",
         wk ? `<span>WK: ${escapeHTML(wk)}</span>` : "",
-        is2025 && hasModuleValue(mod.teachingHours)
-          ? `<span>${escapeHTML(String(mod.teachingHours).trim())} hours</span>`
-          : "",
+        !is2024 && hasModuleValue(mod.teachingHours)
+        ? `<span>${escapeHTML(String(mod.teachingHours).trim())} hours</span>`
+        : "",
       ].join("");
 
       return `
